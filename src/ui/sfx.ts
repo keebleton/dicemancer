@@ -104,6 +104,9 @@ export const sfx = {
   click() {
     tone(520, 0.04, { type: 'square', gain: 0.018 });
   },
+  freeze() {
+    tone(1400, 0.22, { gain: 0.035, slide: 500 });
+  },
   win() {
     [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.18, { gain: 0.05, delay: i * 0.11 }));
   },
@@ -118,6 +121,7 @@ export function playForDispatch(
 ): void {
   if (action.type === 'ROLL') sfx.roll();
   else if (action.type === 'BUY' || action.type === 'BUY_MARKET') sfx.buy();
+  else if (action.type === 'FREEZE_MARKET') sfx.freeze();
   else if (action.type === 'SPEND_TOKEN' || action.type === 'SKIP_BUY') sfx.click();
   else if (
     action.type === 'ALLOCATE' ||

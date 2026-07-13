@@ -114,6 +114,69 @@ describe('the shared market', () => {
     expect(s.market[0]).toBeNull();
   });
 
+  it('freeze calls dibs: only unaffordable cards, one per player, blocks others', () => {
+    const s0 = toBuyPhase(newPoolGame(2, 11));
+    s0.players[0]!.money = 0;
+    const freezes = legalActions(s0).filter((a) => a.type === 'FREEZE_MARKET');
+    expect(freezes.length).toBe(s0.market.filter((c) => c !== null).length);
+    let s = applyAction(s0, { type: 'FREEZE_MARKET', marketIndex: 1 }, deadRng());
+    expect(s.phase).toBe('buy'); // freezing is not the purchase
+    expect(s.players[0]!.shopPenalty).toBe(1);
+    // Limit one active freeze; the frozen card cannot be re-frozen.
+    expect(() => applyAction(s, { type: 'FREEZE_MARKET', marketIndex: 2 }, deadRng())).toThrow(
+      /limit one/,
+    );
+    // p1 (with money) cannot buy the frozen card, and cannot freeze it either.
+    s = applyAction(s, { type: 'SKIP_BUY' }, deadRng());
+    s = applyAction(s, { type: 'END_TURN' }, mulberry32(4));
+    s = toBuyPhase(s);
+    s.players[1]!.money = 40;
+    expect(
+      legalActions(s).some((a) => a.type === 'BUY_MARKET' && a.marketIndex === 1),
+    ).toBe(false);
+    expect(() =>
+      applyAction(s, { type: 'BUY_MARKET', marketIndex: 1, targetSlot: 1 }, deadRng()),
+    ).toThrow(/frozen by another player/);
+  });
+
+  it('the freezer pays with a 3-card shop, can buy their card, and it thaws after their next turn', () => {
+    const s0 = toBuyPhase(newPoolGame(2, 11));
+    s0.players[0]!.money = 0;
+    const frozenId = s0.market[0]!.id;
+    let s = applyAction(s0, { type: 'FREEZE_MARKET', marketIndex: 0 }, deadRng());
+    s = applyAction(s, { type: 'SKIP_BUY' }, deadRng());
+    s = applyAction(s, { type: 'END_TURN' }, mulberry32(5));
+    s = playTurn(s, [1, 2], 'individual'); // p1's turn passes; p0's row redeals thin
+    expect(s.players[0]!.shop).toHaveLength(3); // the freeze tax
+    expect(s.players[0]!.shopPenalty).toBe(0); // spent
+    // The freezer can buy their reserved card.
+    s = toBuyPhase(s);
+    s.players[0]!.money = 40;
+    expect(s.market[0]!.id).toBe(frozenId); // still waiting for them
+    const bought = applyAction(s, { type: 'BUY_MARKET', marketIndex: 0, targetSlot: 5 }, deadRng());
+    expect(bought.players[0]!.board[4]!.id).toBe(frozenId);
+    expect(bought.marketFreezes).toEqual([]);
+
+    // Alternate reality: they never buy it; it thaws after their next turn ends.
+    let t = applyAction(s, { type: 'SKIP_BUY' }, deadRng());
+    t = applyAction(t, { type: 'END_TURN' }, mulberry32(6));
+    expect(t.marketFreezes).toEqual([]); // thawed
+    t = toBuyPhase(t); // p1's turn
+    t.players[1]!.money = 40;
+    expect(
+      legalActions(t).some((a) => a.type === 'BUY_MARKET' && a.marketIndex === 0),
+    ).toBe(true); // open season again
+  });
+
+  it('rejects freezing a card you could just buy', () => {
+    const s0 = toBuyPhase(newPoolGame(2, 11));
+    s0.players[0]!.money = 40;
+    expect(legalActions(s0).some((a) => a.type === 'FREEZE_MARKET')).toBe(false);
+    expect(() => applyAction(s0, { type: 'FREEZE_MARKET', marketIndex: 0 }, deadRng())).toThrow(
+      /buy it instead/,
+    );
+  });
+
   it('green discounts apply to market buys too', () => {
     const s0 = toBuyPhase(newPoolGame(2, 11));
     const card = s0.market[0]!;
@@ -169,7 +232,9 @@ describe('buy, install, retire', () => {
   it('rejects unaffordable and off-slot buys', () => {
     const s0 = toBuyPhase(newPoolGame(2, 11));
     s0.players[0]!.money = 0;
-    expect(legalActions(s0)).toEqual([{ type: 'SKIP_BUY' }]);
+    const broke = legalActions(s0);
+    expect(broke.some((a) => a.type === 'BUY' || a.type === 'BUY_MARKET')).toBe(false);
+    expect(broke.some((a) => a.type === 'SKIP_BUY')).toBe(true); // freezes remain available
     expect(() => applyAction(s0, { type: 'BUY', shopIndex: 0, targetSlot: 1 }, deadRng())).toThrow(
       /afford/,
     );

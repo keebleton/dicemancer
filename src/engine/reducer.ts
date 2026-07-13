@@ -54,10 +54,21 @@ export function legalActions(state: GameState): Action[] {
           actions.push({ type: 'BUY', shopIndex, targetSlot });
         }
       });
+      const iHaveAFreeze = state.marketFreezes.some((f) => f.seat === state.current);
       state.market.forEach((card, marketIndex) => {
-        if (!card || Math.max(0, card.cost - me.buyDiscount) > me.money) return;
-        for (const targetSlot of card.legalSlots) {
-          actions.push({ type: 'BUY_MARKET', marketIndex, targetSlot });
+        if (!card) return;
+        const cost = Math.max(0, card.cost - me.buyDiscount);
+        const frozenByOther = state.marketFreezes.some(
+          (f) => f.marketIndex === marketIndex && f.seat !== state.current,
+        );
+        const frozenAtAll = state.marketFreezes.some((f) => f.marketIndex === marketIndex);
+        if (!frozenByOther && cost <= me.money) {
+          for (const targetSlot of card.legalSlots) {
+            actions.push({ type: 'BUY_MARKET', marketIndex, targetSlot });
+          }
+        }
+        if (!frozenAtAll && !iHaveAFreeze && cost > me.money) {
+          actions.push({ type: 'FREEZE_MARKET', marketIndex });
         }
       });
       return actions;
@@ -141,8 +152,15 @@ function perform(next: GameState, action: Action, rng: Rng): void {
     case 'BUY_MARKET': {
       const card = next.market[action.marketIndex]!;
       refillMarketSlot(next, action.marketIndex); // first come, first served
+      // The buyer was the only one allowed if it was frozen; the freeze is spent.
+      next.marketFreezes = next.marketFreezes.filter((f) => f.marketIndex !== action.marketIndex);
       installCard(next, card, action.targetSlot);
       break;
+    }
+    case 'FREEZE_MARKET': {
+      next.marketFreezes.push({ seat: next.current, marketIndex: action.marketIndex, age: 0 });
+      next.players[next.current]!.shopPenalty = 1;
+      break; // phase stays 'buy': freezing is not the turn's purchase
     }
     case 'SKIP_BUY':
       next.phase = 'end';
@@ -219,11 +237,34 @@ function assertLegal(state: GameState, action: Action): void {
       const me = state.players[state.current]!;
       const card = state.market[action.marketIndex];
       if (!card) throw new Error(`nothing at market index ${action.marketIndex}`);
+      if (
+        state.marketFreezes.some(
+          (f) => f.marketIndex === action.marketIndex && f.seat !== state.current,
+        )
+      ) {
+        throw new Error(`${card.id} is frozen by another player`);
+      }
       if (Math.max(0, card.cost - me.buyDiscount) > me.money) {
         throw new Error(`cannot afford ${card.id}`);
       }
       if (!card.legalSlots.includes(action.targetSlot)) {
         throw new Error(`slot ${action.targetSlot} is not legal for ${card.id}`);
+      }
+      return;
+    }
+    case 'FREEZE_MARKET': {
+      if (state.phase !== 'buy') return fail();
+      const me = state.players[state.current]!;
+      const card = state.market[action.marketIndex];
+      if (!card) throw new Error(`nothing at market index ${action.marketIndex}`);
+      if (state.marketFreezes.some((f) => f.marketIndex === action.marketIndex)) {
+        throw new Error(`${card.id} is already frozen`);
+      }
+      if (state.marketFreezes.some((f) => f.seat === state.current)) {
+        throw new Error('limit one frozen card per player');
+      }
+      if (Math.max(0, card.cost - me.buyDiscount) <= me.money) {
+        throw new Error(`you can afford ${card.id}; buy it instead of freezing`);
       }
       return;
     }
@@ -435,6 +476,12 @@ function endTurn(state: GameState, rng: Rng): void {
   }
 
   state.players[state.current]!.buyDiscount = 0; // discounts are turn-scoped
+  // Age this seat's market freezes: frozen this turn survives their next turn,
+  // then thaws when that turn ends (no permanent denial).
+  state.marketFreezes = state.marketFreezes.flatMap((f) => {
+    if (f.seat !== state.current) return [f];
+    return f.age >= 1 ? [] : [{ ...f, age: f.age + 1 }];
+  });
   if (wrapped) state.round += 1;
   state.current = nextSeat;
   state.phase = 'roll';

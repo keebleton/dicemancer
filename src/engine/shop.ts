@@ -29,8 +29,11 @@ export function dealRow(state: GameState, seat: number, rng: Rng): void {
   for (const card of p.shop) {
     if (card) p.colorDiscard.push(card);
   }
+  // A pending freeze penalty thins this deal, then it is spent.
+  const count = Math.max(1, SHOP_COLOR_CARDS - p.shopPenalty);
+  p.shopPenalty = 0;
   const row: (CardDef | null)[] = [];
-  for (let i = 0; i < SHOP_COLOR_CARDS; i++) row.push(draw(p.colorDeck, p.colorDiscard, rng));
+  for (let i = 0; i < count; i++) row.push(draw(p.colorDeck, p.colorDiscard, rng));
   p.shop = row;
 }
 

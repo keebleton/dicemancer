@@ -108,17 +108,25 @@ export function Game() {
         <section className="panel marketpanel">
           <b>The Market</b>{' '}
           <span className="dimtext">
-            shared artifacts, first come first served ({game.marketDeck.length} left in the deck)
+            shared artifacts, first come first served ({game.marketDeck.length} left in the deck) |
+            can{"'"}t afford one? freeze it to call dibs (your next shop deals 3)
           </span>
           <div>
             {game.market.map((card, i) => {
               const buyable = humanRoller && marketBuys.some((a) => a.marketIndex === i);
               const sel = buySel?.src === 'market' && buySel.i === i;
+              const freeze = game.marketFreezes.find((f) => f.marketIndex === i);
+              const canFreeze =
+                humanRoller &&
+                actions.some((a) => a.type === 'FREEZE_MARKET' && a.marketIndex === i);
               return card ? (
                 <div
                   key={i}
                   className={
-                    'shopcard market' + (sel ? ' selected' : '') + (buyable ? '' : ' dead')
+                    'shopcard market' +
+                    (freeze ? ' frozen' : '') +
+                    (sel ? ' selected' : '') +
+                    (buyable ? '' : ' dead')
                   }
                   onClick={() => {
                     if (buyable) setBuySel(sel ? null : { src: 'market', i });
@@ -145,6 +153,24 @@ export function Game() {
                     <span className="rowlab">echo</span>
                     <EffectIcons effects={card.echo} context="echo" />
                   </div>
+                  {freeze && (
+                    <div className="frozentag">
+                      {'❄'} dibs:{' '}
+                      <span className={game.players[freeze.seat]!.color}>
+                        {game.players[freeze.seat]!.name}
+                      </span>
+                    </div>
+                  )}
+                  {canFreeze && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dispatch({ type: 'FREEZE_MARKET', marketIndex: i });
+                      }}
+                    >
+                      {'❄'} freeze
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div key={i} className="shopcard dead">
