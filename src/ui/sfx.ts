@@ -119,7 +119,11 @@ export function playForDispatch(
   if (action.type === 'ROLL') sfx.roll();
   else if (action.type === 'BUY') sfx.buy();
   else if (action.type === 'SPEND_TOKEN' || action.type === 'SKIP_BUY') sfx.click();
-  else if (action.type === 'ALLOCATE' || action.type === 'CHOOSE_TARGET') {
+  else if (
+    action.type === 'ALLOCATE' ||
+    action.type === 'CHOOSE_TARGET' ||
+    action.type === 'ECHO_CHOICE'
+  ) {
     if (pulses.some((p) => p.stat === 'hp' && p.delta < 0)) sfx.hurt();
     if (pulses.some((p) => p.stat === 'money' && p.delta > 0)) sfx.coin();
     if (pulses.some((p) => p.stat === 'points' && p.delta > 0)) sfx.points();

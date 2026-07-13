@@ -83,6 +83,10 @@ export function playTurn(
   const rng = mulberry32(0xd1ce);
   let s = applyAction(state, { type: 'ROLL' }, diceRng(...faces));
   s = applyAction(s, { type: 'ALLOCATE', mode }, rng);
+  // Opponents with real echo decisions default to hearing the split dice.
+  while (s.winner === null && s.phase === 'echoChoice') {
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, rng);
+  }
   if (s.winner !== null || s.phase !== 'buy') return s;
   s = applyAction(s, { type: 'SKIP_BUY' }, rng);
   if (s.winner !== null) return s;

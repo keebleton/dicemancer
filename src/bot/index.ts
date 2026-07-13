@@ -2,7 +2,7 @@
 // engine API as the UI (legalActions + action payloads); no rules live here.
 // Known dumbness, accepted for MVP: never spends tokens, ignores echo value
 // and opponent echo stacks, scores only immediate effects.
-import { legalActions, previewNumbers } from '../engine';
+import { actingSeat, legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, ConditionalWhen, Effect, GameState } from '../engine';
 
 export function chooseAction(state: GameState): Action {
@@ -15,11 +15,84 @@ export function chooseAction(state: GameState): Action {
       return bestAllocation(state, actions);
     case 'chooseTarget':
       return bestTarget(state, actions);
+    case 'echoChoice':
+      return bestEchoChoice(state);
     case 'buy':
       return bestBuy(state, actions);
     default:
       return first;
   }
+}
+
+/** How should MY echo stack hear this roll? Pick the interpretation whose
+ *  matched echo lines are worth more to me (echo damage chips the roller,
+ *  so it counts as a gain here). */
+function bestEchoChoice(state: GameState): Action {
+  const dice = state.dice!;
+  const seat = actingSeat(state);
+  const stack = state.players[seat]!.echoStack;
+  const roll: RollContext = {
+    mode: state.lastAllocation?.mode ?? 'individual',
+    sum: dice[0] + dice[1],
+    dice,
+  };
+  const valueFor = (numbers: number[]) => {
+    let v = 0;
+    for (const n of numbers) {
+      for (const entry of stack) {
+        if (entry.slot === n) v += scoreEchoLine(state, entry.def.echo, seat, roll);
+      }
+    }
+    return v;
+  };
+  const mode: AllocationMode =
+    valueFor([dice[0], dice[1]]) >= valueFor([dice[0] + dice[1]]) ? 'individual' : 'sum';
+  return { type: 'ECHO_CHOICE', mode };
+}
+
+/** Value of one of MY echo lines when it fires on someone else's turn. */
+function scoreEchoLine(
+  state: GameState,
+  effects: Effect[],
+  seat: number,
+  roll: RollContext,
+): number {
+  const me = state.players[seat]!;
+  let v = 0;
+  for (const e of effects) {
+    switch (e.kind) {
+      case 'gainMoney':
+        v += e.amount;
+        break;
+      case 'gainPoints':
+        v += e.amount * 2;
+        break;
+      case 'damage':
+        v += e.amount * 1.2; // echo damage always chips the roller
+        break;
+      case 'heal':
+        v += Math.min(e.amount, state.tunables.startingHp - me.hp) * 0.5;
+        break;
+      case 'gainToken':
+        v += e.amount * 0.5;
+        break;
+      case 'refreshShop':
+        v += 0.25;
+        break;
+      case 'discount':
+        v += Math.min(e.amount, 3) * 0.7;
+        break;
+      case 'trade': {
+        const net = scoreEchoLine(state, e.then, seat, roll) - e.pay;
+        if (net > 0) v += me.money >= e.pay ? net : net * 0.5;
+        break;
+      }
+      case 'conditional':
+        v += conditionOdds(state, e.when, seat, roll) * scoreEchoLine(state, e.then, seat, roll);
+        break;
+    }
+  }
+  return v;
 }
 
 /** Rough chance a slot's number comes up in a turn: slots 1-6 via a single die

@@ -7,6 +7,7 @@ export { DEFAULT_TUNABLES } from './tunables';
 export { createGame } from './setup';
 export type { GameConfig, SeatConfig } from './setup';
 export {
+  actingSeat,
   applyAction,
   applyActionInPlace,
   legalActions,

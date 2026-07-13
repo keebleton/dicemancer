@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { pools } from '../content/cards';
 import { starterBoard } from '../content/starters';
-import { applyAction, createGame, legalActions, mulberry32 } from '../engine';
+import { actingSeat, applyAction, createGame, legalActions, mulberry32 } from '../engine';
 import { deadRng, diceRng, newGame, testCard } from '../engine/test-helpers';
 import type { GameState, Rng, SeatColor } from '../engine';
 import { chooseAction } from './index';
@@ -31,7 +31,7 @@ function runHumanPlusBots(playerCount: number, seed: number): GameState {
     const actions = legalActions(s);
     if (actions.length === 0) return s;
     const action =
-      s.current === 0
+      actingSeat(s) === 0
         ? actions[Math.floor(humanPolicy.next() * actions.length)]!
         : chooseAction(s);
     s = applyAction(s, action, rng);

@@ -87,7 +87,7 @@ export interface PlayerState {
   colorlessDiscard: CardDef[];
 }
 
-export type TurnPhase = 'roll' | 'allocate' | 'chooseTarget' | 'buy' | 'end';
+export type TurnPhase = 'roll' | 'allocate' | 'chooseTarget' | 'echoChoice' | 'buy' | 'end';
 
 export type AllocationMode = 'individual' | 'sum';
 
@@ -128,6 +128,11 @@ export interface GameState {
   lastAllocation: Allocation | null;
   /** Effects still resolving this allocation; non-null only mid-resolution. */
   pendingEffects: QueuedEffect[] | null;
+  /** Seats (in order after the roller) still to hear this roll for their echoes.
+   *  The head of the list is the seat an ECHO_CHOICE is awaited from. */
+  echoPending: number[];
+  /** Per seat: the numbers their echoes heard this turn (null = none yet). */
+  echoNumbers: (number[] | null)[];
   winner: number | null;
   winReason: WinReason | null;
 }
@@ -139,6 +144,9 @@ export type Action =
   | { type: 'SPEND_TOKEN'; kind: TokenKind; dieIndex: 0 | 1; delta?: -1 | 1 }
   | { type: 'ALLOCATE'; mode: AllocationMode }
   | { type: 'CHOOSE_TARGET'; playerId: number }
+  /** An opponent of the roller decides how THEIR echo stack hears the roll:
+   *  the two dice individually, or the one sum (the Space Base rule). */
+  | { type: 'ECHO_CHOICE'; mode: AllocationMode }
   | { type: 'BUY'; shopIndex: number; targetSlot: number }
   | { type: 'SKIP_BUY' }
   | { type: 'END_TURN' };

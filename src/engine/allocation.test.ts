@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, legalActions } from './reducer';
+import { mulberry32 } from './rng';
 import {
   deadRng,
   diceRng,
@@ -85,29 +86,47 @@ describe('allocation math', () => {
   });
 });
 
-describe('echo step', () => {
-  it('opponent echo cards matching a produced number fire, paying the stack owner', () => {
+describe('echo step (each opponent chooses how to hear the roll)', () => {
+  it('a chooser hearing the split dice fires matching tags, paying the stack owner', () => {
     const s0 = newGame(2);
     s0.players[1]!.echoStack = [
       { def: testCard({ id: 'echo-4', echo: moneyEcho(1) }), slot: 4 },
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 6));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
+    expect(s.phase).toBe('echoChoice'); // p1 has a real decision: {4,6} vs {10}
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng());
     expect(s.players[1]!.money).toBe(5 + 1); // echo paid the opponent
     expect(s.players[0]!.money).toBe(5 + 2); // roller got only the starter money
+    expect(s.echoNumbers[1]).toEqual([4, 6]);
+    expect(s.phase).toBe('buy');
   });
 
-  it('doubles produce the number twice, so matching echoes fire twice', () => {
+  it('the chooser is independent of the roller: hearing the sum skips the split tags', () => {
+    const s0 = newGame(2);
+    s0.players[1]!.echoStack = [
+      { def: testCard({ id: 'echo-4', echo: moneyEcho(1) }), slot: 4 },
+      { def: testCard({ id: 'echo-10', echo: [{ kind: 'gainPoints', amount: 2 }] }), slot: 10 },
+    ];
+    let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 6));
+    s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng()); // roller splits
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'sum' }, deadRng()); // chooser hears 10
+    expect(s.players[1]!.money).toBe(5); // slot-4 tag silent
+    expect(s.players[1]!.points).toBe(2); // slot-10 tag paid
+  });
+
+  it('doubles heard as split dice fire matching echoes twice', () => {
     const s0 = newGame(2);
     s0.players[1]!.echoStack = [
       { def: testCard({ id: 'echo-4', echo: moneyEcho(1) }), slot: 4 },
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 4));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng());
     expect(s.players[1]!.money).toBe(5 + 2);
   });
 
-  it('sum mode produces only the sum, not the die values', () => {
+  it('hearing the sum produces only the sum, not the die values', () => {
     const s0 = newGame(2);
     s0.players[1]!.echoStack = [
       { def: testCard({ id: 'echo-4', echo: moneyEcho(1) }), slot: 4 },
@@ -115,6 +134,7 @@ describe('echo step', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 4));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'sum' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'sum' }, deadRng());
     expect(s.players[1]!.money).toBe(5 + 1); // only the slot-8 entry matched
   });
 
@@ -126,8 +146,38 @@ describe('echo step', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(3, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng());
     expect(s.players[1]!.money).toBe(6);
     expect(s.players[0]!.hp).toBe(25 - 2);
+  });
+
+  it('skips the choice entirely when nothing can fire either way', () => {
+    let s = applyAction(newGame(2), { type: 'ROLL' }, diceRng(4, 6));
+    s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
+    expect(s.phase).toBe('buy'); // empty stacks: straight through
+
+    const s1 = newGame(2);
+    s1.players[1]!.echoStack = [
+      { def: testCard({ id: 'echo-2', echo: moneyEcho(1) }), slot: 2 },
+    ];
+    let t = applyAction(s1, { type: 'ROLL' }, diceRng(4, 6));
+    t = applyAction(t, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
+    expect(t.phase).toBe('buy'); // tag 2 matches neither {4,6} nor {10}
+    expect(t.players[1]!.money).toBe(5);
+  });
+
+  it('clears echo bookkeeping when the turn ends', () => {
+    const s0 = newGame(2);
+    s0.players[1]!.echoStack = [
+      { def: testCard({ id: 'echo-4', echo: moneyEcho(1) }), slot: 4 },
+    ];
+    let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 6));
+    s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'SKIP_BUY' }, deadRng());
+    s = applyAction(s, { type: 'END_TURN' }, mulberry32(1));
+    expect(s.echoNumbers.every((n) => n === null)).toBe(true);
+    expect(s.echoPending).toEqual([]);
   });
 });
 

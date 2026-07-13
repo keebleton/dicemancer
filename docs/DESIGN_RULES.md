@@ -5,7 +5,7 @@
 ## Pillars (violations are bugs, not style choices)
 1. Slots 1–6 fire often (individual dice) → small effects. Slots 7–12 are sum-only → big effects, scaled inversely to probability (7 most common; 2 and 12 rarest).
 2. Neither allocation mode (individual vs. sum) may be strictly correct.
-3. Echo effects fire on EVERY opponent's turn (up to 3 at 4p). Keep them small.
+3. Echo effects fire on EVERY opponent's turn (up to 3 at 4p). Keep them small. Each player chooses independently how their stack hears a roll (split dice or the sum), so echo value is higher than passive matching would suggest.
 4. Colors own identities. Do not bleed effect styles across colors.
 
 ## Card anatomy

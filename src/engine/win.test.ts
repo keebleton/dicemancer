@@ -37,6 +37,7 @@ describe('ko win', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(3, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng()); // p0's chip lands
     expect(s.players[1]!.hp).toBe(0);
     expect(s.players[1]!.eliminated).toBe(true);
     expect(s.winner).toBe(0);

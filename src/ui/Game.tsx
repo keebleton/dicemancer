@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { chooseAction } from '../bot';
-import { legalActions, previewNumbers } from '../engine';
+import { actingSeat, legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
 import { fxList } from './describe';
 import { aggregateEchoEffects, Die, EffectIcons, IconLegend, StatChips } from './icons';
@@ -25,14 +25,15 @@ export function Game() {
     setBuyIndex(null);
   }, [game.current, game.phase]);
 
-  // Bot turns auto-play, one action per tick so the log is followable.
-  const botTurn = game.winner === null && seatKinds[game.current] === 'bot';
+  // Whoever must decide next (roller, or an echo chooser) auto-plays if a bot.
+  const acting = actingSeat(game);
+  const botTurn = game.winner === null && seatKinds[acting] === 'bot';
   useEffect(() => {
     if (!botTurn) return;
     const t = setTimeout(() => {
       const g = useGame.getState().game;
       const kinds = useGame.getState().seatKinds;
-      if (g && g.winner === null && kinds[g.current] === 'bot') {
+      if (g && g.winner === null && kinds[actingSeat(g)] === 'bot') {
         useGame.getState().dispatch(chooseAction(g));
       }
     }, 300);
@@ -51,6 +52,7 @@ export function Game() {
     game.lastAllocation && game.phase !== 'roll' && game.phase !== 'allocate'
       ? game.lastAllocation.numbers
       : [];
+  const humanRoller = seatKinds[game.current] === 'human';
 
   return (
     <main>
@@ -88,15 +90,72 @@ export function Game() {
         </div>
       )}
 
-      <Controls
+      <Stage
         game={game}
         actions={actions}
         dispatch={dispatch}
         preview={preview}
         setPreview={setPreview}
-        buyIndex={buyIndex}
-        setBuyIndex={setBuyIndex}
+        botActing={botTurn}
       />
+
+      {game.winner === null && me.shop.length > 0 && (
+        <section className="panel">
+          <b>{me.name}{"'"}s shop</b> (money: {me.money})
+          <div>
+            {me.shop.map((card, i) => {
+              const buyable = humanRoller && buys.some((a) => a.shopIndex === i);
+              return card ? (
+                <div
+                  key={i}
+                  className={
+                    'shopcard' +
+                    (card.rarity === 'rare' ? ' rare' : '') +
+                    (buyIndex === i ? ' selected' : '') +
+                    (buyable ? '' : ' dead')
+                  }
+                  onClick={() => {
+                    if (buyable) setBuyIndex(buyIndex === i ? null : i);
+                  }}
+                >
+                  <b>
+                    {card.icon && (
+                      <img
+                        className="cicon"
+                        src={iconUrl(card.icon)}
+                        alt=""
+                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                      />
+                    )}{' '}
+                    {card.name}
+                  </b>{' '}
+                  ({card.cost})<br />
+                  <span className={card.color}>{card.color}</span> | slots{' '}
+                  {card.legalSlots.length === 12 ? 'any' : card.legalSlots.join(',')}
+                  <div className="fxline">
+                    <span className="rowlab">roll</span>
+                    <EffectIcons effects={card.active} context="active" />
+                  </div>
+                  <div className="fxline dim">
+                    <span className="rowlab">echo</span>
+                    <EffectIcons effects={card.echo} context="echo" />
+                  </div>
+                </div>
+              ) : (
+                <div key={i} className="shopcard dead">
+                  (bought)
+                </div>
+              );
+            })}
+          </div>
+          {buyIndex !== null && (
+            <div className="hint">
+              click a glowing board slot to install{' '}
+              <button onClick={() => setBuyIndex(null)}>cancel</button>
+            </div>
+          )}
+        </section>
+      )}
 
       {game.players.map((p, seat) => (
         <PlayerPanel
@@ -133,32 +192,28 @@ const PHASE_HINT: Record<GameState['phase'], string> = {
   roll: 'roll the dice',
   allocate: 'spend tokens, then pick an allocation',
   chooseTarget: 'choose a target',
+  echoChoice: 'choose how your echoes hear this roll',
   buy: 'buy one card or skip',
   end: 'end your turn',
 };
 
-function Controls(props: {
+/** The shared table center: everyone watches the same dice; whoever must act
+ *  (the roller, or an opponent picking an echo interpretation) acts here. */
+function Stage(props: {
   game: GameState;
   actions: Action[];
   dispatch: (a: Action) => void;
   preview: AllocationMode | null;
   setPreview: (m: AllocationMode | null) => void;
-  buyIndex: number | null;
-  setBuyIndex: (i: number | null) => void;
+  botActing: boolean;
 }) {
-  const { game, actions, dispatch, preview, setPreview, buyIndex, setBuyIndex } = props;
-  const seatKinds = useGame((s) => s.seatKinds);
+  const { game, actions, dispatch, preview, setPreview, botActing } = props;
   if (game.winner !== null) return null;
-  const me = game.players[game.current]!;
-  if (seatKinds[game.current] === 'bot') {
-    return (
-      <section className="panel active">
-        <h3>
-          <span className={me.color}>{me.name}</span> is thinking...
-        </h3>
-      </section>
-    );
-  }
+  const acting = actingSeat(game);
+  const actor = game.players[acting]!;
+  const roller = game.players[game.current]!;
+  const dice = game.dice;
+
   const allocs = actions.filter((a): a is Action & { type: 'ALLOCATE' } => a.type === 'ALLOCATE');
   const tokens = actions.filter(
     (a): a is Action & { type: 'SPEND_TOKEN' } => a.type === 'SPEND_TOKEN',
@@ -166,131 +221,102 @@ function Controls(props: {
   const targets = actions.filter(
     (a): a is Action & { type: 'CHOOSE_TARGET' } => a.type === 'CHOOSE_TARGET',
   );
-  const buyableIndexes = new Set(
-    actions.filter((a) => a.type === 'BUY').map((a) => (a.type === 'BUY' ? a.shopIndex : -1)),
+  const echoChoices = actions.filter(
+    (a): a is Action & { type: 'ECHO_CHOICE' } => a.type === 'ECHO_CHOICE',
   );
-  const inBuyPhase = actions.some((a) => a.type === 'SKIP_BUY');
+  const echoCount = (numbers: number[]) =>
+    numbers.reduce((n, x) => n + actor.echoStack.filter((e) => e.slot === x).length, 0);
 
   return (
-    <section className="panel active">
-      <h3>
-        <span className={me.color}>{me.name}</span>: {PHASE_HINT[game.phase]}
-      </h3>
-      <div className="dicetray">
-        <Die key={`a${game.dice?.[0] ?? 'x'}`} value={game.dice?.[0] ?? null} />
-        <Die key={`b${game.dice?.[1] ?? 'x'}`} value={game.dice?.[1] ?? null} />
+    <section className="panel stage">
+      <div className="stagedice">
+        <Die key={`a${dice?.[0] ?? 'x'}`} value={dice?.[0] ?? null} />
+        <Die key={`b${dice?.[1] ?? 'x'}`} value={dice?.[1] ?? null} />
+      </div>
+      <div className="stageinfo">
+        {dice && <span className="dimtext">rolled by <span className={roller.color}>{roller.name}</span> | </span>}
+        <span className={actor.color}>{actor.name}</span>: {PHASE_HINT[game.phase]}
       </div>
 
-      {actions.some((a) => a.type === 'ROLL') && (
-        <button className="primary" onClick={() => dispatch({ type: 'ROLL' })}>
-          Roll 2d6
-        </button>
-      )}
+      {botActing && <div className="dimtext">thinking...</div>}
 
-      {tokens.map((t) => (
-        <button
-          key={`${t.kind}-${t.dieIndex}-${t.delta ?? 0}`}
-          onClick={() => dispatch(t)}
-        >
-          {t.kind === 'reroll'
-            ? `Reroll die ${t.dieIndex + 1}`
-            : `Nudge die ${t.dieIndex + 1} ${t.delta === 1 ? '+1' : '-1'}`}
-        </button>
-      ))}
+      {!botActing && (
+        <div className="stagebtns">
+          {actions.some((a) => a.type === 'ROLL') && (
+            <button className="primary" onClick={() => dispatch({ type: 'ROLL' })}>
+              Roll 2d6
+            </button>
+          )}
 
-      {allocs.map((a) => (
-        <button
-          key={a.mode}
-          className="primary"
-          onMouseEnter={() => setPreview(a.mode)}
-          onMouseLeave={() => setPreview(null)}
-          onClick={() => {
-            setPreview(null);
-            dispatch(a);
-          }}
-        >
-          {a.mode === 'individual'
-            ? `Split the dice (slots ${game.dice![0]} + ${game.dice![1]})`
-            : `Take the sum (slot ${game.dice![0] + game.dice![1]})`}
-        </button>
-      ))}
-      {preview && game.dice && (
-        <div className="hint">
-          would fire:{' '}
-          {previewNumbers(game.dice, preview)
-            .map((n) => `slot ${n} - ${me.board[n - 1]!.name} (${fxList(me.board[n - 1]!.active)})`)
-            .join('; ')}
-        </div>
-      )}
+          {tokens.map((t) => (
+            <button key={`${t.kind}-${t.dieIndex}-${t.delta ?? 0}`} onClick={() => dispatch(t)}>
+              {t.kind === 'reroll'
+                ? `Reroll die ${t.dieIndex + 1}`
+                : `Nudge die ${t.dieIndex + 1} ${t.delta === 1 ? '+1' : '-1'}`}
+            </button>
+          ))}
 
-      {targets.map((t) => (
-        <button key={t.playerId} className="primary" onClick={() => dispatch(t)}>
-          Hit {game.players[t.playerId]!.name}
-        </button>
-      ))}
+          {allocs.map((a) => (
+            <button
+              key={a.mode}
+              className="primary"
+              onMouseEnter={() => setPreview(a.mode)}
+              onMouseLeave={() => setPreview(null)}
+              onClick={() => {
+                setPreview(null);
+                dispatch(a);
+              }}
+            >
+              {a.mode === 'individual'
+                ? `Split the dice (slots ${dice![0]} + ${dice![1]})`
+                : `Take the sum (slot ${dice![0] + dice![1]})`}
+            </button>
+          ))}
 
-      {me.shop.length > 0 && (
-        <div className="shop">
-          <b>Shop</b> (money: {me.money})
-          <div>
-            {me.shop.map((card, i) =>
-              card ? (
-                <div
-                  key={i}
-                  className={
-                    'shopcard' +
-                    (card.rarity === 'rare' ? ' rare' : '') +
-                    (buyIndex === i ? ' selected' : '') +
-                    (buyableIndexes.has(i) ? '' : ' dead')
-                  }
-                  onClick={() => {
-                    if (buyableIndexes.has(i)) setBuyIndex(buyIndex === i ? null : i);
-                  }}
-                >
-                  <b>
-                    {card.icon && (
-                      <img
-                        className="cicon"
-                        src={iconUrl(card.icon)}
-                        alt=""
-                        onError={(e) => (e.currentTarget.style.display = 'none')}
-                      />
-                    )}{' '}
-                    {card.name}
-                  </b>{' '}
-                  ({card.cost})<br />
-                  <span className={card.color}>{card.color}</span> | slots{' '}
-                  {card.legalSlots.length === 12 ? 'any' : card.legalSlots.join(',')}
-                  <div className="fxline">
-                    <span className="rowlab">roll</span>
-                    <EffectIcons effects={card.active} context="active" />
-                  </div>
-                  <div className="fxline dim">
-                    <span className="rowlab">echo</span>
-                    <EffectIcons effects={card.echo} context="echo" />
-                  </div>
-                </div>
-              ) : (
-                <div key={i} className="shopcard dead">
-                  (bought)
-                </div>
-              ),
-            )}
-          </div>
-          {buyIndex !== null && (
-            <div className="hint">
-              click a highlighted board slot to install{' '}
-              <button onClick={() => setBuyIndex(null)}>cancel</button>
-            </div>
+          {echoChoices.length > 0 && dice && (
+            <>
+              <button
+                className="primary"
+                onClick={() => dispatch({ type: 'ECHO_CHOICE', mode: 'individual' })}
+              >
+                Hear {dice[0]} + {dice[1]} ({echoCount([dice[0], dice[1]])} echoes)
+              </button>
+              <button
+                className="primary"
+                onClick={() => dispatch({ type: 'ECHO_CHOICE', mode: 'sum' })}
+              >
+                Hear {dice[0] + dice[1]} ({echoCount([dice[0] + dice[1]])} echoes)
+              </button>
+            </>
+          )}
+
+          {targets.map((t) => (
+            <button key={t.playerId} className="primary" onClick={() => dispatch(t)}>
+              Hit {game.players[t.playerId]!.name}
+            </button>
+          ))}
+
+          {actions.some((a) => a.type === 'SKIP_BUY') && (
+            <button onClick={() => dispatch({ type: 'SKIP_BUY' })}>Skip buy</button>
+          )}
+          {actions.some((a) => a.type === 'END_TURN') && (
+            <button className="primary" onClick={() => dispatch({ type: 'END_TURN' })}>
+              End turn
+            </button>
           )}
         </div>
       )}
 
-      {inBuyPhase && <button onClick={() => dispatch({ type: 'SKIP_BUY' })}>Skip buy</button>}
-      {actions.some((a) => a.type === 'END_TURN') && (
-        <button className="primary" onClick={() => dispatch({ type: 'END_TURN' })}>
-          End turn
-        </button>
+      {preview && dice && (
+        <div className="hint">
+          would fire:{' '}
+          {previewNumbers(dice, preview)
+            .map(
+              (n) =>
+                `slot ${n} - ${roller.board[n - 1]!.name} (${fxList(roller.board[n - 1]!.active)})`,
+            )
+            .join('; ')}
+        </div>
       )}
     </section>
   );
@@ -308,11 +334,8 @@ function PlayerPanel(props: {
 }) {
   const { p, seat, game, highlight, fired, buyable, onSlotClick } = props;
   const isTurn = seat === game.current;
-  // Echo tabs that just paid out on the roller's allocation get a flash.
-  const paidSlots =
-    !isTurn && game.lastAllocation && game.phase !== 'roll' && game.phase !== 'allocate'
-      ? game.lastAllocation.numbers
-      : [];
+  // Echo tabs flash on the numbers this seat chose to hear this turn.
+  const paidSlots = game.echoNumbers[seat] ?? [];
   return (
     <section className={'panel' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}>
       <h3>

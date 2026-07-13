@@ -164,9 +164,10 @@ describe('buy, install, retire', () => {
     s = applyAction(s, { type: 'BUY', shopIndex: 0, targetSlot: 3 }, deadRng());
     s = applyAction(s, { type: 'END_TURN' }, mulberry32(2));
     const moneyBefore = s.players[0]!.money;
-    // p1 rolls a 3: p0's retired starter echoes 1 money to p0.
+    // p1 rolls a 3: p0 chooses to hear the split, so the retired starter echoes.
     s = applyAction(s, { type: 'ROLL' }, diceRng(3, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng());
     expect(s.players[0]!.money).toBe(moneyBefore + 1);
   });
 });

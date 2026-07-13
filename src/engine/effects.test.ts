@@ -81,7 +81,8 @@ describe('targeted damage', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
-    expect(s.phase).toBe('buy'); // never paused
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng());
+    expect(s.phase).toBe('buy'); // an echo never pauses for a target
     expect(s.players[0]!.hp).toBe(23); // roller took it
     expect(s.players[2]!.hp).toBe(25);
   });

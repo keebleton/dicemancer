@@ -31,7 +31,7 @@ These are load-bearing. When in doubt, resolve toward these:
    - **Mode A (individual):** assign each die to its matching slot (die showing 4 → slot 4). Doubles: the same slot's card fires twice.
    - **Mode B (sum):** the sum (2–12) activates that one slot.
 4. **Resolve.** Triggered card(s) on the roller's board fire their **active** effect lines, in roller-chosen order.
-5. **Echo.** For each number produced this turn (Mode A: both die values; Mode B: the sum), every opponent fires the **echo** effect line of every card in their Echo Stack matching that slot number. Echo effects needing a target always target the roller.
+5. **Echo.** Every opponent, in seat order, chooses INDEPENDENTLY how their Echo Stack hears the roll (the Space Base rule, changed 2026-07-13; previously the roller's allocation bound everyone): the two die values individually, or the one sum. Their stack's cards matching the chosen numbers fire their **echo** effect lines. The choice is skipped automatically when it cannot change what fires. Echo effects needing a target always target the roller.
 6. **Buy.** Roller may purchase up to 1 card from their shop (see §5). New card installs into a legal slot; the displaced card retires to the roller's Echo Stack (keeping its slot number).
 7. **Win check**, then pass turn.
 

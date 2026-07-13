@@ -41,6 +41,11 @@ export function legalActions(state: GameState): Action[] {
         type: 'CHOOSE_TARGET',
         playerId: seat,
       }));
+    case 'echoChoice':
+      return [
+        { type: 'ECHO_CHOICE', mode: 'individual' },
+        { type: 'ECHO_CHOICE', mode: 'sum' },
+      ];
     case 'buy': {
       const actions: Action[] = [{ type: 'SKIP_BUY' }];
       me.shop.forEach((card, shopIndex) => {
@@ -60,6 +65,12 @@ export function legalActions(state: GameState): Action[] {
  *  uses this so the rule lives here, not in React. */
 export function previewNumbers(dice: [number, number], mode: AllocationMode): number[] {
   return mode === 'individual' ? [dice[0], dice[1]] : [dice[0] + dice[1]];
+}
+
+/** Whose decision the game is waiting on: the roller, except during
+ *  echoChoice, where it is the head of the echo queue. UI and bots key on this. */
+export function actingSeat(state: GameState): number {
+  return state.phase === 'echoChoice' ? (state.echoPending[0] ?? state.current) : state.current;
 }
 
 /** Seats a chooseOpponent effect may target: living opponents of the roller. */
@@ -107,6 +118,13 @@ function perform(next: GameState, action: Action, rng: Rng): void {
     case 'CHOOSE_TARGET':
       chooseTarget(next, action.playerId, rng);
       break;
+    case 'ECHO_CHOICE': {
+      const seat = next.echoPending[0]!;
+      fireEchoesFor(next, seat, previewNumbers(next.dice!, action.mode), rng);
+      next.echoPending.shift();
+      processEchoQueue(next, rng);
+      break;
+    }
     case 'BUY': {
       const me = next.players[next.current]!;
       const card = me.shop[action.shopIndex]!;
@@ -162,6 +180,9 @@ function assertLegal(state: GameState, action: Action): void {
         throw new Error(`seat ${action.playerId} is not a legal target`);
       }
       return;
+    case 'ECHO_CHOICE':
+      if (state.phase !== 'echoChoice') fail();
+      return;
     case 'BUY': {
       if (state.phase !== 'buy') return fail();
       const me = state.players[state.current]!;
@@ -184,8 +205,9 @@ function assertLegal(state: GameState, action: Action): void {
   }
 }
 
-/** Turn steps 3-5: build the full effect queue (actives then echoes) and drain
- *  it. Draining pauses at an active chooseOpponent with several legal targets. */
+/** Turn steps 3-4: allocate and drain the roller's actives. Draining pauses
+ *  at an active chooseOpponent with several legal targets; the echo phase
+ *  follows once actives finish. */
 function allocate(state: GameState, mode: AllocationMode, rng: Rng): void {
   const dice = state.dice;
   if (!dice) throw new Error('no dice on the table');
@@ -194,24 +216,14 @@ function allocate(state: GameState, mode: AllocationMode, rng: Rng): void {
   const numbers = previewNumbers(dice, mode);
   state.lastAllocation = { mode, numbers };
 
+  // Resolve the roller's actives only. Echoes come AFTER, in the echoChoice
+  // phase, because every opponent decides for themselves how their stack
+  // hears the roll (split dice or the sum) - the Space Base rule.
   const queue: QueuedEffect[] = [];
   for (const slot of numbers) {
     const card = rollerState.board[slot - 1];
     if (!card) throw new Error(`slot ${slot} has no card`);
     for (const effect of card.active) queue.push({ effect, owner: roller, echo: false });
-  }
-  // Echoes queue up-front; a queued echo whose owner dies mid-resolution is
-  // skipped at drain time (their stack went inert the moment they dropped).
-  for (const slot of numbers) {
-    for (let offset = 1; offset < state.players.length; offset++) {
-      const seat = (roller + offset) % state.players.length;
-      const opponent = state.players[seat]!;
-      if (opponent.eliminated) continue;
-      for (const entry of opponent.echoStack) {
-        if (entry.slot !== slot) continue;
-        for (const effect of entry.def.echo) queue.push({ effect, owner: seat, echo: true });
-      }
-    }
   }
   state.pendingEffects = queue;
   if (drainQueue(state, rng)) finishResolution(state, rng);
@@ -280,7 +292,79 @@ function drainQueue(state: GameState, rng: Rng): boolean {
   return true;
 }
 
+/** Actives are done; hand the roll to the opponents' echo stacks. */
 function finishResolution(state: GameState, rng: Rng): void {
+  if (state.winner !== null) return;
+  const roller = state.current;
+  const seats: number[] = [];
+  for (let offset = 1; offset < state.players.length; offset++) {
+    const seat = (roller + offset) % state.players.length;
+    if (!state.players[seat]!.eliminated) seats.push(seat);
+  }
+  state.echoPending = seats;
+  processEchoQueue(state, rng);
+}
+
+/** Entry indices (with multiplicity) of a seat's echoes matched by `numbers`. */
+function matchedEntries(state: GameState, seat: number, numbers: number[]): number[] {
+  const out: number[] = [];
+  const stack = state.players[seat]!.echoStack;
+  for (const n of numbers) {
+    stack.forEach((entry, idx) => {
+      if (entry.slot === n) out.push(idx);
+    });
+  }
+  return out;
+}
+
+/** Walks the echo queue: seats where the split/sum choice changes nothing are
+ *  auto-resolved; the first seat with a real decision pauses in echoChoice. */
+function processEchoQueue(state: GameState, rng: Rng): void {
+  while (state.echoPending.length > 0) {
+    if (state.winner !== null) {
+      state.echoPending = [];
+      return;
+    }
+    const dice = state.dice;
+    if (!dice) throw new Error('echo phase with no dice');
+    const seat = state.echoPending[0]!;
+    const p = state.players[seat]!;
+    if (p.eliminated || p.echoStack.length === 0) {
+      state.echoPending.shift();
+      continue;
+    }
+    const split = matchedEntries(state, seat, [dice[0], dice[1]]);
+    const sum = matchedEntries(state, seat, [dice[0] + dice[1]]);
+    if (split.length === 0 && sum.length === 0) {
+      state.echoPending.shift();
+      continue;
+    }
+    if (JSON.stringify(split) === JSON.stringify(sum)) {
+      fireEchoesFor(state, seat, [dice[0], dice[1]], rng);
+      state.echoPending.shift();
+      continue;
+    }
+    state.phase = 'echoChoice'; // await ECHO_CHOICE from this seat
+    return;
+  }
+  enterBuy(state, rng);
+}
+
+function fireEchoesFor(state: GameState, seat: number, numbers: number[], rng: Rng): void {
+  state.echoNumbers[seat] = numbers;
+  const queue: QueuedEffect[] = [];
+  const stack = state.players[seat]!.echoStack;
+  for (const n of numbers) {
+    for (const entry of stack) {
+      if (entry.slot !== n) continue;
+      for (const effect of entry.def.echo) queue.push({ effect, owner: seat, echo: true });
+    }
+  }
+  state.pendingEffects = queue;
+  drainQueue(state, rng); // echo lines never pause (targets coerce to the roller)
+}
+
+function enterBuy(state: GameState, rng: Rng): void {
   if (state.winner !== null) return;
   state.phase = 'buy';
   // Echo damage (or self-damage) can eliminate the roller mid-turn.
@@ -325,6 +409,8 @@ function endTurn(state: GameState, rng: Rng): void {
   state.phase = 'roll';
   state.dice = null;
   state.lastAllocation = null;
+  state.echoPending = [];
+  state.echoNumbers = state.players.map(() => null);
   dealRow(state, nextSeat, rng); // "entire row refreshes at the start of that player's turn"
 }
 

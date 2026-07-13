@@ -63,6 +63,14 @@ export function describeTransition(prev: GameState, action: Action, next: GameSt
     case 'CHOOSE_TARGET':
       lines.push(`${who} targets ${prev.players[action.playerId]!.name}`);
       break;
+    case 'ECHO_CHOICE': {
+      const seat = prev.echoPending[0];
+      if (seat !== undefined) {
+        const numbers = next.echoNumbers[seat] ?? [];
+        lines.push(`${prev.players[seat]!.name} hears ${numbers.join(' + ')} for echoes`);
+      }
+      break;
+    }
     case 'BUY': {
       const card = prev.players[prev.current]!.shop[action.shopIndex];
       lines.push(`${who} buys ${card?.name ?? '?'} into slot ${action.targetSlot}`);

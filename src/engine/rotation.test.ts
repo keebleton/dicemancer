@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, legalTargets } from './reducer';
+import { mulberry32 } from './rng';
 import {
   deadRng,
   diceRng,
@@ -61,9 +62,12 @@ describe('elimination', () => {
     s0.players[3]!.echoStack = [structuredClone(entry)];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 4));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng()); // p1 (p2 skipped)
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng()); // p3
     expect(s.players[1]!.money).toBe(5 + 2); // fired twice (doubles)
-    expect(s.players[2]!.money).toBe(5); // inert
+    expect(s.players[2]!.money).toBe(5); // inert: never even offered the choice
     expect(s.players[3]!.money).toBe(5 + 2);
+    expect(s.phase).toBe('buy');
   });
 
   it('makes eliminated players untargetable', () => {
@@ -81,6 +85,7 @@ describe('elimination', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(3, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, mulberry32(1)); // p1's chip kills p0
     expect(s.players[0]!.eliminated).toBe(true);
     expect(s.winner).toBeNull(); // three players still standing
     expect(s.current).toBe(1); // turn passed automatically
@@ -99,6 +104,8 @@ describe('elimination', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(3, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng()); // p1 kills p0
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, mulberry32(2)); // p2 fizzles
     expect(s.players[0]!.hp).toBe(0); // not driven negative, no double elimination
     expect(s.players[0]!.eliminated).toBe(true);
   });

@@ -70,6 +70,8 @@ export function createGame(config: GameConfig, rng?: Rng): GameState {
     dice: null,
     lastAllocation: null,
     pendingEffects: null,
+    echoPending: [],
+    echoNumbers: players.map(() => null),
     winner: null,
     winReason: null,
   };
