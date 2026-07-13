@@ -5,7 +5,7 @@ import type { CardDef } from '../engine';
 import { EffectIcons } from './icons';
 import { iconUrl } from './packs';
 
-const TINT: Record<string, string> = {
+export const TINT: Record<string, string> = {
   red: '#8a3b34',
   blue: '#2f5e9e',
   black: '#453a63',

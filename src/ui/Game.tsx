@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { chooseAction } from '../bot';
 import { actingSeat, legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
-import { CardFace } from './CardFace';
+import { CardFace, TINT } from './CardFace';
 import { fxList } from './describe';
 import { aggregateEchoEffects, Die, EffectIcons, IconLegend, StatChips } from './icons';
+import { iconUrl } from './packs';
 import { isMuted, setMuted } from './sfx';
 import { useGame } from './store';
 import type { StatPulse } from './store';
@@ -19,6 +20,7 @@ export function Game() {
   const [preview, setPreview] = useState<AllocationMode | null>(null);
   const [buySel, setBuySel] = useState<{ src: 'shop' | 'market'; i: number } | null>(null);
   const [muted, setMutedState] = useState(isMuted());
+  const [showLegend, setShowLegend] = useState(false);
 
   useEffect(() => {
     setPreview(null);
@@ -59,8 +61,36 @@ export function Game() {
       : [];
   const humanRoller = seatKinds[game.current] === 'human';
 
+  // Seating: you sit at the bottom. In hotseat the table rotates so the
+  // current human is always the bottom seat; during bot turns you stay put.
+  const n = game.players.length;
+  const humanSeats = seatKinds.flatMap((k, i) => (k === 'human' ? [i] : []));
+  const perspective = humanRoller ? game.current : (humanSeats[0] ?? 0);
+  const opp = Array.from({ length: n - 1 }, (_, k) => (perspective + k + 1) % n);
+  let leftSeat: number | null = null;
+  let topSeat: number | null = null;
+  let rightSeat: number | null = null;
+  if (opp.length === 1) topSeat = opp[0]!;
+  else if (opp.length === 2) {
+    leftSeat = opp[0]!;
+    rightSeat = opp[1]!;
+  } else if (opp.length >= 3) {
+    leftSeat = opp[0]!;
+    topSeat = opp[1]!;
+    rightSeat = opp[2]!;
+  }
+  const oppMat = (seat: number) => (
+    <OppMat
+      p={game.players[seat]!}
+      seat={seat}
+      game={game}
+      pulses={pulses.filter((x) => x.seat === seat)}
+      fired={seat === game.current ? firedSlots : []}
+    />
+  );
+
   return (
-    <main>
+    <main className="game">
       <header>
         <div className="topbar">
           <h1>Dicemancer</h1>
@@ -68,6 +98,9 @@ export function Game() {
             round {game.round}/{game.tunables.roundCap}
           </span>
           <span className={`chip turn ${me.color}`}>{me.name}{"'"}s turn</span>
+          <button onClick={() => setShowLegend(!showLegend)}>
+            {showLegend ? 'hide icon key' : 'icon key'}
+          </button>
           <button
             onClick={() => {
               setMuted(!muted);
@@ -78,7 +111,7 @@ export function Game() {
           </button>
           <button onClick={reset}>quit to setup</button>
         </div>
-        <IconLegend />
+        {showLegend && <IconLegend />}
       </header>
 
       {game.winner === null && (
@@ -95,104 +128,114 @@ export function Game() {
         </div>
       )}
 
-      <Stage
-        game={game}
-        actions={actions}
-        dispatch={dispatch}
-        setPreview={setPreview}
-        botActing={botTurn}
-      />
+      <div className="table">
+        {topSeat !== null && <div className="topzone">{oppMat(topSeat)}</div>}
 
-      {game.winner === null && game.market.length > 0 && (
-        <section className="panel marketpanel">
-          <b>The Market</b>{' '}
-          <span className="dimtext">
-            shared artifacts, first come first served ({game.marketDeck.length} left in the deck)
-          </span>
-          <div>
-            {game.market.map((card, i) => {
-              const buyable = humanRoller && marketBuys.some((a) => a.marketIndex === i);
-              const sel = buySel?.src === 'market' && buySel.i === i;
-              return card ? (
-                <div
-                  key={i}
-                  className={
-                    'shopcard market' + (sel ? ' selected' : '') + (buyable ? '' : ' dead')
-                  }
-                  onClick={() => {
-                    if (buyable) setBuySel(sel ? null : { src: 'market', i });
-                  }}
-                >
-                  <CardFace card={card} showCost />
+        <div className="midrow">
+          {leftSeat !== null && <div className="sidezone">{oppMat(leftSeat)}</div>}
+
+          <div className="centerzone">
+            <Stage
+              game={game}
+              actions={actions}
+              dispatch={dispatch}
+              setPreview={setPreview}
+              botActing={botTurn}
+            />
+
+            {game.winner === null && game.market.length > 0 && (
+              <section className="panel marketpanel">
+                <b>The Market</b>{' '}
+                <span className="dimtext">
+                  shared artifacts, first come first served ({game.marketDeck.length} left)
+                </span>
+                <div>
+                  {game.market.map((card, i) => {
+                    const buyable = humanRoller && marketBuys.some((a) => a.marketIndex === i);
+                    const sel = buySel?.src === 'market' && buySel.i === i;
+                    return card ? (
+                      <div
+                        key={i}
+                        className={
+                          'shopcard market' + (sel ? ' selected' : '') + (buyable ? '' : ' dead')
+                        }
+                        onClick={() => {
+                          if (buyable) setBuySel(sel ? null : { src: 'market', i });
+                        }}
+                      >
+                        <CardFace card={card} showCost />
+                      </div>
+                    ) : (
+                      <div key={i} className="shopcard dead">
+                        (sold out)
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : (
-                <div key={i} className="shopcard dead">
-                  (sold out)
+              </section>
+            )}
+
+            {game.winner === null && me.shop.length > 0 && (
+              <section className={'panel' + (me.shopFrozen ? ' shopfrozen' : '')}>
+                <b>{me.name}{"'"}s shop</b> (money: {me.money}){' '}
+                {humanRoller && actions.some((a) => a.type === 'FREEZE_SHOP') && (
+                  <button onClick={() => dispatch({ type: 'FREEZE_SHOP' })}>
+                    {me.shopFrozen ? '❄ unfreeze shop' : '❄ freeze shop'}
+                  </button>
+                )}
+                <span className="dimtext">
+                  {me.shopFrozen
+                    ? 'frozen: keeping these cards, no new options until you unfreeze'
+                    : 'rotates every turn | freeze the shop to keep this row'}
+                </span>
+                <div>
+                  {me.shop.map((card, i) => {
+                    const buyable = humanRoller && shopBuys.some((a) => a.shopIndex === i);
+                    const sel = buySel?.src === 'shop' && buySel.i === i;
+                    return card ? (
+                      <div
+                        key={i}
+                        className={
+                          'shopcard' +
+                          (card.rarity === 'rare' ? ' rare' : '') +
+                          (sel ? ' selected' : '') +
+                          (buyable ? '' : ' dead')
+                        }
+                        onClick={() => {
+                          if (buyable) setBuySel(sel ? null : { src: 'shop', i });
+                        }}
+                      >
+                        <CardFace card={card} showCost />
+                      </div>
+                    ) : (
+                      <div key={i} className="shopcard dead">
+                        (bought)
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+                {buySel !== null && (
+                  <div className="hint">
+                    click a glowing slot on your board below to install{' '}
+                    <button onClick={() => setBuySel(null)}>cancel</button>
+                  </div>
+                )}
+              </section>
+            )}
           </div>
-        </section>
-      )}
 
-      {game.winner === null && me.shop.length > 0 && (
-        <section className={'panel' + (me.shopFrozen ? ' shopfrozen' : '')}>
-          <b>{me.name}{"'"}s shop</b> (money: {me.money}){' '}
-          {humanRoller && actions.some((a) => a.type === 'FREEZE_SHOP') && (
-            <button onClick={() => dispatch({ type: 'FREEZE_SHOP' })}>
-              {me.shopFrozen ? '❄ unfreeze shop' : '❄ freeze shop'}
-            </button>
-          )}
-          <span className="dimtext">
-            {me.shopFrozen
-              ? 'frozen: keeping these cards, no new options until you unfreeze'
-              : 'rotates every turn | freeze the shop to keep this row'}
-          </span>
-          <div>
-            {me.shop.map((card, i) => {
-              const buyable = humanRoller && shopBuys.some((a) => a.shopIndex === i);
-              const sel = buySel?.src === 'shop' && buySel.i === i;
-              return card ? (
-                <div
-                  key={i}
-                  className={
-                    'shopcard' +
-                    (card.rarity === 'rare' ? ' rare' : '') +
-                    (sel ? ' selected' : '') +
-                    (buyable ? '' : ' dead')
-                  }
-                  onClick={() => {
-                    if (buyable) setBuySel(sel ? null : { src: 'shop', i });
-                  }}
-                >
-                  <CardFace card={card} showCost />
-                </div>
-              ) : (
-                <div key={i} className="shopcard dead">
-                  (bought)
-                </div>
-              );
-            })}
-          </div>
-          {buySel !== null && (
-            <div className="hint">
-              click a glowing board slot to install{' '}
-              <button onClick={() => setBuySel(null)}>cancel</button>
-            </div>
-          )}
-        </section>
-      )}
+          {rightSeat !== null && <div className="sidezone">{oppMat(rightSeat)}</div>}
+        </div>
 
-      {game.players.map((p, seat) => (
-        <PlayerPanel
-          key={seat}
-          p={p}
-          seat={seat}
+        <SelfMat
+          p={game.players[perspective]!}
+          seat={perspective}
           game={game}
-          pulses={pulses.filter((x) => x.seat === seat)}
-          highlight={seat === game.current ? previewSlots : []}
-          fired={seat === game.current ? firedSlots : []}
-          buyable={seat === game.current ? buySlots : []}
+          isHuman={seatKinds[perspective] === 'human'}
+          pulses={pulses.filter((x) => x.seat === perspective)}
+          highlight={perspective === game.current ? previewSlots : []}
+          fired={perspective === game.current ? firedSlots : []}
+          buyable={perspective === game.current ? buySlots : []}
           onSlotClick={(slot) => {
             if (buySel !== null && buySlots.includes(slot)) {
               dispatch(
@@ -204,16 +247,16 @@ export function Game() {
             }
           }}
         />
-      ))}
 
-      <section className="panel">
-        <h3>Log</h3>
-        <div className="log">
-          {[...log].reverse().map((line, i) => (
-            <div key={log.length - i}>{line}</div>
-          ))}
-        </div>
-      </section>
+        <section className="panel logpanel">
+          <h3>Log</h3>
+          <div className="log">
+            {[...log].reverse().map((line, i) => (
+              <div key={log.length - i}>{line}</div>
+            ))}
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
@@ -260,7 +303,11 @@ function Stage(props: {
         <Die key={`b${dice?.[1] ?? 'x'}`} value={dice?.[1] ?? null} />
       </div>
       <div className="stageinfo">
-        {dice && <span className="dimtext">rolled by <span className={roller.color}>{roller.name}</span> | </span>}
+        {dice && (
+          <span className="dimtext">
+            rolled by <span className={roller.color}>{roller.name}</span> |{' '}
+          </span>
+        )}
         <span className={actor.color}>{actor.name}</span>: {PHASE_HINT[game.phase]}
       </div>
 
@@ -360,29 +407,33 @@ function Stage(props: {
           )}
         </div>
       )}
-
     </section>
   );
 }
 
-function PlayerPanel(props: {
+/** Your seat at the bottom of the table: the full board with real card faces. */
+function SelfMat(props: {
   p: PlayerState;
   seat: number;
   game: GameState;
+  isHuman: boolean;
   pulses: StatPulse[];
   highlight: number[];
   fired: number[];
   buyable: number[];
   onSlotClick: (slot: number) => void;
 }) {
-  const { p, seat, game, highlight, fired, buyable, onSlotClick } = props;
+  const { p, seat, game, isHuman, highlight, fired, buyable, onSlotClick } = props;
   const isTurn = seat === game.current;
   // Echo tabs flash on the numbers this seat chose to hear this turn.
   const paidSlots = game.echoNumbers[seat] ?? [];
   return (
-    <section className={'panel' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}>
+    <section
+      className={'panel selfmat' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}
+    >
       <h3>
-        <span className={p.color}>{p.name}</span> {isTurn ? '(rolling)' : ''}
+        <span className={p.color}>{p.name}</span>
+        {isHuman ? ' (you)' : ''} {isTurn ? '(rolling)' : ''}
         {p.eliminated ? ' - ELIMINATED' : ''}
       </h3>
       <StatChips
@@ -414,7 +465,9 @@ function PlayerPanel(props: {
             <div key={slot} className="slotwrap">
               <div
                 className={
-                  'echotab' + (live ? ' live' : '') + (live && paidSlots.includes(slot) ? ' paid' : '')
+                  'echotab' +
+                  (live ? ' live' : '') +
+                  (live && paidSlots.includes(slot) ? ' paid' : '')
                 }
                 title={
                   live
@@ -439,6 +492,71 @@ function PlayerPanel(props: {
               <div className={cls} onClick={() => onSlotClick(slot)} title={tip}>
                 <CardFace card={card} slotBadge={slot} />
               </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/** An opponent's seat: compact mat of icon tiles. Hover a tile for the full
+ *  card; the purple corner counts echoes waiting in that slot. */
+function OppMat(props: {
+  p: PlayerState;
+  seat: number;
+  game: GameState;
+  pulses: StatPulse[];
+  fired: number[];
+}) {
+  const { p, seat, game, fired } = props;
+  const isTurn = seat === game.current;
+  const paidSlots = game.echoNumbers[seat] ?? [];
+  return (
+    <section className={'panel oppmat' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}>
+      <h3>
+        <span className={p.color}>{p.name}</span> {isTurn ? '(rolling)' : ''}
+        {p.eliminated ? ' - ELIMINATED' : ''}
+      </h3>
+      <StatChips
+        hp={p.hp}
+        money={p.money}
+        points={p.points}
+        reroll={p.tokens.reroll}
+        nudge={p.tokens.nudge}
+        pulses={props.pulses}
+      />
+      <div className="minislots">
+        {p.board.map((card, i) => {
+          const slot = i + 1;
+          const echoesHere = p.echoStack.filter((e) => e.slot === slot);
+          const tip =
+            `slot ${slot}: ${card.name}\nwhen rolled: ${fxList(card.active)}\necho if retired: ${fxList(card.echo)}` +
+            (echoesHere.length > 0
+              ? `\nechoing now: ${echoesHere
+                  .map((e) => `${e.def.name} (${fxList(e.def.echo)})`)
+                  .join(', ')}`
+              : '');
+          const cls =
+            'mini' +
+            (fired.includes(slot) ? ' fired' : '') +
+            (echoesHere.length > 0 && paidSlots.includes(slot) ? ' paid' : '');
+          return (
+            <div
+              key={slot}
+              className={cls}
+              style={{ background: TINT[card.color] ?? '#555' }}
+              title={tip}
+            >
+              {card.icon && (
+                <img
+                  src={iconUrl(card.icon)}
+                  alt=""
+                  onError={(e) => (e.currentTarget.style.display = 'none')}
+                />
+              )}
+              <span className="mininum">{slot}</span>
+              {echoesHere.length > 0 && <span className="miniecho">{echoesHere.length}</span>}
             </div>
           );
         })}
