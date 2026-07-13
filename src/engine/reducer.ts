@@ -48,16 +48,11 @@ export function legalActions(state: GameState): Action[] {
       ];
     case 'buy': {
       const actions: Action[] = [{ type: 'SKIP_BUY' }];
+      if (me.shop.length > 0) actions.push({ type: 'FREEZE_SHOP' }); // toggle
       me.shop.forEach((card, shopIndex) => {
-        if (!card) return;
-        const cost = Math.max(0, card.cost - me.buyDiscount);
-        if (cost <= me.money) {
-          for (const targetSlot of card.legalSlots) {
-            actions.push({ type: 'BUY', shopIndex, targetSlot });
-          }
-        } else if (me.frozenShopIndex === null) {
-          // Too pricey today: it can be frozen to survive the next rotation.
-          actions.push({ type: 'FREEZE_SHOP', shopIndex });
+        if (!card || Math.max(0, card.cost - me.buyDiscount) > me.money) return;
+        for (const targetSlot of card.legalSlots) {
+          actions.push({ type: 'BUY', shopIndex, targetSlot });
         }
       });
       state.market.forEach((card, marketIndex) => {
@@ -140,8 +135,7 @@ function perform(next: GameState, action: Action, rng: Rng): void {
     case 'BUY': {
       const me = next.players[next.current]!;
       const card = me.shop[action.shopIndex]!;
-      me.shop[action.shopIndex] = null;
-      if (me.frozenShopIndex === action.shopIndex) me.frozenShopIndex = null;
+      me.shop[action.shopIndex] = null; // a frozen shop keeps this hole
       installCard(next, card, action.targetSlot);
       break;
     }
@@ -152,7 +146,8 @@ function perform(next: GameState, action: Action, rng: Rng): void {
       break;
     }
     case 'FREEZE_SHOP': {
-      next.players[next.current]!.frozenShopIndex = action.shopIndex;
+      const me = next.players[next.current]!;
+      me.shopFrozen = !me.shopFrozen;
       break; // phase stays 'buy': freezing is not the turn's purchase
     }
     case 'SKIP_BUY':
@@ -240,12 +235,8 @@ function assertLegal(state: GameState, action: Action): void {
     }
     case 'FREEZE_SHOP': {
       if (state.phase !== 'buy') return fail();
-      const me = state.players[state.current]!;
-      const card = me.shop[action.shopIndex];
-      if (!card) throw new Error(`nothing at shop index ${action.shopIndex}`);
-      if (me.frozenShopIndex !== null) throw new Error('limit one frozen card');
-      if (Math.max(0, card.cost - me.buyDiscount) <= me.money) {
-        throw new Error(`you can afford ${card.id}; buy it instead of freezing`);
+      if (state.players[state.current]!.shop.length === 0) {
+        throw new Error('no shop to freeze in this game');
       }
       return;
     }

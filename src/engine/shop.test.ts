@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BLUE_CARDS, COLORLESS_CARDS, RED_CARDS } from '../content/cards';
+import { BLUE_CARDS, COLORLESS_CARDS } from '../content/cards';
 import { starterBoard } from '../content/starters';
 import { applyAction, legalActions } from './reducer';
 import { mulberry32 } from './rng';
@@ -114,54 +114,72 @@ describe('the shared market', () => {
     expect(s.market[0]).toBeNull();
   });
 
-  it('own-shop freeze: only unaffordable cards, limit one, keeps the buy phase', () => {
+  it('shop freeze is a buy-phase toggle that keeps the phase open', () => {
     const s0 = toBuyPhase(newPoolGame(2, 11));
-    s0.players[0]!.money = 0;
-    const freezes = legalActions(s0).filter((a) => a.type === 'FREEZE_SHOP');
-    expect(freezes.length).toBe(s0.players[0]!.shop.filter((c) => c !== null).length);
-    let s = applyAction(s0, { type: 'FREEZE_SHOP', shopIndex: 1 }, deadRng());
+    expect(legalActions(s0).some((a) => a.type === 'FREEZE_SHOP')).toBe(true);
+    let s = applyAction(s0, { type: 'FREEZE_SHOP' }, deadRng());
+    expect(s.players[0]!.shopFrozen).toBe(true);
     expect(s.phase).toBe('buy'); // freezing is not the purchase
-    expect(s.players[0]!.frozenShopIndex).toBe(1);
-    expect(() => applyAction(s, { type: 'FREEZE_SHOP', shopIndex: 2 }, deadRng())).toThrow(
-      /limit one/,
-    );
+    s = applyAction(s, { type: 'FREEZE_SHOP' }, deadRng());
+    expect(s.players[0]!.shopFrozen).toBe(false); // toggled back
+    expect(() =>
+      applyAction(newPoolGame(2, 11), { type: 'FREEZE_SHOP' }, deadRng()),
+    ).toThrow(/illegal action/); // roll phase
   });
 
-  it('a frozen card survives the rotation with 3 new cards, then unfreezes', () => {
-    const s0 = toBuyPhase(newPoolGame(2, 11));
-    s0.players[0]!.money = 0;
-    const frozenId = s0.players[0]!.shop[1]!.id;
-    let s = applyAction(s0, { type: 'FREEZE_SHOP', shopIndex: 1 }, deadRng());
-    s = applyAction(s, { type: 'SKIP_BUY' }, deadRng());
-    s = applyAction(s, { type: 'END_TURN' }, mulberry32(5));
-    s = playTurn(s, [1, 2], 'individual'); // p1 passes; p0's row refreshes
-    const p0 = s.players[0]!;
-    expect(p0.shop).toHaveLength(4); // frozen card + 3 new
-    expect(p0.shop[0]!.id).toBe(frozenId); // it rode the rotation
-    expect(p0.frozenShopIndex).toBeNull(); // and unfroze
-    // Conservation: nothing was lost or duplicated.
-    const colorCount =
-      p0.colorDeck.length + p0.colorDiscard.length + p0.shop.filter((c) => c !== null).length;
-    expect(colorCount).toBe(RED_CARDS.length);
-  });
-
-  it('buying the frozen card clears the freeze', () => {
-    const s0 = toBuyPhase(newPoolGame(2, 11));
-    s0.players[0]!.money = 0;
-    let s = applyAction(s0, { type: 'FREEZE_SHOP', shopIndex: 1 }, deadRng());
-    s.players[0]!.money = 40;
-    const targetSlot = s.players[0]!.shop[1]!.legalSlots[0]!;
-    s = applyAction(s, { type: 'BUY', shopIndex: 1, targetSlot }, deadRng());
-    expect(s.players[0]!.frozenShopIndex).toBeNull();
-  });
-
-  it('rejects freezing a card you could just buy', () => {
+  it('a frozen shop skips every refresh, holes included, until unfrozen', () => {
     const s0 = toBuyPhase(newPoolGame(2, 11));
     s0.players[0]!.money = 40;
-    expect(legalActions(s0).some((a) => a.type === 'FREEZE_SHOP')).toBe(false);
-    expect(() => applyAction(s0, { type: 'FREEZE_SHOP', shopIndex: 0 }, deadRng())).toThrow(
-      /buy it instead/,
-    );
+    let s = applyAction(s0, { type: 'FREEZE_SHOP' }, deadRng());
+    const targetSlot = s.players[0]!.shop[1]!.legalSlots[0]!;
+    s = applyAction(s, { type: 'BUY', shopIndex: 1, targetSlot }, deadRng()); // leaves a hole
+    const rowAfterBuy = s.players[0]!.shop.map((c) => c?.id ?? null);
+    expect(rowAfterBuy[1]).toBeNull();
+    s = applyAction(s, { type: 'END_TURN' }, mulberry32(5));
+    s = playTurn(s, [1, 2], 'individual'); // p1 passes; p0's refresh is SKIPPED
+    s = applyAction(s, { type: 'ROLL' }, diceRng(1, 2));
+    s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, mulberry32(6));
+    expect(s.players[0]!.shop.map((c) => c?.id ?? null)).toEqual(rowAfterBuy);
+
+    // Unfreeze: the next turn-start refresh rotates again.
+    s = applyAction(s, { type: 'FREEZE_SHOP' }, deadRng());
+    s = applyAction(s, { type: 'SKIP_BUY' }, deadRng());
+    s = applyAction(s, { type: 'END_TURN' }, mulberry32(7));
+    s = playTurn(s, [1, 2], 'individual'); // p1 passes; p0 refreshes normally
+    const fresh = s.players[0]!.shop;
+    expect(fresh).toHaveLength(4);
+    expect(fresh.every((c) => c !== null)).toBe(true); // holes gone
+  });
+
+  it('refreshShop effects cannot thaw or rotate a frozen shop', () => {
+    const s0 = toBuyPhase(newPoolGame(2, 11));
+    let s = applyAction(s0, { type: 'FREEZE_SHOP' }, deadRng());
+    const row = s.players[0]!.shop.map((c) => c?.id ?? null);
+    s = applyAction(s, { type: 'SKIP_BUY' }, deadRng());
+    s = applyAction(s, { type: 'END_TURN' }, mulberry32(8));
+    // p1 turn: give p1 a refreshShop... the effect targets its OWNER, so craft
+    // p0's own echo instead: a refreshShop echo firing while frozen changes nothing.
+    s.players[0]!.echoStack = [
+      {
+        def: {
+          id: 'x-refresh',
+          name: 'x',
+          color: 'colorless',
+          rarity: 'common',
+          cost: 3,
+          legalSlots: [3],
+          active: [],
+          echo: [{ kind: 'refreshShop' }],
+        },
+        slot: 3,
+      },
+    ];
+    s = applyAction(s, { type: 'ROLL' }, diceRng(3, 5));
+    s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, mulberry32(9));
+    if (s.phase === 'echoChoice') {
+      s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, mulberry32(10));
+    }
+    expect(s.players[0]!.shop.map((c) => c?.id ?? null)).toEqual(row);
   });
 
   it('green discounts apply to market buys too', () => {

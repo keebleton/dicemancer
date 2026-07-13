@@ -46,7 +46,7 @@ export function createGame(config: GameConfig, rng?: Rng): GameState {
       points: 0,
       tokens: { reroll: 0, nudge: 0 },
       buyDiscount: 0,
-      frozenShopIndex: null,
+      shopFrozen: false,
       board: structuredClone(config.starterBoard),
       echoStack: [],
       eliminated: false,

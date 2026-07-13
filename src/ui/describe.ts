@@ -82,8 +82,12 @@ export function describeTransition(prev: GameState, action: Action, next: GameSt
       break;
     }
     case 'FREEZE_SHOP': {
-      const card = prev.players[prev.current]!.shop[action.shopIndex];
-      lines.push(`${who} freezes ${card?.name ?? '?'} in their shop for next turn`);
+      const frozeNow = next.players[prev.current]!.shopFrozen;
+      lines.push(
+        frozeNow
+          ? `${who} freezes their shop (no new cards until unfrozen)`
+          : `${who} unfreezes their shop`,
+      );
       break;
     }
     case 'SKIP_BUY':

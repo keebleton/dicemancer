@@ -258,19 +258,18 @@ function bestBuy(state: GameState, actions: Action[]): Action {
     }
   }
   if (best) return best;
-  // Nothing affordable is worth buying: consider freezing an own-shop card we
-  // cannot afford yet, if it is clearly worth carrying past the rotation.
-  let bestFreeze: Action | null = null;
-  let freezeScore = 1.5; // giving up fresh options means only strong cards qualify
-  for (const a of actions) {
-    if (a.type !== 'FREEZE_SHOP') continue;
-    const card = me.shop[a.shopIndex]!;
+  // Nothing affordable is worth buying. Freeze the shop when it holds a card
+  // clearly worth saving up for; unfreeze once nothing in it qualifies.
+  // (One-directional per evaluation, so a bot never toggle-loops.)
+  let keepWorthy = 0;
+  for (const card of me.shop) {
+    if (!card) continue;
+    if (Math.max(0, card.cost - me.buyDiscount) <= me.money) continue;
     const prob = Math.max(...card.legalSlots.map(triggerProb));
-    const s = scoreEffects(state, card.active, seat) * prob - 0.3;
-    if (s > freezeScore) {
-      freezeScore = s;
-      bestFreeze = a;
-    }
+    keepWorthy = Math.max(keepWorthy, scoreEffects(state, card.active, seat) * prob);
   }
-  return bestFreeze ?? { type: 'SKIP_BUY' };
+  const canToggle = actions.some((a) => a.type === 'FREEZE_SHOP');
+  if (canToggle && !me.shopFrozen && keepWorthy > 1.8) return { type: 'FREEZE_SHOP' };
+  if (canToggle && me.shopFrozen && keepWorthy <= 1.8) return { type: 'FREEZE_SHOP' }; // unfreeze
+  return { type: 'SKIP_BUY' };
 }

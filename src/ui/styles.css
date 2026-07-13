@@ -79,8 +79,18 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
   100% { background: #ece4fa; box-shadow: none; }
 }
 
-.slot { border: 1px solid #c9c2b2; border-radius: 8px; padding: 5px 6px; min-height: 64px; font-size: 11px; background: #f7f4ec; color: #2b2a26; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); transition: border-color 0.12s; }
+.slot { border: 1px solid #c9c2b2; border-radius: 8px; padding: 0; overflow: hidden; font-size: 11px; background: #f7f4ec; color: #2b2a26; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); transition: border-color 0.12s; }
 .slot:hover { border-color: #8a8375; }
+
+.cface { display: flex; flex-direction: column; }
+.cart { position: relative; height: 52px; overflow: hidden; flex: none; }
+.cart img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cbadge { position: absolute; top: 3px; background: rgba(15, 17, 26, 0.75); color: #f2efe6; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 8px; max-width: 62%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cslots { left: 3px; }
+.ccost { right: 3px; background: rgba(133, 94, 11, 0.92); }
+.cstripe { height: 3px; flex: none; }
+.cbody { padding: 3px 6px 5px; }
+.cname { font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .slot.preview { background: #ffe9a8; border-color: #d8a921; }
 .slot.fired { background: #d9f0d9; border-color: #5aa15a; animation: firedflash 0.7s ease-out; }
 @keyframes firedflash {
@@ -92,7 +102,6 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
   0%, 100% { box-shadow: 0 0 4px 1px rgba(62, 230, 184, 0.4); }
   50% { box-shadow: 0 0 14px 4px rgba(62, 230, 184, 0.9); }
 }
-.slothead { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; font-weight: 600; }
 .slotnum { flex: none; width: 15px; height: 15px; border-radius: 4px; background: #2b2a26; color: #f7f4ec; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 
 .fxi { width: 11px; height: 11px; flex: none; }
@@ -105,16 +114,17 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .rowlab { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 5px; color: #9a9a94; }
 
 .shop { margin: 10px 0; }
-.shopcard { display: inline-block; border: 1px solid #c9c2b2; border-radius: 8px; padding: 6px 7px; margin: 3px; width: 150px; vertical-align: top; font-size: 11px; background: #f7f4ec; color: #2b2a26; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); transition: transform 0.12s; }
+.shopcard { display: inline-block; border: 1px solid #c9c2b2; border-radius: 8px; padding: 0; overflow: hidden; margin: 3px; width: 150px; vertical-align: top; font-size: 11px; background: #f7f4ec; color: #2b2a26; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); transition: transform 0.12s; }
 .shopcard:hover:not(.dead) { transform: translateY(-2px); }
+.shopcard .cart { height: 64px; }
+.shopcard > button, .shopcard > div > button { margin: 2px 4px 5px; }
+.shopcard .editedtag { margin: 2px 6px 0; }
+.panel.shopfrozen { border-color: #7ab5ff; box-shadow: 0 0 0 1px #7ab5ff; }
 .shopcard.rare { border-color: #caa53d; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 2px 0 #caa53d; }
 .marketpanel { border-color: #caa53d; background: #322f3e; }
 .shopcard.market { border-color: #caa53d; background: #fdf6e0; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 2px 0 #caa53d; }
-.shopcard.frozen { border-color: #7ab5ff; background: #eaf2fd; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 2px 0 #7ab5ff; opacity: 1; }
-.frozentag { color: #2563eb; font-size: 10.5px; font-weight: 700; margin-top: 3px; }
 .editedtag { color: #b45309; font-size: 10.5px; font-weight: 700; margin-top: 3px; }
 .shopcard.dead { opacity: 0.55; }
-.shopcard.dead button { cursor: pointer; }
 .shopcard.selected { outline: 2px solid #2dd4a7; }
 .shopcard.dead { opacity: 0.4; cursor: default; }
 

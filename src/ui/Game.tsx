@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { chooseAction } from '../bot';
 import { actingSeat, legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
+import { CardFace } from './CardFace';
 import { fxList } from './describe';
 import { aggregateEchoEffects, Die, EffectIcons, IconLegend, StatChips } from './icons';
-import { iconUrl } from './packs';
 import { isMuted, setMuted } from './sfx';
 import { useGame } from './store';
 import type { StatPulse } from './store';
@@ -123,27 +123,7 @@ export function Game() {
                     if (buyable) setBuySel(sel ? null : { src: 'market', i });
                   }}
                 >
-                  <b>
-                    {card.icon && (
-                      <img
-                        className="cicon"
-                        src={iconUrl(card.icon)}
-                        alt=""
-                        onError={(e) => (e.currentTarget.style.display = 'none')}
-                      />
-                    )}{' '}
-                    {card.name}
-                  </b>{' '}
-                  ({card.cost})<br />
-                  <span className={card.color}>{card.color}</span> | slots any
-                  <div className="fxline">
-                    <span className="rowlab">roll</span>
-                    <EffectIcons effects={card.active} context="active" />
-                  </div>
-                  <div className="fxline dim">
-                    <span className="rowlab">echo</span>
-                    <EffectIcons effects={card.echo} context="echo" />
-                  </div>
+                  <CardFace card={card} showCost />
                 </div>
               ) : (
                 <div key={i} className="shopcard dead">
@@ -156,25 +136,28 @@ export function Game() {
       )}
 
       {game.winner === null && me.shop.length > 0 && (
-        <section className="panel">
+        <section className={'panel' + (me.shopFrozen ? ' shopfrozen' : '')}>
           <b>{me.name}{"'"}s shop</b> (money: {me.money}){' '}
+          {humanRoller && actions.some((a) => a.type === 'FREEZE_SHOP') && (
+            <button onClick={() => dispatch({ type: 'FREEZE_SHOP' })}>
+              {me.shopFrozen ? '❄ unfreeze shop' : '❄ freeze shop'}
+            </button>
+          )}
           <span className="dimtext">
-            rotates every turn | freeze a card you can{"'"}t afford to keep it (3 new cards join it)
+            {me.shopFrozen
+              ? 'frozen: keeping these cards, no new options until you unfreeze'
+              : 'rotates every turn | freeze the shop to keep this row'}
           </span>
           <div>
             {me.shop.map((card, i) => {
               const buyable = humanRoller && shopBuys.some((a) => a.shopIndex === i);
               const sel = buySel?.src === 'shop' && buySel.i === i;
-              const frozen = me.frozenShopIndex === i;
-              const canFreeze =
-                humanRoller && actions.some((a) => a.type === 'FREEZE_SHOP' && a.shopIndex === i);
               return card ? (
                 <div
                   key={i}
                   className={
                     'shopcard' +
                     (card.rarity === 'rare' ? ' rare' : '') +
-                    (frozen ? ' frozen' : '') +
                     (sel ? ' selected' : '') +
                     (buyable ? '' : ' dead')
                   }
@@ -182,39 +165,7 @@ export function Game() {
                     if (buyable) setBuySel(sel ? null : { src: 'shop', i });
                   }}
                 >
-                  <b>
-                    {card.icon && (
-                      <img
-                        className="cicon"
-                        src={iconUrl(card.icon)}
-                        alt=""
-                        onError={(e) => (e.currentTarget.style.display = 'none')}
-                      />
-                    )}{' '}
-                    {card.name}
-                  </b>{' '}
-                  ({card.cost})<br />
-                  <span className={card.color}>{card.color}</span> | slots{' '}
-                  {card.legalSlots.length === 12 ? 'any' : card.legalSlots.join(',')}
-                  <div className="fxline">
-                    <span className="rowlab">roll</span>
-                    <EffectIcons effects={card.active} context="active" />
-                  </div>
-                  <div className="fxline dim">
-                    <span className="rowlab">echo</span>
-                    <EffectIcons effects={card.echo} context="echo" />
-                  </div>
-                  {frozen && <div className="frozentag">{'❄'} frozen: stays through the rotation</div>}
-                  {canFreeze && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        dispatch({ type: 'FREEZE_SHOP', shopIndex: i });
-                      }}
-                    >
-                      {'❄'} freeze
-                    </button>
-                  )}
+                  <CardFace card={card} showCost />
                 </div>
               ) : (
                 <div key={i} className="shopcard dead">
@@ -486,26 +437,7 @@ function PlayerPanel(props: {
                 )}
               </div>
               <div className={cls} onClick={() => onSlotClick(slot)} title={tip}>
-                <div className="slothead">
-                  <span className="slotnum">{slot}</span>
-                  {card.icon && (
-                    <img
-                      className="cicon"
-                      src={iconUrl(card.icon)}
-                      alt=""
-                      onError={(e) => (e.currentTarget.style.display = 'none')}
-                    />
-                  )}{' '}
-                  {card.name}
-                </div>
-                <div className="fxline">
-                  <span className="rowlab">roll</span>
-                  <EffectIcons effects={card.active} context="active" />
-                </div>
-                <div className="fxline dim">
-                  <span className="rowlab">echo</span>
-                  <EffectIcons effects={card.echo} context="echo" />
-                </div>
+                <CardFace card={card} slotBadge={slot} />
               </div>
             </div>
           );

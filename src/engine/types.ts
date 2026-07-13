@@ -75,9 +75,9 @@ export interface PlayerState {
   tokens: { reroll: number; nudge: number };
   /** Green discounts bank here; consumed by the next BUY, reset when their turn ends. */
   buyDiscount: number;
-  /** A frozen own-shop card survives the next row refresh (limit one); the
-   *  cost is that only 3 new cards join it. Cleared by that refresh. */
-  frozenShopIndex: number | null;
+  /** While frozen, the WHOLE shop skips its refreshes (no new options at all,
+   *  holes from buys included) until the player unfreezes it. */
+  shopFrozen: boolean;
   /** Always 12 entries; index i holds the card installed in slot i+1. */
   board: CardDef[];
   echoStack: EchoEntry[];
@@ -155,10 +155,9 @@ export type Action =
   | { type: 'BUY'; shopIndex: number; targetSlot: number }
   /** Buy from the shared colorless market (counts as the turn's one purchase). */
   | { type: 'BUY_MARKET'; marketIndex: number; targetSlot: number }
-  /** Freeze a card in YOUR OWN shop that you cannot afford: it survives your
-   *  next row refresh (you get it plus only 3 new cards). Limit one active
-   *  freeze. Does not consume the turn's purchase. */
-  | { type: 'FREEZE_SHOP'; shopIndex: number }
+  /** Toggle: freeze YOUR whole shop so it stops rotating (no new cards until
+   *  you unfreeze). Does not consume the turn's purchase. */
+  | { type: 'FREEZE_SHOP' }
   | { type: 'SKIP_BUY' }
   | { type: 'END_TURN' };
 // Deferred: RESOLVE_ORDER (cards resolve in die order; revisit if ordering ever matters).

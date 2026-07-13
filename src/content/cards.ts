@@ -10,6 +10,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'cinder-bolt',
     name: 'Cinder Bolt',
+    icon: 'Ability_Mage_FireStarter.PNG',
     color: 'red',
     rarity: 'common',
     cost: 4,
@@ -20,6 +21,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'stoke-the-forge',
     name: 'Stoke the Forge',
+    icon: 'Achievement_Zone_Ironforge.PNG',
     color: 'red',
     rarity: 'common',
     cost: 3,
@@ -30,6 +32,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'blood-for-power',
     name: 'Blood for Power',
+    icon: 'ability_deathwing_bloodcorruption_earth.PNG',
     color: 'red',
     rarity: 'rare',
     cost: 7,
@@ -43,6 +46,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'meteor-call',
     name: 'Meteor Call',
+    icon: 'Spell_Mage_Meteor.PNG',
     color: 'red',
     rarity: 'rare',
     cost: 8,
@@ -56,7 +60,8 @@ export const RED_CARDS: CardDef[] = [
   // --- P5 batch ---
   {
     id: 'ember-jab',
-    name: 'Ember Jab',
+    name: 'Ember',
+    icon: 'INV_Elemental_Mote_Fire01.PNG',
     color: 'red',
     rarity: 'common',
     cost: 3,
@@ -70,6 +75,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'kindling-rage',
     name: 'Kindling Rage',
+    icon: 'Spell_Nature_ShamanRage.PNG',
     color: 'red',
     rarity: 'common',
     cost: 4,
@@ -87,6 +93,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'bellows',
     name: 'Bellows',
+    icon: 'INV_Archaeology_Orcclans_Bellow.PNG',
     color: 'red',
     rarity: 'common',
     cost: 3,
@@ -100,6 +107,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'blood-tithe',
     name: 'Blood Tithe',
+    icon: 'Ability_IronMaidens_CorruptedBlood.PNG',
     color: 'red',
     rarity: 'common',
     cost: 4,
@@ -113,6 +121,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'cauterize',
     name: 'Cauterize',
+    icon: 'Ability_DemonHunter_ChaoticImprint_Fire.PNG',
     color: 'red',
     rarity: 'common',
     cost: 4,
@@ -123,6 +132,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'powder-keg',
     name: 'Powder Keg',
+    icon: 'INV_Engineering_Gunpack.PNG',
     color: 'red',
     rarity: 'common',
     cost: 5,
@@ -133,6 +143,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'wildfire',
     name: 'Wildfire',
+    icon: 'Ability_Racial_FireResist.PNG',
     color: 'red',
     rarity: 'common',
     cost: 5,
@@ -146,6 +157,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'flare-up',
     name: 'Flare-Up',
+    icon: 'Spell_Fire_Flare.PNG',
     color: 'red',
     rarity: 'common',
     cost: 4,
@@ -159,6 +171,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'martyrs-flame',
     name: "Martyr's Flame",
+    icon: 'Spell_Nature_UnleashedRage.PNG',
     color: 'red',
     rarity: 'rare',
     cost: 7,
@@ -172,6 +185,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'inferno-engine',
     name: 'Inferno Engine',
+    icon: 'ABILITY_WARLOCK_INFERNO.PNG',
     color: 'red',
     rarity: 'rare',
     cost: 8,
@@ -182,6 +196,7 @@ export const RED_CARDS: CardDef[] = [
   {
     id: 'cinder-crown',
     name: 'Cinder Crown',
+    icon: 'INV_Crown_13.PNG',
     color: 'red',
     rarity: 'rare',
     cost: 9,
@@ -199,6 +214,7 @@ export const BLUE_CARDS: CardDef[] = [
   {
     id: 'ripple',
     name: 'Ripple',
+    icon: 'Ability_Shaman_FortifyingWaters.PNG',
     color: 'blue',
     rarity: 'common',
     cost: 3,
@@ -209,6 +225,7 @@ export const BLUE_CARDS: CardDef[] = [
   {
     id: 'second-glance',
     name: 'Second Glance',
+    icon: 'Sha_Ability_Rogue_BloodyEye.PNG',
     color: 'blue',
     rarity: 'common',
     cost: 4,
@@ -222,6 +239,7 @@ export const BLUE_CARDS: CardDef[] = [
   {
     id: 'chronoloop',
     name: 'Chronoloop',
+    icon: 'Spell_Mage_AlterTime_Active.PNG',
     color: 'blue',
     rarity: 'rare',
     cost: 7,
@@ -234,7 +252,8 @@ export const BLUE_CARDS: CardDef[] = [
   },
   {
     id: 'tide-engine',
-    name: 'Tide Engine',
+    name: 'Tidal Totem',
+    icon: 'Ability_Shaman_HealingTide.PNG',
     color: 'blue',
     rarity: 'rare',
     cost: 8,
@@ -250,6 +269,7 @@ export const BLUE_CARDS: CardDef[] = [
   {
     id: 'tide-pool',
     name: 'Tide Pool',
+    icon: 'INV_Misc_Food_Legion_GooAmberPurple_pool.PNG',
     color: 'blue',
     rarity: 'common',
     cost: 3,
@@ -263,6 +283,7 @@ export const BLUE_CARDS: CardDef[] = [
   {
     id: 'undertow',
     name: 'Undertow',
+    icon: 'Ability_ShaWaterElemental_Swirl.PNG',
     color: 'blue',
     rarity: 'common',
     cost: 4,
@@ -280,6 +301,7 @@ export const BLUE_CARDS: CardDef[] = [
   {
     id: 'driftwood',
     name: 'Driftwood',
+    icon: 'INV_Archaeology_80_Witch_EtchedDrustBone.PNG',
     color: 'blue',
     rarity: 'common',
     cost: 3,
@@ -290,6 +312,7 @@ export const BLUE_CARDS: CardDef[] = [
   {
     id: 'spyglass',
     name: 'Spyglass',
+    icon: 'INV_Misc_Spyglass_02.PNG',
     color: 'blue',
     rarity: 'common',
     cost: 4,
@@ -299,7 +322,8 @@ export const BLUE_CARDS: CardDef[] = [
   },
   {
     id: 'current-reader',
-    name: 'Current Reader',
+    name: 'Flowing Current',
+    icon: 'Spell_Mage_IceFlows.PNG',
     color: 'blue',
     rarity: 'common',
     cost: 5,
@@ -316,7 +340,8 @@ export const BLUE_CARDS: CardDef[] = [
   },
   {
     id: 'mooring-line',
-    name: 'Mooring Line',
+    name: 'Icy Breeze',
+    icon: 'Spell_Frost_ArcticWinds.PNG',
     color: 'blue',
     rarity: 'common',
     cost: 4,
@@ -330,6 +355,7 @@ export const BLUE_CARDS: CardDef[] = [
   {
     id: 'seventh-wave',
     name: 'Seventh Wave',
+    icon: 'Spell_AnimaArdenweald_Wave.PNG',
     color: 'blue',
     rarity: 'common',
     cost: 5,
@@ -343,6 +369,7 @@ export const BLUE_CARDS: CardDef[] = [
   {
     id: 'ebb-gate',
     name: 'Ebb Gate',
+    icon: 'Spell_Shaman_HighTide.PNG',
     color: 'blue',
     rarity: 'common',
     cost: 4,
@@ -352,7 +379,8 @@ export const BLUE_CARDS: CardDef[] = [
   },
   {
     id: 'tempest-loom',
-    name: 'Tempest Loom',
+    name: 'Arcane Tempest',
+    icon: 'spell_Mage_NetherTempest.PNG',
     color: 'blue',
     rarity: 'rare',
     cost: 8,
@@ -367,6 +395,7 @@ export const BLUE_CARDS: CardDef[] = [
   {
     id: 'tidal-crown',
     name: 'Tidal Crown',
+    icon: 'Item_icecrownringD.PNG',
     color: 'blue',
     rarity: 'rare',
     cost: 9,
@@ -380,6 +409,7 @@ export const BLUE_CARDS: CardDef[] = [
   {
     id: 'mirror-bay',
     name: 'Mirror Bay',
+    icon: 'Trade_Archaeology_HighborneSoulMirror.PNG',
     color: 'blue',
     rarity: 'rare',
     cost: 7,
@@ -403,6 +433,7 @@ export const COLORLESS_CARDS: CardDef[] = [
   {
     id: 'coin-sprite',
     name: 'Coin Sprite',
+    icon: 'INV_Misc_AzsharaCoin2.PNG',
     color: 'colorless',
     rarity: 'common',
     cost: 7,
@@ -413,6 +444,7 @@ export const COLORLESS_CARDS: CardDef[] = [
   {
     id: 'lucky-charm',
     name: 'Lucky Charm',
+    icon: 'INV_Jewelry_Necklace_03.PNG',
     color: 'colorless',
     rarity: 'common',
     cost: 9,
@@ -426,6 +458,7 @@ export const COLORLESS_CARDS: CardDef[] = [
   {
     id: 'prism-core',
     name: 'Prism Core',
+    icon: 'INV_Enchant_ShardPrismaticLarge.PNG',
     color: 'colorless',
     rarity: 'rare',
     cost: 11,
@@ -435,7 +468,8 @@ export const COLORLESS_CARDS: CardDef[] = [
   },
   {
     id: 'tin-totem',
-    name: 'Tin Totem',
+    name: 'Steel Totem',
+    icon: 'Spell_Nature_WrathofAir_Totem.PNG',
     color: 'colorless',
     rarity: 'common',
     cost: 7,
@@ -449,6 +483,7 @@ export const COLORLESS_CARDS: CardDef[] = [
   {
     id: 'barter-stone',
     name: 'Barter Stone',
+    icon: 'INV_Misc_Archstone_01.PNG',
     color: 'colorless',
     rarity: 'common',
     cost: 8,
@@ -459,6 +494,7 @@ export const COLORLESS_CARDS: CardDef[] = [
   {
     id: 'keepsake',
     name: 'Keepsake',
+    icon: 'INV_Ring_Bastion_01_Silver.PNG',
     color: 'colorless',
     rarity: 'common',
     cost: 7,
@@ -476,6 +512,7 @@ export const COLORLESS_CARDS: CardDef[] = [
   {
     id: 'medic-kit',
     name: 'Medic Kit',
+    icon: 'INV_FIRST_AID_70_MedicalKit.PNG',
     color: 'colorless',
     rarity: 'common',
     cost: 7,
@@ -489,6 +526,7 @@ export const COLORLESS_CARDS: CardDef[] = [
   {
     id: 'hoard-charm',
     name: 'Hoard Charm',
+    icon: 'INV_Archaeology_70_Highborne_InertLeystoneCharm.PNG',
     color: 'colorless',
     rarity: 'common',
     cost: 9,
@@ -502,6 +540,7 @@ export const COLORLESS_CARDS: CardDef[] = [
   {
     id: 'golden-idol',
     name: 'Golden Idol',
+    icon: 'INV_QirajIdol_Sun.PNG',
     color: 'colorless',
     rarity: 'rare',
     cost: 11,
@@ -515,6 +554,7 @@ export const COLORLESS_CARDS: CardDef[] = [
   {
     id: 'phoenix-plate',
     name: 'Phoenix Plate',
+    icon: 'INV_CHEST_CLOTH_68.PNG',
     color: 'colorless',
     rarity: 'rare',
     cost: 12,
@@ -534,6 +574,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'grave-tithe',
     name: 'Grave Tithe',
+    icon: 'Ability_Argus_DeathFog.PNG',
     color: 'black',
     rarity: 'common',
     cost: 3,
@@ -547,6 +588,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'bone-dice',
     name: 'Bone Dice',
+    icon: 'Ability_Rogue_RolltheBones.PNG',
     color: 'black',
     rarity: 'common',
     cost: 4,
@@ -560,6 +602,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'shallow-grave',
     name: 'Shallow Grave',
+    icon: 'Achievement_BG_Xkills_AVgraveyard.PNG',
     color: 'black',
     rarity: 'common',
     cost: 3,
@@ -573,6 +616,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'mourners-coin',
     name: "Mourner's Coin",
+    icon: 'INV_Misc_AzsharaCoin.PNG',
     color: 'black',
     rarity: 'common',
     cost: 4,
@@ -586,6 +630,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'six-feet-under',
     name: 'Six Feet Under',
+    icon: 'Ability_FiegnDead.PNG',
     color: 'black',
     rarity: 'common',
     cost: 4,
@@ -599,6 +644,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'snake-eyes',
     name: 'Snake Eyes',
+    icon: 'INV_GiantSnake_Black.PNG',
     color: 'black',
     rarity: 'common',
     cost: 5,
@@ -619,6 +665,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'pallbearer',
     name: 'Pallbearer',
+    icon: 'INV_Axe_2H_UndeadGuitar_C_01.PNG',
     color: 'black',
     rarity: 'common',
     cost: 4,
@@ -632,6 +679,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'echo-chamber',
     name: 'Echo Chamber',
+    icon: 'Achievement_Scenario_TombofForgottenKings.PNG',
     color: 'black',
     rarity: 'common',
     cost: 5,
@@ -645,6 +693,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'death-rattle',
     name: 'Death Rattle',
+    icon: 'Spell_Shadow_RaiseDead.PNG',
     color: 'black',
     rarity: 'common',
     cost: 3,
@@ -664,7 +713,8 @@ export const BLACK_CARDS: CardDef[] = [
   },
   {
     id: 'boxcars',
-    name: 'Boxcars',
+    name: "Death's Advance",
+    icon: 'INV_SkeletalWarhorse_01_Brown.PNG',
     color: 'black',
     rarity: 'common',
     cost: 5,
@@ -678,6 +728,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'grave-engine',
     name: 'Grave Engine',
+    icon: 'INV_Engineering_90_GhostTrap.PNG',
     color: 'black',
     rarity: 'rare',
     cost: 8,
@@ -692,6 +743,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'double-down',
     name: 'Double Down',
+    icon: 'Ability_DemonHunter_DoubleJump.PNG',
     color: 'black',
     rarity: 'rare',
     cost: 7,
@@ -705,6 +757,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'midnight-jackpot',
     name: 'Midnight Jackpot',
+    icon: 'ability_rogue_dirtydeeds.PNG',
     color: 'black',
     rarity: 'rare',
     cost: 9,
@@ -722,6 +775,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'crypt-hoard',
     name: 'Crypt Hoard',
+    icon: 'Battleground_Strongbox_Gold_Horde.PNG',
     color: 'black',
     rarity: 'rare',
     cost: 8,
@@ -735,6 +789,7 @@ export const BLACK_CARDS: CardDef[] = [
   {
     id: 'legion-of-echoes',
     name: 'Legion of Echoes',
+    icon: 'Ability_Shaman_EchooftheElements.PNG',
     color: 'black',
     rarity: 'rare',
     cost: 9,
@@ -752,7 +807,8 @@ export const BLACK_CARDS: CardDef[] = [
 export const GREEN_CARDS: CardDef[] = [
   {
     id: 'clover',
-    name: 'Clover',
+    name: 'Seedling',
+    icon: 'Inv_Farm_PumpkinSeed_Green.PNG',
     color: 'green',
     rarity: 'common',
     cost: 3,
@@ -766,6 +822,7 @@ export const GREEN_CARDS: CardDef[] = [
   {
     id: 'odd-jobs',
     name: 'Odd Jobs',
+    icon: 'INV_Engineering_90_WormholeGenerator.PNG',
     color: 'green',
     rarity: 'common',
     cost: 4,
@@ -779,6 +836,7 @@ export const GREEN_CARDS: CardDef[] = [
   {
     id: 'thrift-sprout',
     name: 'Thrift Sprout',
+    icon: 'ABILITY_DRUID_NOURISH.PNG',
     color: 'green',
     rarity: 'common',
     cost: 3,
@@ -792,6 +850,7 @@ export const GREEN_CARDS: CardDef[] = [
   {
     id: 'market-vine',
     name: 'Market Vine',
+    icon: 'INV_Misc_Herb_NightmareVine_Stem.PNG',
     color: 'green',
     rarity: 'common',
     cost: 4,
@@ -802,6 +861,7 @@ export const GREEN_CARDS: CardDef[] = [
   {
     id: 'crooked-scales',
     name: 'Crooked Scales',
+    icon: 'INV_Misc_ElvenCoins.PNG',
     color: 'green',
     rarity: 'common',
     cost: 4,
@@ -814,7 +874,8 @@ export const GREEN_CARDS: CardDef[] = [
   },
   {
     id: 'seedling-swap',
-    name: 'Seedling Swap',
+    name: 'Sapling Swap',
+    icon: 'SPELL_NATURE_HEALINGTOUCH.PNG',
     color: 'green',
     rarity: 'common',
     cost: 5,
@@ -828,6 +889,7 @@ export const GREEN_CARDS: CardDef[] = [
   {
     id: 'ninth-harvest',
     name: 'Ninth Harvest',
+    icon: 'Spell_Warlock_HarvestofLife.PNG',
     color: 'green',
     rarity: 'common',
     cost: 4,
@@ -841,6 +903,7 @@ export const GREEN_CARDS: CardDef[] = [
   {
     id: 'bargain-bloom',
     name: 'Bargain Bloom',
+    icon: 'Achievement_Dungeon_Everbloom.PNG',
     color: 'green',
     rarity: 'common',
     cost: 3,
@@ -850,7 +913,8 @@ export const GREEN_CARDS: CardDef[] = [
   },
   {
     id: 'wild-growth',
-    name: 'Wild Growth',
+    name: 'Wild Mushroom',
+    icon: 'Druid_Ability_Wildmushroom_b.PNG',
     color: 'green',
     rarity: 'common',
     cost: 5,
@@ -864,7 +928,8 @@ export const GREEN_CARDS: CardDef[] = [
   },
   {
     id: 'odd-omen',
-    name: 'Odd Omen',
+    name: 'Odds and Ends',
+    icon: 'Ability_Druid_Replenish.PNG',
     color: 'green',
     rarity: 'common',
     cost: 3,
@@ -878,6 +943,7 @@ export const GREEN_CARDS: CardDef[] = [
   {
     id: 'verdant-engine',
     name: 'Verdant Engine',
+    icon: 'INV_Inscription_Pigment_Verdant.PNG',
     color: 'green',
     rarity: 'rare',
     cost: 8,
@@ -891,6 +957,7 @@ export const GREEN_CARDS: CardDef[] = [
   {
     id: 'harvest-moon',
     name: 'Harvest Moon',
+    icon: 'artifactability_BalanceDruid_Fullmoon.PNG',
     color: 'green',
     rarity: 'rare',
     cost: 9,
@@ -905,6 +972,7 @@ export const GREEN_CARDS: CardDef[] = [
   {
     id: 'golden-trellis',
     name: 'Golden Trellis',
+    icon: 'INV_Misc_Herb_Nightmarevine.PNG',
     color: 'green',
     rarity: 'rare',
     cost: 7,
@@ -919,6 +987,7 @@ export const GREEN_CARDS: CardDef[] = [
   {
     id: 'thicket-of-threes',
     name: 'Thicket of Threes',
+    icon: 'Ability_Druid_ManaTree.PNG',
     color: 'green',
     rarity: 'rare',
     cost: 7,
@@ -932,6 +1001,7 @@ export const GREEN_CARDS: CardDef[] = [
   {
     id: 'everbloom',
     name: 'Everbloom',
+    icon: 'INV_Misc_Herb_Arrowbloom.PNG',
     color: 'green',
     rarity: 'rare',
     cost: 8,
@@ -951,6 +1021,7 @@ export const YELLOW_CARDS: CardDef[] = [
   {
     id: 'penny-mint',
     name: 'Penny Mint',
+    icon: 'INV_Misc_Coin_05.PNG',
     color: 'yellow',
     rarity: 'common',
     cost: 3,
@@ -961,6 +1032,7 @@ export const YELLOW_CARDS: CardDef[] = [
   {
     id: 'coin-press',
     name: 'Coin Press',
+    icon: 'Achievement_Dungeon_CoinOperatedCrowdPummeler.PNG',
     color: 'yellow',
     rarity: 'common',
     cost: 4,
@@ -971,6 +1043,7 @@ export const YELLOW_CARDS: CardDef[] = [
   {
     id: 'money-changer',
     name: 'Money Changer',
+    icon: 'Ability_Racial_TimeIsMoney.PNG',
     color: 'yellow',
     rarity: 'common',
     cost: 4,
@@ -983,7 +1056,8 @@ export const YELLOW_CARDS: CardDef[] = [
   },
   {
     id: 'golden-goose',
-    name: 'Golden Goose',
+    name: 'Rocket Chicken',
+    icon: 'INV_Misc_EngGizmos_RocketChicken.PNG',
     color: 'yellow',
     rarity: 'common',
     cost: 5,
@@ -994,6 +1068,7 @@ export const YELLOW_CARDS: CardDef[] = [
   {
     id: 'tollbooth',
     name: 'Tollbooth',
+    icon: 'INV_Misc_LuckyMoneyEnvelope.PNG',
     color: 'yellow',
     rarity: 'common',
     cost: 4,
@@ -1003,7 +1078,8 @@ export const YELLOW_CARDS: CardDef[] = [
   },
   {
     id: 'exchange-window',
-    name: 'Exchange Window',
+    name: 'Golden Salve',
+    icon: 'Trade_Alchemy_PotionA4.PNG',
     color: 'yellow',
     rarity: 'common',
     cost: 5,
@@ -1014,6 +1090,7 @@ export const YELLOW_CARDS: CardDef[] = [
   {
     id: 'piggy-bank',
     name: 'Piggy Bank',
+    icon: 'INV_BabyPig.PNG',
     color: 'yellow',
     rarity: 'common',
     cost: 3,
@@ -1026,7 +1103,8 @@ export const YELLOW_CARDS: CardDef[] = [
   },
   {
     id: 'gilded-scale',
-    name: 'Gilded Scale',
+    name: 'Gilded Harp',
+    icon: 'Inv_Misc_Trinket_GoldenHarp.PNG',
     color: 'yellow',
     rarity: 'common',
     cost: 4,
@@ -1040,6 +1118,7 @@ export const YELLOW_CARDS: CardDef[] = [
   {
     id: 'mint-condition',
     name: 'Mint Condition',
+    icon: 'INV_Misc_Coin_01.PNG',
     color: 'yellow',
     rarity: 'common',
     cost: 5,
@@ -1052,7 +1131,8 @@ export const YELLOW_CARDS: CardDef[] = [
   },
   {
     id: 'eight-ball',
-    name: 'Eight Ball',
+    name: 'Golden Nugget',
+    icon: 'INV_Misc_Gem_GoldenDraenite_01.PNG',
     color: 'yellow',
     rarity: 'common',
     cost: 3,
@@ -1066,6 +1146,7 @@ export const YELLOW_CARDS: CardDef[] = [
   {
     id: 'midas-touch',
     name: 'Midas Touch',
+    icon: 'INV_MawGuardHandMountGold.PNG',
     color: 'yellow',
     rarity: 'rare',
     cost: 8,
@@ -1079,6 +1160,7 @@ export const YELLOW_CARDS: CardDef[] = [
   {
     id: 'royal-mint',
     name: 'Royal Mint',
+    icon: 'Achievement_ChallengeMode_Auchindoun_Gold.PNG',
     color: 'yellow',
     rarity: 'rare',
     cost: 9,
@@ -1092,6 +1174,7 @@ export const YELLOW_CARDS: CardDef[] = [
   {
     id: 'alchemists-ledger',
     name: "Alchemist's Ledger",
+    icon: 'INV_Misc_Profession_Book_Alchemy.PNG',
     color: 'yellow',
     rarity: 'rare',
     cost: 7,
@@ -1102,6 +1185,7 @@ export const YELLOW_CARDS: CardDef[] = [
   {
     id: 'fort-knox',
     name: 'Fort Knox',
+    icon: 'ACHIEVEMENT_GUILDPERK_MOBILEBANKING.PNG',
     color: 'yellow',
     rarity: 'rare',
     cost: 8,
@@ -1115,6 +1199,7 @@ export const YELLOW_CARDS: CardDef[] = [
   {
     id: 'counting-house',
     name: 'Counting House',
+    icon: 'Ability_Racial_PackHobgoblin.PNG',
     color: 'yellow',
     rarity: 'rare',
     cost: 7,

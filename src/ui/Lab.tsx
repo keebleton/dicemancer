@@ -1,11 +1,11 @@
-// The Card Lab: design custom cards, save them into packs, sim-test them.
+﻿// The Card Lab: design custom cards, save them into packs, sim-test them.
 import { useEffect, useMemo, useState } from 'react';
 import { pools } from '../content/cards';
 import { starterBoard } from '../content/starters';
 import type { CardColor, CardDef, ConditionalWhen, Effect } from '../engine';
 import { simulate } from '../sim/sim';
+import { CardFace } from './CardFace';
 import { fxList } from './describe';
-import { EffectIcons } from './icons';
 import {
   builtinIds,
   iconUrl,
@@ -248,7 +248,7 @@ export function Lab({ onClose }: { onClose: () => void }) {
               <div>
                 {pack.cards.map((c, i) => (
                   <div key={c.id} className="shopcard" style={{ cursor: 'default' }}>
-                    <CardFace card={c} />
+                    <CardFace card={c} showCost />
                     <div>
                       <button
                         onClick={() => {
@@ -356,7 +356,7 @@ function Catalog({
               const edited = c.id in overrides;
               return (
                 <div key={c.id} className="shopcard" style={{ cursor: 'default' }}>
-                  <CardFace card={eff} />
+                  <CardFace card={eff} showCost />
                   {edited && <div className="editedtag">edited</div>}
                   <div>
                     <button onClick={() => onEdit(eff)}>edit</button>
@@ -377,34 +377,6 @@ function Catalog({
   );
 }
 
-function CardFace({ card }: { card: CardDef }) {
-  return (
-    <>
-      <b>
-        {card.icon && (
-          <img
-            className="cicon"
-            src={iconUrl(card.icon)}
-            alt=""
-            onError={(e) => (e.currentTarget.style.display = 'none')}
-          />
-        )}{' '}
-        {card.name}
-      </b>{' '}
-      ({card.cost})<br />
-      <span className={card.color}>{card.color}</span> | slots{' '}
-      {card.legalSlots.length === 12 ? 'any' : card.legalSlots.join(',')}
-      <div className="fxline">
-        <span className="rowlab">roll</span>
-        <EffectIcons effects={card.active} context="active" />
-      </div>
-      <div className="fxline dim">
-        <span className="rowlab">echo</span>
-        <EffectIcons effects={card.echo} context="echo" />
-      </div>
-    </>
-  );
-}
 
 function CardEditor(props: {
   draft: CardDef;
@@ -522,7 +494,7 @@ function CardEditor(props: {
         <div className="labside">
           <h3>Preview</h3>
           <div className="shopcard" style={{ cursor: 'default' }}>
-            <CardFace card={draft} />
+            <CardFace card={draft} showCost />
           </div>
           <div className="dimtext" style={{ fontSize: 11, margin: '6px 0' }}>
             active: {fxList(draft.active)}
@@ -729,9 +701,9 @@ function WhenEditor({ when, onChange }: { when: ConditionalWhen; onChange: (w: C
   );
   return (
     <div className="wheneditor">
-      if: {numField('sum ≥', 'sumAtLeast')}
-      {numField('hp ≤', 'hpAtOrBelow')}
-      {numField('echoes ≥', 'echoStackAtLeast')}
+      if: {numField('sum â‰¥', 'sumAtLeast')}
+      {numField('hp â‰¤', 'hpAtOrBelow')}
+      {numField('echoes â‰¥', 'echoStackAtLeast')}
       {boolField('doubles', 'rolledDoubles')}
       {boolField('both odd', 'bothDiceOdd')}
       {boolField('both even', 'bothDiceEven')}

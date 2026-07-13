@@ -94,11 +94,12 @@ describe('built-in card overrides', () => {
     const merged = mergedPools([], { [RED_CARDS[0]!.id]: edited });
     expect(merged.red.find((c) => c.id === RED_CARDS[0]!.id)!.cost).toBe(5);
 
+    const baseBoard = effectiveStarterBoard({});
     const board = effectiveStarterBoard({
-      'starter-4': { ...effectiveStarterBoard({})[3]!, icon: 'Spell_Nature_Lightning.PNG' },
+      'starter-4': { ...baseBoard[3]!, icon: 'Spell_Nature_Lightning.PNG' },
     });
     expect(board[3]!.icon).toBe('Spell_Nature_Lightning.PNG');
-    expect(board[0]!.icon).toBeUndefined();
+    expect(board[0]!.icon).toBe(baseBoard[0]!.icon); // untouched starters keep their baked icon
   });
 });
 
