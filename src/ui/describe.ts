@@ -8,6 +8,10 @@ function condText(when: ConditionalWhen): string {
     parts.push(when.allocatedIndividually ? 'split dice' : 'took sum');
   }
   if (when.hpAtOrBelow !== undefined) parts.push(`hp <= ${when.hpAtOrBelow}`);
+  if (when.rolledDoubles !== undefined) parts.push(when.rolledDoubles ? 'doubles' : 'no doubles');
+  if (when.bothDiceOdd !== undefined) parts.push('both dice odd');
+  if (when.bothDiceEven !== undefined) parts.push('both dice even');
+  if (when.echoStackAtLeast !== undefined) parts.push(`${when.echoStackAtLeast}+ echoes`);
   return parts.join(' & ') || 'always';
 }
 
@@ -25,6 +29,10 @@ export function fxText(e: Effect): string {
       return `+${e.amount} ${e.token} token`;
     case 'refreshShop':
       return 'refresh shop';
+    case 'discount':
+      return `next buy costs ${e.amount} less`;
+    case 'trade':
+      return `pay ${e.pay} money: ${e.then.map(fxText).join(', ')}`;
     case 'conditional':
       return `if ${condText(e.when)}: ${e.then.map(fxText).join(', ')}`;
   }

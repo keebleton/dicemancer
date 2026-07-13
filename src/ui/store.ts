@@ -25,7 +25,13 @@ interface GameStore {
   seatKinds: SeatKind[];
   log: string[];
   pulses: StatPulse[];
-  start: (playerCount: number, roundCap: number, seed?: number, kinds?: SeatKind[]) => void;
+  start: (
+    playerCount: number,
+    roundCap: number,
+    seed?: number,
+    kinds?: SeatKind[],
+    colors?: SeatColor[],
+  ) => void;
   /** The ONLY writer: every state change goes through the engine's applyAction. */
   dispatch: (action: Action) => void;
   reset: () => void;
@@ -36,16 +42,17 @@ export const useGame = create<GameStore>()((set, get) => ({
   seatKinds: [],
   log: [],
   pulses: [],
-  start: (playerCount, roundCap, seed, kinds) => {
+  start: (playerCount, roundCap, seed, kinds, colors) => {
     rng = mulberry32(seed ?? Date.now() >>> 0);
     const seatKinds: SeatKind[] =
       kinds?.slice(0, playerCount) ?? Array<SeatKind>(playerCount).fill('human');
-    const colors: SeatColor[] = ['red', 'blue', 'red', 'blue'];
+    const seatColors: SeatColor[] =
+      colors?.slice(0, playerCount) ?? (['red', 'blue', 'green', 'yellow'] as SeatColor[]);
     const game = createGame(
       {
         seats: Array.from({ length: playerCount }, (_, i) => ({
           name: seatKinds[i] === 'bot' ? `Bot ${i + 1}` : `Player ${i + 1}`,
-          color: colors[i % colors.length] as SeatColor,
+          color: seatColors[i % seatColors.length] as SeatColor,
         })),
         starterBoard: starterBoard(),
         pools: pools(),

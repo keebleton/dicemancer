@@ -44,7 +44,7 @@ export function legalActions(state: GameState): Action[] {
     case 'buy': {
       const actions: Action[] = [{ type: 'SKIP_BUY' }];
       me.shop.forEach((card, shopIndex) => {
-        if (!card || card.cost > me.money) return;
+        if (!card || Math.max(0, card.cost - me.buyDiscount) > me.money) return;
         for (const targetSlot of card.legalSlots) {
           actions.push({ type: 'BUY', shopIndex, targetSlot });
         }
@@ -110,7 +110,8 @@ function perform(next: GameState, action: Action, rng: Rng): void {
     case 'BUY': {
       const me = next.players[next.current]!;
       const card = me.shop[action.shopIndex]!;
-      me.money -= card.cost;
+      me.money -= Math.max(0, card.cost - me.buyDiscount);
+      me.buyDiscount = 0; // the discount rode this buy
       const displaced = me.board[action.targetSlot - 1]!;
       me.echoStack.push({ def: displaced, slot: action.targetSlot });
       me.board[action.targetSlot - 1] = card;
@@ -166,7 +167,9 @@ function assertLegal(state: GameState, action: Action): void {
       const me = state.players[state.current]!;
       const card = me.shop[action.shopIndex];
       if (!card) throw new Error(`nothing at shop index ${action.shopIndex}`);
-      if (card.cost > me.money) throw new Error(`cannot afford ${card.id}`);
+      if (Math.max(0, card.cost - me.buyDiscount) > me.money) {
+        throw new Error(`cannot afford ${card.id}`);
+      }
       if (!card.legalSlots.includes(action.targetSlot)) {
         throw new Error(`slot ${action.targetSlot} is not legal for ${card.id}`);
       }
@@ -245,6 +248,17 @@ function drainQueue(state: GameState, rng: Rng): boolean {
       }
       continue;
     }
+    if (eff.kind === 'trade') {
+      queue.shift();
+      const owner = state.players[item.owner]!;
+      if (owner.money >= eff.pay) {
+        owner.money -= eff.pay;
+        queue.unshift(
+          ...eff.then.map((effect) => ({ effect, owner: item.owner, echo: item.echo })),
+        );
+      }
+      continue;
+    }
     if (eff.kind === 'damage' && eff.target === 'chooseOpponent' && !item.echo) {
       const targets = legalTargets(state, state.current);
       if (targets.length === 0) {
@@ -305,6 +319,7 @@ function endTurn(state: GameState, rng: Rng): void {
     return;
   }
 
+  state.players[state.current]!.buyDiscount = 0; // discounts are turn-scoped
   if (wrapped) state.round += 1;
   state.current = nextSeat;
   state.phase = 'roll';

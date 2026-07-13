@@ -14,7 +14,7 @@ export interface GameConfig {
   starterBoard: CardDef[];
   /** Optional card pools; each seat gets its own shuffled copies (PLAN section 2).
    *  Omit for starter-only games (no shop, BUY never legal). */
-  pools?: { red: CardDef[]; blue: CardDef[]; colorless: CardDef[] };
+  pools?: Record<SeatColor, CardDef[]> & { colorless: CardDef[] };
   tunables?: Partial<Tunables>;
 }
 
@@ -49,6 +49,7 @@ export function createGame(config: GameConfig, rng?: Rng): GameState {
       money: tunables.startingMoney,
       points: 0,
       tokens: { reroll: 0, nudge: 0 },
+      buyDiscount: 0,
       board: structuredClone(config.starterBoard),
       echoStack: [],
       eliminated: false,

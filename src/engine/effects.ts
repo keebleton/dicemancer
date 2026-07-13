@@ -34,8 +34,8 @@ export function checkKo(state: GameState): void {
 }
 
 export function conditionHolds(state: GameState, when: ConditionalWhen, owner: number): boolean {
+  const dice = state.dice;
   if (when.sumAtLeast !== undefined) {
-    const dice = state.dice;
     if (!dice || dice[0] + dice[1] < when.sumAtLeast) return false;
   }
   if (when.allocatedIndividually !== undefined) {
@@ -44,6 +44,19 @@ export function conditionHolds(state: GameState, when: ConditionalWhen, owner: n
   if (when.hpAtOrBelow !== undefined) {
     const p = state.players[owner];
     if (!p || p.hp > when.hpAtOrBelow) return false;
+  }
+  if (when.rolledDoubles !== undefined) {
+    if (!dice || (dice[0] === dice[1]) !== when.rolledDoubles) return false;
+  }
+  if (when.bothDiceOdd !== undefined) {
+    if (!dice || (dice[0] % 2 === 1 && dice[1] % 2 === 1) !== when.bothDiceOdd) return false;
+  }
+  if (when.bothDiceEven !== undefined) {
+    if (!dice || (dice[0] % 2 === 0 && dice[1] % 2 === 0) !== when.bothDiceEven) return false;
+  }
+  if (when.echoStackAtLeast !== undefined) {
+    const p = state.players[owner];
+    if (!p || p.echoStack.length < when.echoStackAtLeast) return false;
   }
   return true;
 }
@@ -84,6 +97,11 @@ export function applyEffect(
     case 'refreshShop':
       dealRow(state, ctx.owner, rng);
       break;
+    case 'discount':
+      owner.buyDiscount += effect.amount;
+      break;
+    case 'trade':
+      throw new Error('trades must be unwrapped by the resolution queue');
     case 'conditional':
       throw new Error('conditionals must be unwrapped by the resolution queue');
   }

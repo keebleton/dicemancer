@@ -3,10 +3,16 @@
 // class instances, no Maps/Sets. That invariant is what makes replays,
 // persistence, and future server-authoritative play possible.
 
-export type CardColor = 'red' | 'blue' | 'colorless' | 'starter';
-// v2 colors (black/green/white) extend this union when they land; do not build them.
+export type CardColor =
+  | 'red'
+  | 'blue'
+  | 'black'
+  | 'green'
+  | 'yellow'
+  | 'colorless'
+  | 'starter';
 
-export type SeatColor = 'red' | 'blue';
+export type SeatColor = 'red' | 'blue' | 'black' | 'green' | 'yellow';
 
 export type TokenKind = 'reroll' | 'nudge';
 
@@ -18,6 +24,13 @@ export interface ConditionalWhen {
   allocatedIndividually?: boolean;
   /** Checked against the card owner's HP. */
   hpAtOrBelow?: number;
+  /** Black: both dice show the same face. */
+  rolledDoubles?: boolean;
+  /** Green: dice parity. */
+  bothDiceOdd?: boolean;
+  bothDiceEven?: boolean;
+  /** Black: the card owner's echo stack size. */
+  echoStackAtLeast?: number;
 }
 
 export type Effect =
@@ -27,6 +40,10 @@ export type Effect =
   | { kind: 'heal'; amount: number }
   | { kind: 'gainToken'; token: TokenKind; amount: number }
   | { kind: 'refreshShop' }
+  /** Green: the owner's next buy this turn costs this much less (stacks, floors at 0). */
+  | { kind: 'discount'; amount: number }
+  /** Yellow: if the owner can pay, spend the money and apply `then`; otherwise nothing. */
+  | { kind: 'trade'; pay: number; then: Effect[] }
   | { kind: 'conditional'; when: ConditionalWhen; then: Effect[] };
 
 export interface CardDef {
@@ -54,6 +71,8 @@ export interface PlayerState {
   money: number;
   points: number;
   tokens: { reroll: number; nudge: number };
+  /** Green discounts bank here; consumed by the next BUY, reset when their turn ends. */
+  buyDiscount: number;
   /** Always 12 entries; index i holds the card installed in slot i+1. */
   board: CardDef[];
   echoStack: EchoEntry[];

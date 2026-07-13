@@ -65,6 +65,9 @@ describe('shop deal', () => {
         pools: {
           red: tiny(['r1', 'r2', 'r3'], 'red'),
           blue: tiny(['b1', 'b2', 'b3'], 'blue'),
+          black: tiny(['k1'], 'black'),
+          green: tiny(['g1'], 'green'),
+          yellow: tiny(['y1'], 'yellow'),
           colorless: tiny(['c1', 'c2'], 'colorless'),
         },
       },

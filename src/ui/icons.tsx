@@ -10,6 +10,10 @@ function condShort(when: ConditionalWhen): string {
     parts.push(when.allocatedIndividually ? 'split' : 'sum');
   }
   if (when.hpAtOrBelow !== undefined) parts.push(`hp≤${when.hpAtOrBelow}`);
+  if (when.rolledDoubles !== undefined) parts.push(when.rolledDoubles ? 'doubles' : 'no dbls');
+  if (when.bothDiceOdd !== undefined) parts.push('odd dice');
+  if (when.bothDiceEven !== undefined) parts.push('even dice');
+  if (when.echoStackAtLeast !== undefined) parts.push(`${when.echoStackAtLeast}+ echoes`);
   return parts.join(' ');
 }
 
@@ -239,6 +243,19 @@ function EffectChip({ e, context }: { e: Effect; context: 'active' | 'echo' }) {
           {'⟳'}
         </span>
       );
+    case 'discount':
+      return (
+        <span className="fxchip glyph" title={tip}>
+          -{e.amount} cost
+        </span>
+      );
+    case 'trade':
+      return (
+        <span className="fxif" title={tip}>
+          pay <Coin />
+          {e.pay}: <EffectIcons effects={e.then} context={context} />
+        </span>
+      );
     case 'conditional':
       return (
         <span className="fxif" title={tip}>
@@ -257,6 +274,7 @@ export function aggregateEchoEffects(lines: Effect[][]): Effect[] {
   let heal = 0;
   const tokens: Record<TokenKind, number> = { reroll: 0, nudge: 0 };
   let refresh = 0;
+  let discount = 0;
   const rest: Effect[] = [];
   for (const line of lines) {
     for (const e of line) {
@@ -279,6 +297,10 @@ export function aggregateEchoEffects(lines: Effect[][]): Effect[] {
         case 'refreshShop':
           refresh += 1;
           break;
+        case 'discount':
+          discount += e.amount;
+          break;
+        case 'trade':
         case 'conditional':
           rest.push(e);
           break;
@@ -292,6 +314,7 @@ export function aggregateEchoEffects(lines: Effect[][]): Effect[] {
   if (heal > 0) out.push({ kind: 'heal', amount: heal });
   if (tokens.reroll > 0) out.push({ kind: 'gainToken', token: 'reroll', amount: tokens.reroll });
   if (tokens.nudge > 0) out.push({ kind: 'gainToken', token: 'nudge', amount: tokens.nudge });
+  if (discount > 0) out.push({ kind: 'discount', amount: discount });
   for (let i = 0; i < refresh; i++) out.push({ kind: 'refreshShop' });
   return [...out, ...rest];
 }

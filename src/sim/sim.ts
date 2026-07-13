@@ -25,20 +25,28 @@ export interface SimReport {
   options: SimOptions;
   seatWins: number[];
   colorWins: Record<SeatColor, number>;
+  /** Games in which the color was seated (a color appears at most once per game). */
+  colorGames: Record<SeatColor, number>;
   reasons: Record<WinReason, number>;
   avgRounds: number;
   cards: CardRow[];
 }
 
-/** Seat colors alternate per game so color winrate decouples from seat winrate. */
+const ALL_COLORS: SeatColor[] = ['red', 'blue', 'black', 'green', 'yellow'];
+
+/** Seat colors rotate through all five per game so every color meets every
+ *  seat position and matchup over the run. */
 function seatColors(players: number, gameIndex: number): SeatColor[] {
-  const base: SeatColor[] = gameIndex % 2 === 0 ? ['red', 'blue'] : ['blue', 'red'];
-  return Array.from({ length: players }, (_, i) => base[i % 2] as SeatColor);
+  return Array.from(
+    { length: players },
+    (_, i) => ALL_COLORS[(gameIndex + i) % ALL_COLORS.length] as SeatColor,
+  );
 }
 
 export function simulate(options: SimOptions): SimReport {
   const seatWins = Array<number>(options.players).fill(0);
-  const colorWins: Record<SeatColor, number> = { red: 0, blue: 0 };
+  const colorWins: Record<SeatColor, number> = { red: 0, blue: 0, black: 0, green: 0, yellow: 0 };
+  const colorGames: Record<SeatColor, number> = { red: 0, blue: 0, black: 0, green: 0, yellow: 0 };
   const reasons: Record<WinReason, number> = { points: 0, ko: 0, failsafe: 0 };
   let totalRounds = 0;
   const stats = new Map<string, { offered: number; bought: number; wonWith: number }>();
@@ -81,6 +89,7 @@ export function simulate(options: SimOptions): SimReport {
 
     if (s.winner === null) throw new Error(`game ${g} did not finish`);
     seatWins[s.winner] = (seatWins[s.winner] ?? 0) + 1;
+    for (const color of colors) colorGames[color] += 1;
     colorWins[s.players[s.winner]!.color] += 1;
     reasons[s.winReason!] += 1;
     totalRounds += s.round;
@@ -105,6 +114,7 @@ export function simulate(options: SimOptions): SimReport {
     options,
     seatWins,
     colorWins,
+    colorGames,
     reasons,
     avgRounds: totalRounds / options.games,
     cards,
@@ -121,7 +131,11 @@ export function formatReport(r: SimReport): string {
     'wins by seat:   ' + r.seatWins.map((w, i) => `seat${i} ${pct(w, games)}`).join('  '),
   );
   lines.push(
-    `wins by color:  red ${pct(r.colorWins.red, games)}  blue ${pct(r.colorWins.blue, games)}`,
+    'color win rate: '
+      + ALL_COLORS.map(
+        (c) => `${c} ${pct(r.colorWins[c], r.colorGames[c])}`,
+      ).join('  ')
+      + `  (fair = ${pct(1, players)})`,
   );
   lines.push(
     `win reasons:    points ${pct(r.reasons.points, games)}  ko ${pct(r.reasons.ko, games)}  failsafe ${pct(r.reasons.failsafe, games)}`,

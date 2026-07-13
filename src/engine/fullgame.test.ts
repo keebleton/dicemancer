@@ -95,6 +95,26 @@ describe('full games with the exemplar pools (shop, buys, tokens, targeting)', (
     const b = playOut(4, 55, true);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
+
+  it('a black/green/yellow/red table plays to a win (new primitives end to end)', () => {
+    const rng = mulberry32(2026);
+    const seats: SeatColor[] = ['black', 'green', 'yellow', 'red'];
+    let s = createGame(
+      {
+        seats: seats.map((color, i) => ({ name: `P${i}`, color })),
+        starterBoard: starterBoard(),
+        pools: pools(),
+      },
+      rng,
+    );
+    for (let step = 0; step < 20_000; step++) {
+      const actions = legalActions(s);
+      if (actions.length === 0) break;
+      s = applyAction(s, actions[Math.floor(rng.next() * actions.length)]!, rng);
+      assertInvariants(s);
+    }
+    expect(s.winner).not.toBeNull();
+  });
 });
 
 describe('serializability', () => {

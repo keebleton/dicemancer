@@ -33,6 +33,7 @@ function triggerProb(slot: number): number {
 interface RollContext {
   mode: AllocationMode;
   sum: number;
+  dice: [number, number];
 }
 
 /** Immediate expected value of an effect line for `seat`.
@@ -73,6 +74,14 @@ function scoreEffects(
       case 'refreshShop':
         v += 0.25;
         break;
+      case 'discount':
+        v += Math.min(e.amount, 3) * 0.7;
+        break;
+      case 'trade': {
+        const net = scoreEffects(state, e.then, seat, roll) - e.pay;
+        if (net > 0) v += me.money >= e.pay ? net : net * 0.5;
+        break;
+      }
       case 'conditional':
         v += conditionOdds(state, e.when, seat, roll) * scoreEffects(state, e.then, seat, roll);
         break;
@@ -98,6 +107,22 @@ function conditionOdds(
   if (when.allocatedIndividually !== undefined) {
     odds *= roll ? ((roll.mode === 'individual') === when.allocatedIndividually ? 1 : 0) : 0.5;
   }
+  if (when.rolledDoubles !== undefined) {
+    odds *= roll ? ((roll.dice[0] === roll.dice[1]) === when.rolledDoubles ? 1 : 0) : 1 / 6;
+  }
+  if (when.bothDiceOdd !== undefined) {
+    odds *= roll
+      ? ((roll.dice[0] % 2 === 1 && roll.dice[1] % 2 === 1) === when.bothDiceOdd ? 1 : 0)
+      : 0.25;
+  }
+  if (when.bothDiceEven !== undefined) {
+    odds *= roll
+      ? ((roll.dice[0] % 2 === 0 && roll.dice[1] % 2 === 0) === when.bothDiceEven ? 1 : 0)
+      : 0.25;
+  }
+  if (when.echoStackAtLeast !== undefined) {
+    odds *= state.players[seat]!.echoStack.length >= when.echoStackAtLeast ? 1 : 0;
+  }
   return odds;
 }
 
@@ -110,7 +135,7 @@ function bestAllocation(state: GameState, actions: Action[]): Action {
   let bestScore = -Infinity;
   for (const a of actions) {
     if (a.type !== 'ALLOCATE') continue;
-    const roll: RollContext = { mode: a.mode, sum: dice[0] + dice[1] };
+    const roll: RollContext = { mode: a.mode, sum: dice[0] + dice[1], dice };
     let s = 0;
     for (const n of previewNumbers(dice, a.mode)) {
       s += scoreEffects(state, board[n - 1]!.active, seat, roll);
@@ -152,7 +177,7 @@ function bestBuy(state: GameState, actions: Action[]): Action {
       (scoreEffects(state, card.active, seat)
         - scoreEffects(state, me.board[a.targetSlot - 1]!.active, seat))
       * prob;
-    let s = gain / Math.max(1, card.cost);
+    let s = gain / Math.max(1, card.cost - me.buyDiscount);
     if (card.color === me.color) s += 0.05; // prefer own color
     if (s > bestScore) {
       bestScore = s;

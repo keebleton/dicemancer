@@ -12,7 +12,7 @@
 ```ts
 interface CardDef {
   id: string; name: string;
-  color: 'red' | 'blue' | 'colorless' | 'starter';
+  color: 'red' | 'blue' | 'black' | 'green' | 'yellow' | 'colorless' | 'starter';
   rarity: 'common' | 'rare' | 'starter';
   cost: number;
   legalSlots: number[];        // colorless = [1..12]
@@ -25,7 +25,9 @@ interface CardDef {
 ## Effect primitives (the ONLY building blocks — do not invent new ones silently)
 gainMoney(n) · gainPoints(n) · damage(n, 'chooseOpponent' | 'roller') · heal(n) ·
 gainToken('reroll' | 'nudge', n) · refreshShop ·
-conditional({ sumAtLeast? | allocatedIndividually? | hpAtOrBelow? }, then: Effect[])
+discount(n) — owner's next buy this turn costs n less (stacks, floors at 0, expires at turn end) ·
+trade(pay, then) — if the owner can pay that much money, spend it and apply `then`; else nothing ·
+conditional({ sumAtLeast? | allocatedIndividually? | hpAtOrBelow? | rolledDoubles? | bothDiceOdd? | bothDiceEven? | echoStackAtLeast? }, then: Effect[])
 
 If a design needs a new primitive: STOP, flag it in your summary with the proposed primitive, do not ship the card.
 
@@ -39,6 +41,9 @@ If a design needs a new primitive: STOP, flag it in your summary with the propos
 ## Color identities
 - RED "Emberkin": legal slots from {4,5,6} and sums {9–12}. Direct damage, self-risk (pay HP for power), "sumAtLeast 10" bonuses. Echo flavor: chip damage to roller. Win lean: KO / burst points.
 - BLUE "Tideweaver": legal slots from {1,2,3} and sums {2–5,7}. Reroll/nudge tokens, shop manipulation, consistency payoffs (allocatedIndividually). Echo flavor: trickle money/points. Win lean: steady points.
+- BLACK "Gravebound": legal slots from {1,6} and sums {2,12} (the doubles-only sums). rolledDoubles payoffs and echoStackAtLeast (graveyard) scaling — black WANTS to retire cards. Echo flavor: points from the grave. Win lean: snowballing echo engine + doubles jackpots.
+- GREEN "Wildgrove": legal slots from {1,3,5} and sums {3,5,9} (all odd). bothDiceOdd payoffs and shop economy (discount, refreshShop). Note: bothDiceOdd can only pay on green's INDIVIDUAL slots (odd sums need mixed dice) — that tension is intentional. Echo flavor: money trickle. Win lean: value engine.
+- YELLOW "Gildmint": legal slots from {2,4} and sums {6,8}. Raw coin generation plus trade() conversions flipping money into points or HP. Echo flavor: money trickle. Win lean: outspend, then convert.
 - COLORLESS: any slot (player picks at purchase). Money + generic utility only. No damage, no tokens.
 
 ## Output contract for content
