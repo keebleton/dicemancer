@@ -1,3 +1,3 @@
-// Card definitions as data (cards.ts, starters.ts), interpreted by the engine's effect system.
-// Filled from Phase 2 onward; pool targets land in Phase 5.
-export {};
+// Card definitions as data, interpreted by the engine's effect system.
+// Color pools (cards.ts) arrive in Phase 2; pool targets land in Phase 5.
+export { starterBoard } from './starters';
