@@ -21,6 +21,16 @@ export function Game() {
   const [buySel, setBuySel] = useState<{ src: 'shop' | 'market'; i: number } | null>(null);
   const [muted, setMutedState] = useState(isMuted());
   const [showLegend, setShowLegend] = useState(false);
+  const [inspect, setInspect] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (inspect === null) return;
+    const h = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setInspect(null);
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [inspect]);
 
   useEffect(() => {
     setPreview(null);
@@ -86,6 +96,7 @@ export function Game() {
       game={game}
       pulses={pulses.filter((x) => x.seat === seat)}
       fired={seat === game.current ? firedSlots : []}
+      onInspect={() => setInspect(seat)}
     />
   );
 
@@ -143,6 +154,7 @@ export function Game() {
               botActing={botTurn}
             />
 
+            <div className="shopsrow">
             {game.winner === null && game.market.length > 0 && (
               <section className="panel marketpanel">
                 <b>The Market</b>{' '}
@@ -222,6 +234,7 @@ export function Game() {
                 )}
               </section>
             )}
+            </div>
           </div>
 
           {rightSeat !== null && <div className="sidezone">{oppMat(rightSeat)}</div>}
@@ -257,6 +270,25 @@ export function Game() {
           </div>
         </section>
       </div>
+
+      {inspect !== null && (
+        <div className="inspect-overlay" onClick={() => setInspect(null)}>
+          <div className="inspect" onClick={(e) => e.stopPropagation()}>
+            <SelfMat
+              p={game.players[inspect]!}
+              seat={inspect}
+              game={game}
+              isHuman={seatKinds[inspect] === 'human'}
+              pulses={pulses.filter((x) => x.seat === inspect)}
+              highlight={[]}
+              fired={inspect === game.current ? firedSlots : []}
+              buyable={[]}
+              onSlotClick={() => {}}
+            />
+            <div className="dimtext inspecthint">click outside or press Esc to close</div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
@@ -431,19 +463,21 @@ function SelfMat(props: {
     <section
       className={'panel selfmat' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}
     >
-      <h3>
-        <span className={p.color}>{p.name}</span>
-        {isHuman ? ' (you)' : ''} {isTurn ? '(rolling)' : ''}
-        {p.eliminated ? ' - ELIMINATED' : ''}
-      </h3>
-      <StatChips
-        hp={p.hp}
-        money={p.money}
-        points={p.points}
-        reroll={p.tokens.reroll}
-        nudge={p.tokens.nudge}
-        pulses={props.pulses}
-      />
+      <div className="mathead">
+        <h3>
+          <span className={p.color}>{p.name}</span>
+          {isHuman ? ' (you)' : ''} {isTurn ? '(rolling)' : ''}
+          {p.eliminated ? ' - ELIMINATED' : ''}
+        </h3>
+        <StatChips
+          hp={p.hp}
+          money={p.money}
+          points={p.points}
+          reroll={p.tokens.reroll}
+          nudge={p.tokens.nudge}
+          pulses={props.pulses}
+        />
+      </div>
       <div className="slots">
         {p.board.map((card, i) => {
           const slot = i + 1;
@@ -501,31 +535,39 @@ function SelfMat(props: {
 }
 
 /** An opponent's seat: compact mat of icon tiles. Hover a tile for the full
- *  card; the purple corner counts echoes waiting in that slot. */
+ *  card; the purple corner counts echoes waiting in that slot. Click the mat
+ *  to open the full-size board. */
 function OppMat(props: {
   p: PlayerState;
   seat: number;
   game: GameState;
   pulses: StatPulse[];
   fired: number[];
+  onInspect: () => void;
 }) {
   const { p, seat, game, fired } = props;
   const isTurn = seat === game.current;
   const paidSlots = game.echoNumbers[seat] ?? [];
   return (
-    <section className={'panel oppmat' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}>
-      <h3>
-        <span className={p.color}>{p.name}</span> {isTurn ? '(rolling)' : ''}
-        {p.eliminated ? ' - ELIMINATED' : ''}
-      </h3>
-      <StatChips
-        hp={p.hp}
-        money={p.money}
-        points={p.points}
-        reroll={p.tokens.reroll}
-        nudge={p.tokens.nudge}
-        pulses={props.pulses}
-      />
+    <section
+      className={'panel oppmat' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}
+      onClick={props.onInspect}
+    >
+      <div className="mathead">
+        <h3>
+          <span className={p.color}>{p.name}</span> {isTurn ? '(rolling)' : ''}
+          {p.eliminated ? ' - ELIMINATED' : ''}
+        </h3>
+        <StatChips
+          hp={p.hp}
+          money={p.money}
+          points={p.points}
+          reroll={p.tokens.reroll}
+          nudge={p.tokens.nudge}
+          pulses={props.pulses}
+        />
+        <span className="zoomhint">click to enlarge</span>
+      </div>
       <div className="minislots">
         {p.board.map((card, i) => {
           const slot = i + 1;
