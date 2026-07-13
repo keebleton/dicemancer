@@ -49,7 +49,7 @@ function Setup() {
           onChange={(e) => setCap(Number(e.target.value) || 25)}
         />
       </div>
-      <button className="start" onClick={() => start(count, cap, undefined, kinds)}>
+      <button className="primary" onClick={() => start(count, cap, undefined, kinds)}>
         Start game
       </button>
     </main>

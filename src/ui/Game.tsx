@@ -3,7 +3,7 @@ import { chooseAction } from '../bot';
 import { legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
 import { fxList } from './describe';
-import { aggregateEchoEffects, EffectIcons, IconLegend } from './icons';
+import { aggregateEchoEffects, Die, EffectIcons, IconLegend, StatChips } from './icons';
 import { useGame } from './store';
 
 export function Game() {
@@ -50,10 +50,13 @@ export function Game() {
   return (
     <main>
       <header>
-        <h1>Dicemancer</h1>
-        <div>
-          round {game.round}/{game.tunables.roundCap} | <b className={me.color}>{me.name}</b>
-          {"'"}s turn <button onClick={reset}>quit to setup</button>
+        <div className="topbar">
+          <h1>Dicemancer</h1>
+          <span className="chip">
+            round {game.round}/{game.tunables.roundCap}
+          </span>
+          <span className={`chip turn ${me.color}`}>{me.name}{"'"}s turn</span>
+          <button onClick={reset}>quit to setup</button>
         </div>
         <IconLegend />
       </header>
@@ -152,10 +155,15 @@ function Controls(props: {
       <h3>
         <span className={me.color}>{me.name}</span>: {PHASE_HINT[game.phase]}
       </h3>
-      <div className="dice">dice: {game.dice ? `${game.dice[0]} + ${game.dice[1]}` : '-'}</div>
+      <div className="dicetray">
+        <Die value={game.dice?.[0] ?? null} />
+        <Die value={game.dice?.[1] ?? null} />
+      </div>
 
       {actions.some((a) => a.type === 'ROLL') && (
-        <button onClick={() => dispatch({ type: 'ROLL' })}>Roll 2d6</button>
+        <button className="primary" onClick={() => dispatch({ type: 'ROLL' })}>
+          Roll 2d6
+        </button>
       )}
 
       {tokens.map((t) => (
@@ -172,6 +180,7 @@ function Controls(props: {
       {allocs.map((a) => (
         <button
           key={a.mode}
+          className="primary"
           onMouseEnter={() => setPreview(a.mode)}
           onMouseLeave={() => setPreview(null)}
           onClick={() => {
@@ -194,7 +203,7 @@ function Controls(props: {
       )}
 
       {targets.map((t) => (
-        <button key={t.playerId} onClick={() => dispatch(t)}>
+        <button key={t.playerId} className="primary" onClick={() => dispatch(t)}>
           Hit {game.players[t.playerId]!.name}
         </button>
       ))}
@@ -209,6 +218,7 @@ function Controls(props: {
                   key={i}
                   className={
                     'shopcard' +
+                    (card.rarity === 'rare' ? ' rare' : '') +
                     (buyIndex === i ? ' selected' : '') +
                     (buyableIndexes.has(i) ? '' : ' dead')
                   }
@@ -246,7 +256,9 @@ function Controls(props: {
 
       {inBuyPhase && <button onClick={() => dispatch({ type: 'SKIP_BUY' })}>Skip buy</button>}
       {actions.some((a) => a.type === 'END_TURN') && (
-        <button onClick={() => dispatch({ type: 'END_TURN' })}>End turn</button>
+        <button className="primary" onClick={() => dispatch({ type: 'END_TURN' })}>
+          End turn
+        </button>
       )}
     </section>
   );
@@ -269,10 +281,13 @@ function PlayerPanel(props: {
         <span className={p.color}>{p.name}</span> {isTurn ? '(rolling)' : ''}
         {p.eliminated ? ' - ELIMINATED' : ''}
       </h3>
-      <div>
-        hp {p.hp} | money {p.money} | points {p.points} | tokens: {p.tokens.reroll} reroll,{' '}
-        {p.tokens.nudge} nudge
-      </div>
+      <StatChips
+        hp={p.hp}
+        money={p.money}
+        points={p.points}
+        reroll={p.tokens.reroll}
+        nudge={p.tokens.nudge}
+      />
       <div className="slots">
         {p.board.map((card, i) => {
           const slot = i + 1;
@@ -289,26 +304,39 @@ function PlayerPanel(props: {
                   .map((e) => `${e.def.name} (${fxList(e.def.echo)})`)
                   .join(', ')}`
               : '');
+          const live = echoesHere.length > 0;
           return (
-            <div key={slot} className={cls} onClick={() => onSlotClick(slot)} title={tip}>
-              <div className="slothead">
-                <b>{slot}</b> {card.name}
+            <div key={slot} className="slotwrap">
+              <div
+                className={'echotab' + (live ? ' live' : '')}
+                title={
+                  live
+                    ? `echoing in slot ${slot}: ${echoesHere
+                        .map((e) => `${e.def.name} (${fxList(e.def.echo)})`)
+                        .join(', ')}`
+                    : undefined
+                }
+              >
+                {live && (
+                  <>
+                    <span className="rowlab">
+                      echo{echoesHere.length > 1 ? ` ×${echoesHere.length}` : ''}
+                    </span>
+                    <EffectIcons
+                      effects={aggregateEchoEffects(echoesHere.map((e) => e.def.echo))}
+                      context="echo"
+                    />
+                  </>
+                )}
               </div>
-              <div className="fxline">
-                <span className="rowlab">roll</span>
-                <EffectIcons effects={card.active} context="active" />
-              </div>
-              {echoesHere.length > 0 && (
-                <div className="echozone">
-                  <span className="rowlab">
-                    echo{echoesHere.length > 1 ? ` ×${echoesHere.length}` : ''}
-                  </span>
-                  <EffectIcons
-                    effects={aggregateEchoEffects(echoesHere.map((e) => e.def.echo))}
-                    context="echo"
-                  />
+              <div className={cls} onClick={() => onSlotClick(slot)} title={tip}>
+                <div className="slothead">
+                  <span className="slotnum">{slot}</span> {card.name}
                 </div>
-              )}
+                <div className="fxline">
+                  <EffectIcons effects={card.active} context="active" />
+                </div>
+              </div>
             </div>
           );
         })}

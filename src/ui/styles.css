@@ -1,48 +1,70 @@
-/* Utilitarian MVP styling. A real visual pass is a later phase on purpose. */
-body { font-family: system-ui, sans-serif; margin: 16px; background: #f4f2ec; color: #222; }
-h1 { font-size: 22px; margin: 0 0 4px; }
-h3 { margin: 0 0 6px; font-size: 14px; }
-button { margin: 2px; padding: 4px 10px; cursor: pointer; }
-button.selected, button.start { outline: 2px solid #2a7; }
-input[type='number'] { width: 60px; }
+/* Visual pass v2: dark game table, card-like slots, echo tabs. */
+body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 18px; background: #222839; color: #e8eaf2; }
+main { max-width: 1150px; margin: 0 auto; }
+h1 { font-size: 20px; margin: 0; letter-spacing: 2.5px; text-transform: uppercase; color: #f0b429; }
+h3 { margin: 0 0 8px; font-size: 14px; color: #e8eaf2; }
 
-.panel { border: 1px solid #bbb; padding: 8px; margin: 8px 0; background: #fbfaf7; }
-.panel.active { border: 2px solid #333; }
-.panel.out { opacity: 0.5; }
-.red { color: #a33; font-weight: bold; }
-.blue { color: #2559a8; font-weight: bold; }
-.colorless, .starter { color: #666; }
+button { padding: 5px 12px; cursor: pointer; border-radius: 7px; border: 1px solid #4a5470; background: #333b52; color: #dfe3ee; font-size: 12.5px; margin: 2px; }
+button:hover { background: #3d4663; }
+button.primary { background: #f0b429; border-color: #f0b429; color: #2b2410; font-weight: 700; }
+button.primary:hover { background: #ffc94d; }
+button.selected { outline: 2px solid #2dd4a7; }
+input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a5470; color: #e8eaf2; border-radius: 6px; padding: 4px 6px; }
 
-.dice { font-size: 18px; margin: 4px 0; }
-.hint { background: #fff5cc; padding: 4px 8px; margin: 4px 0; font-size: 12px; }
+.topbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.chip { background: #333b52; border: 1px solid #4a5470; border-radius: 12px; padding: 2px 10px; font-size: 12px; }
+.chip.turn { font-weight: 700; }
 
-.slots { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 6px 0; }
-.slot { border: 1px solid #999; padding: 3px 4px; min-height: 62px; font-size: 11px; background: #fff; }
-.slot.preview { background: #ffe9a8; }
-.slot.fired { background: #d9f0d9; }
-.slot.buyable { outline: 2px dashed #2a7; cursor: pointer; background: #eefcf3; }
-.slothead { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panel { border: 1px solid #3a4258; border-radius: 10px; padding: 12px; margin: 12px 0; background: #2c3348; }
+.panel.active { border-color: #f0b429; box-shadow: 0 0 0 1px #f0b429; }
+.panel.out { opacity: 0.45; }
+.red { color: #ff8272; font-weight: 700; }
+.blue { color: #7ab5ff; font-weight: 700; }
+.colorless, .starter { color: #9aa0b4; }
+
+.dicetray { display: flex; gap: 8px; margin: 8px 0; }
+.die { width: 40px; height: 40px; }
+
+.hint { background: #423a1f; border-left: 3px solid #f0b429; color: #ffe9a8; padding: 6px 10px; margin: 8px 0; font-size: 12.5px; border-radius: 0 6px 6px 0; }
+
+.stats { display: flex; gap: 7px; margin: 4px 0 10px; flex-wrap: wrap; }
+.stat { display: inline-flex; align-items: center; gap: 4px; background: #f2efe6; color: #2b2a26; border-radius: 12px; padding: 2px 9px; font-size: 12px; font-weight: 700; }
+.stat.glyph { color: #1d4ed8; }
+
+.slots { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 6px 0; }
+.slotwrap { display: flex; flex-direction: column; justify-content: flex-end; }
+.echotab { visibility: hidden; height: 21px; box-sizing: border-box; align-self: flex-start; margin: 0 0 -1px 8px; background: #ece4fa; border: 1px solid #a78bda; border-bottom: none; border-radius: 7px 7px 0 0; padding: 2px 8px; display: inline-flex; align-items: center; gap: 6px; position: relative; z-index: 1; color: #4c2f86; }
+.echotab.live { visibility: visible; }
+.echotab .rowlab { color: #6d4fae; }
+
+.slot { border: 1px solid #c9c2b2; border-radius: 8px; padding: 5px 6px; min-height: 52px; font-size: 11px; background: #f7f4ec; color: #2b2a26; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+.slot.preview { background: #ffe9a8; border-color: #d8a921; }
+.slot.fired { background: #d9f0d9; border-color: #5aa15a; }
+.slot.buyable { outline: 2px dashed #2dd4a7; cursor: pointer; background: #e8f9f0; }
+.slothead { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; font-weight: 600; }
+.slotnum { flex: none; width: 15px; height: 15px; border-radius: 4px; background: #2b2a26; color: #f7f4ec; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 
 .fxi { width: 11px; height: 11px; flex: none; }
 .fxrow { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .fxline { margin-top: 3px; line-height: 1.1; }
 .fxline.dim { opacity: 0.6; }
 .fxchip { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; font-weight: 700; }
-.fxchip.glyph { color: #2563eb; }
-.fxif { border: 1px dashed #aaa; border-radius: 3px; padding: 0 3px; font-size: 10px; display: inline-flex; align-items: center; gap: 3px; }
-.rowlab { font-size: 9px; color: #9a9a94; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 5px; }
-.echozone { margin-top: 4px; padding: 2px 0 1px 4px; border-top: 1px dashed #b9a6d6; border-left: 2px solid #c4b5fd; }
-.echozone .rowlab { color: #7c3aed; }
-.legend { font-size: 11px; color: #555; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
-.legend .fxchip { font-weight: 400; }
-.dimtext { color: #999; }
+.fxchip.glyph { color: #1d4ed8; }
+.fxif { border: 1px dashed #9a9285; border-radius: 3px; padding: 0 3px; font-size: 10px; display: inline-flex; align-items: center; gap: 3px; }
+.rowlab { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 5px; color: #9a9a94; }
 
-.shop { margin: 6px 0; }
-.shopcard { display: inline-block; border: 1px solid #999; padding: 5px; margin: 3px; width: 150px; vertical-align: top; font-size: 11px; background: #fff; cursor: pointer; }
-.shopcard .fx { color: #666; font-size: 10px; }
-.shopcard.selected { outline: 2px solid #2a7; }
-.shopcard.dead { opacity: 0.45; cursor: default; }
+.shop { margin: 10px 0; }
+.shopcard { display: inline-block; border: 1px solid #c9c2b2; border-radius: 8px; padding: 6px 7px; margin: 3px; width: 150px; vertical-align: top; font-size: 11px; background: #f7f4ec; color: #2b2a26; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+.shopcard.rare { border-color: #caa53d; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 2px 0 #caa53d; }
+.shopcard.selected { outline: 2px solid #2dd4a7; }
+.shopcard.dead { opacity: 0.4; cursor: default; }
 
-.echo { font-size: 11px; margin-top: 4px; color: #444; }
-.log { max-height: 180px; overflow: auto; font-family: monospace; font-size: 11px; background: #171717; color: #ddd; padding: 8px; white-space: pre-wrap; }
-.winner { background: #2a7; color: #fff; padding: 12px; font-size: 20px; margin: 8px 0; }
+.legend { font-size: 11.5px; color: #a8adbd; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+.legend .fxchip { background: #f2efe6; color: #2b2a26; border-radius: 10px; padding: 1px 7px; font-weight: 400; }
+.dimtext { color: #8a8f9e; }
+
+.echo { font-size: 11px; margin-top: 4px; color: #a8adbd; }
+.log { max-height: 190px; overflow: auto; font-family: Consolas, monospace; font-size: 11.5px; background: #171a24; color: #cfd4e2; padding: 10px; border-radius: 8px; white-space: pre-wrap; }
+.winner { background: #f0b429; color: #2b2410; padding: 14px 16px; font-size: 20px; font-weight: 700; border-radius: 10px; margin: 12px 0; }
+
+.setup { max-width: 440px; margin: 60px auto; background: #2c3348; border: 1px solid #3a4258; border-radius: 12px; padding: 24px 28px; display: flex; flex-direction: column; gap: 12px; }

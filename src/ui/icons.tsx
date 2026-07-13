@@ -16,6 +16,8 @@ const STAR = 'M6 .8 7.5 4.1l3.6.4-2.7 2.5.8 3.6L6 8.8l-3.2 1.8.8-3.6L.9 4.5l3.6-
 const BURST = 'M6 0l1.4 4.6L12 6 7.4 7.4 6 12 4.6 7.4 0 6l4.6-1.4z';
 const CROSS = 'M4.6 1h2.8v3.6H11v2.8H7.4V11H4.6V7.4H1V4.6h3.6z';
 const DROP = 'M6 .8C6 .8 2.2 5.2 2.2 7.7a3.8 3.8 0 0 0 7.6 0C9.8 5.2 6 .8 6 .8Z';
+const HEART =
+  'M6 10.6C3.2 8.5 1.2 6.7 1.2 4.6c0-1.5 1.1-2.7 2.6-2.7 1 0 1.7.5 2.2 1.2.5-.7 1.2-1.2 2.2-1.2 1.5 0 2.6 1.2 2.6 2.7 0 2.1-2 3.9-4.8 6Z';
 
 function Coin() {
   return (
@@ -51,6 +53,110 @@ function Cross() {
     <svg className="fxi" viewBox="0 0 12 12" aria-hidden="true">
       <path d={CROSS} fill="#15803d" />
     </svg>
+  );
+}
+function Heart() {
+  return (
+    <svg className="fxi" viewBox="0 0 12 12" aria-hidden="true">
+      <path d={HEART} fill="#e05e5e" />
+    </svg>
+  );
+}
+
+const PIPS: Record<number, [number, number][]> = {
+  1: [[18, 18]],
+  2: [
+    [11, 11],
+    [25, 25],
+  ],
+  3: [
+    [10, 10],
+    [18, 18],
+    [26, 26],
+  ],
+  4: [
+    [11, 11],
+    [25, 11],
+    [11, 25],
+    [25, 25],
+  ],
+  5: [
+    [11, 11],
+    [25, 11],
+    [18, 18],
+    [11, 25],
+    [25, 25],
+  ],
+  6: [
+    [11, 10],
+    [25, 10],
+    [11, 18],
+    [25, 18],
+    [11, 26],
+    [25, 26],
+  ],
+};
+
+/** A real die face; null renders an empty dashed socket. */
+export function Die({ value }: { value: number | null }) {
+  return (
+    <svg
+      className="die"
+      viewBox="0 0 36 36"
+      role="img"
+      aria-label={value ? `die showing ${value}` : 'empty die socket'}
+    >
+      <rect
+        x="1"
+        y="1"
+        width="34"
+        height="34"
+        rx="8"
+        fill={value ? '#f7f4ec' : 'none'}
+        stroke={value ? '#c9c2b2' : '#4a5470'}
+        strokeDasharray={value ? undefined : '4 3'}
+      />
+      {value !== null &&
+        PIPS[value]?.map(([x, y], i) => <circle key={i} cx={x} cy={y} r="3.4" fill="#2b2a26" />)}
+    </svg>
+  );
+}
+
+/** HP / money / points / token pills for a player row. */
+export function StatChips(props: {
+  hp: number;
+  money: number;
+  points: number;
+  reroll: number;
+  nudge: number;
+}) {
+  return (
+    <div className="stats">
+      <span className="stat" title="health">
+        <Heart />
+        {props.hp}
+      </span>
+      <span className="stat" title="money">
+        <Coin />
+        {props.money}
+      </span>
+      <span className="stat" title="points">
+        <Star />
+        {props.points}
+      </span>
+      {props.reroll > 0 && (
+        <span className="stat glyph" title="reroll tokens">
+          {'↻'}
+          {props.reroll}
+        </span>
+      )}
+      {props.nudge > 0 && (
+        <span className="stat glyph" title="nudge tokens">
+          {'±'}
+          {props.nudge}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -191,8 +297,8 @@ export function IconLegend() {
       <span className="fxchip glyph">{'±'} nudge</span>
       <span className="fxchip glyph">{'⟳'} new shop</span>
       <span className="dimtext">
-        roll = fires when the dice land there | echo (purple) = retired cards there, paying out on
-        other players' turns | hover anything for full text
+        card face = what fires when its number is rolled | purple tab = retired cards echoing
+        there, paying out on other players' turns | hover anything for full text
       </span>
     </div>
   );
