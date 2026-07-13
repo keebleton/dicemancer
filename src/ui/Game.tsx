@@ -146,14 +146,7 @@ export function Game() {
           {leftSeat !== null && <div className="sidezone">{oppMat(leftSeat)}</div>}
 
           <div className="centerzone">
-            <Stage
-              game={game}
-              actions={actions}
-              dispatch={dispatch}
-              setPreview={setPreview}
-              botActing={botTurn}
-            />
-
+            <div className="centerrow">
             {game.winner === null && game.market.length > 0 && (
               <section className="panel marketpanel">
                 <b>The Market</b>
@@ -183,8 +176,16 @@ export function Game() {
               </section>
             )}
 
+            <Stage
+              game={game}
+              actions={actions}
+              dispatch={dispatch}
+              setPreview={setPreview}
+              botActing={botTurn}
+            />
+
             {game.winner === null && me.shop.length > 0 && (
-              <section className={'panel' + (me.shopFrozen ? ' shopfrozen' : '')}>
+              <section className={'panel shoppanel' + (me.shopFrozen ? ' shopfrozen' : '')}>
                 <b>{me.name}{"'"}s shop</b> (money: {me.money}){' '}
                 {humanRoller && actions.some((a) => a.type === 'FREEZE_SHOP') && (
                   <button onClick={() => dispatch({ type: 'FREEZE_SHOP' })}>
@@ -226,6 +227,7 @@ export function Game() {
                 )}
               </section>
             )}
+            </div>
           </div>
 
           {rightSeat !== null && <div className="sidezone">{oppMat(rightSeat)}</div>}

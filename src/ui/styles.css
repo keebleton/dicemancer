@@ -7,14 +7,18 @@ main.game { max-width: 1560px; }
 .table { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .table .panel { margin: 0; padding: 10px 12px; }
 
-/* One row per shop; every card in the row stretches to the tallest. */
-.shoprowcards { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; margin-top: 8px; }
-.shoprowcards .shopcard { margin: 0; flex: 0 0 122px; display: flex; flex-direction: column; }
+/* Center band: market on the left, dice in the middle, shop on the right.
+   Each shop is a 2x2 grid; cards in a grid row stretch to the tallest. */
+.centerrow { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.centerrow .stage { flex: 1 1 200px; min-width: 180px; justify-content: center; box-sizing: border-box; }
+.centerrow .marketpanel, .centerrow .shoppanel { flex: 0 0 268px; width: 268px; box-sizing: border-box; min-width: 0; }
+.shoprowcards { display: grid; grid-template-columns: repeat(2, 116px); gap: 6px; align-items: stretch; margin-top: 8px; }
+.shoprowcards .shopcard { margin: 0; width: auto; display: flex; flex-direction: column; }
 .shoprowcards .shopcard .cface { flex: 1; }
 .shoprowcards .placeholder { align-items: center; justify-content: center; min-height: 120px; color: #8a8f9e; background: #33394d; border-color: #4a5470; }
 .midrow { display: flex; gap: 10px; align-items: flex-start; }
 .centerzone { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.sidezone { width: 232px; flex: none; position: sticky; top: 10px; }
+.sidezone { width: 220px; flex: none; position: sticky; top: 10px; }
 .topzone { display: flex; justify-content: center; }
 .topzone .oppmat { width: 660px; max-width: 100%; }
 .topzone .minislots { grid-template-columns: repeat(12, 1fr); }
