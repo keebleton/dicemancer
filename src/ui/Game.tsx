@@ -3,6 +3,7 @@ import { chooseAction } from '../bot';
 import { legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
 import { fxList } from './describe';
+import { EffectIcons, IconLegend } from './icons';
 import { useGame } from './store';
 
 export function Game() {
@@ -54,6 +55,7 @@ export function Game() {
           round {game.round}/{game.tunables.roundCap} | <b className={me.color}>{me.name}</b>
           {"'"}s turn <button onClick={reset}>quit to setup</button>
         </div>
+        <IconLegend />
       </header>
 
       {game.winner !== null && (
@@ -217,8 +219,13 @@ function Controls(props: {
                   <b>{card.name}</b> ({card.cost})<br />
                   <span className={card.color}>{card.color}</span> | slots{' '}
                   {card.legalSlots.length === 12 ? 'any' : card.legalSlots.join(',')}
-                  <div className="fx">A: {fxList(card.active)}</div>
-                  <div className="fx">E: {fxList(card.echo)}</div>
+                  <div className="fxline">
+                    <EffectIcons effects={card.active} context="active" />
+                  </div>
+                  <div className="fxline dim">
+                    <span className="elab">e</span>
+                    <EffectIcons effects={card.echo} context="echo" />
+                  </div>
                 </div>
               ) : (
                 <div key={i} className="shopcard dead">
@@ -268,27 +275,43 @@ function PlayerPanel(props: {
       <div className="slots">
         {p.board.map((card, i) => {
           const slot = i + 1;
+          const echoesHere = p.echoStack.filter((e) => e.slot === slot);
           const cls =
             'slot' +
             (highlight.includes(slot) ? ' preview' : '') +
             (fired.includes(slot) ? ' fired' : '') +
             (buyable.includes(slot) ? ' buyable' : '');
+          const tip =
+            `${card.name}\nactive: ${fxList(card.active)}\necho if retired: ${fxList(card.echo)}` +
+            (echoesHere.length > 0
+              ? `\nechoing now: ${echoesHere
+                  .map((e) => `${e.def.name} (${fxList(e.def.echo)})`)
+                  .join(', ')}`
+              : '');
           return (
-            <div key={slot} className={cls} onClick={() => onSlotClick(slot)}>
-              <b>{slot}</b> {card.name}
-              <div className="fx">A: {fxList(card.active)}</div>
-              <div className="fx">E: {fxList(card.echo)}</div>
+            <div key={slot} className={cls} onClick={() => onSlotClick(slot)} title={tip}>
+              <div className="slothead">
+                <b>{slot}</b> {card.name}
+              </div>
+              <div className="fxline">
+                <EffectIcons effects={card.active} context="active" />
+              </div>
+              <div className="fxline dim">
+                <span className="elab">e</span>
+                <EffectIcons effects={card.echo} context="echo" />
+              </div>
+              {echoesHere.length > 0 && (
+                <div className="echozone">
+                  {echoesHere.map((entry, j) => (
+                    <div key={j} className="fxline">
+                      <EffectIcons effects={entry.def.echo} context="echo" />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
-      </div>
-      <div className="echo">
-        <b>Echo stack:</b>{' '}
-        {p.echoStack.length === 0
-          ? 'empty'
-          : p.echoStack
-              .map((e) => `slot ${e.slot}: ${e.def.name} (${fxList(e.def.echo)})`)
-              .join(' | ')}
       </div>
     </section>
   );

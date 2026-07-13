@@ -17,11 +17,24 @@ input[type='number'] { width: 60px; }
 .hint { background: #fff5cc; padding: 4px 8px; margin: 4px 0; font-size: 12px; }
 
 .slots { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 6px 0; }
-.slot { border: 1px solid #999; padding: 3px; min-height: 58px; font-size: 11px; background: #fff; }
-.slot .fx { color: #666; font-size: 10px; }
+.slot { border: 1px solid #999; padding: 3px 4px; min-height: 62px; font-size: 11px; background: #fff; }
 .slot.preview { background: #ffe9a8; }
 .slot.fired { background: #d9f0d9; }
 .slot.buyable { outline: 2px dashed #2a7; cursor: pointer; background: #eefcf3; }
+.slothead { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.fxi { width: 11px; height: 11px; flex: none; }
+.fxrow { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.fxline { margin-top: 3px; line-height: 1.1; }
+.fxline.dim { opacity: 0.6; }
+.fxchip { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; font-weight: 700; }
+.fxchip.glyph { color: #2563eb; }
+.fxif { border: 1px dashed #aaa; border-radius: 3px; padding: 0 3px; font-size: 10px; display: inline-flex; align-items: center; gap: 3px; }
+.elab { font-size: 9px; color: #7c3aed; border: 1px solid #c4b5fd; border-radius: 2px; padding: 0 2px; margin-right: 4px; }
+.echozone { margin-top: 4px; padding: 2px 0 1px 4px; border-top: 1px dashed #b9a6d6; border-left: 2px solid #c4b5fd; }
+.legend { font-size: 11px; color: #555; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+.legend .fxchip { font-weight: 400; }
+.dimtext { color: #999; }
 
 .shop { margin: 6px 0; }
 .shopcard { display: inline-block; border: 1px solid #999; padding: 5px; margin: 3px; width: 150px; vertical-align: top; font-size: 11px; background: #fff; cursor: pointer; }
