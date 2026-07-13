@@ -1,0 +1,22 @@
+import { describe, expect, it } from 'vitest';
+import { simulate } from './sim';
+
+describe('sim harness', () => {
+  it('runs bot-vs-bot games and accounts for every one of them', () => {
+    const r = simulate({ games: 15, players: 2, seed: 3 });
+    expect(r.seatWins.reduce((a, b) => a + b, 0)).toBe(15);
+    expect(r.reasons.points + r.reasons.ko + r.reasons.failsafe).toBe(15);
+    expect(r.colorWins.red + r.colorWins.blue).toBe(15);
+    expect(r.avgRounds).toBeGreaterThan(0);
+    expect(r.avgRounds).toBeLessThanOrEqual(25);
+    expect(r.cards.length).toBeGreaterThan(0);
+  });
+
+  it('handles 4 players and is deterministic per seed', () => {
+    const a = simulate({ games: 6, players: 4, seed: 9 });
+    const b = simulate({ games: 6, players: 4, seed: 9 });
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+    expect(a.seatWins).toHaveLength(4);
+    expect(a.seatWins.reduce((x, y) => x + y, 0)).toBe(6);
+  });
+});

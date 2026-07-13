@@ -1,5 +1,5 @@
 import { dealRow, shuffle } from './shop';
-import { DEFAULT_TUNABLES } from './tunables';
+import { DEFAULT_TUNABLES, HP_BY_PLAYER_COUNT } from './tunables';
 import type { CardDef, GameState, PlayerState, Rng, SeatColor, Tunables } from './types';
 
 export interface SeatConfig {
@@ -19,8 +19,12 @@ export interface GameConfig {
 }
 
 export function createGame(config: GameConfig, rng?: Rng): GameState {
-  const tunables: Tunables = { ...DEFAULT_TUNABLES, ...config.tunables };
   const seatCount = config.seats.length;
+  const tunables: Tunables = {
+    ...DEFAULT_TUNABLES,
+    startingHp: HP_BY_PLAYER_COUNT[seatCount] ?? DEFAULT_TUNABLES.startingHp,
+    ...config.tunables,
+  };
   if (seatCount < tunables.playerMin || seatCount > tunables.playerMax) {
     throw new Error(
       `player count ${seatCount} outside ${tunables.playerMin}-${tunables.playerMax}`,

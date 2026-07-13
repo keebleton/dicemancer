@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COLORLESS_CARDS } from '../content/cards';
+import { BLUE_CARDS, COLORLESS_CARDS } from '../content/cards';
 import { starterBoard } from '../content/starters';
 import { applyAction, legalActions } from './reducer';
 import { mulberry32 } from './rng';
@@ -36,10 +36,10 @@ describe('shop deal', () => {
       p1.colorDiscard.length + p1.colorlessDiscard.length + p1.colorDeck.length
         + p1.colorlessDeck.length,
     ).toBeGreaterThanOrEqual(p1DiscardsBefore);
-    // Conservation across the refresh: 4 red + 3 colorless per seat, wherever they sit.
+    // Conservation across the refresh: every pool card stays in circulation.
     const colorCount = p1.colorDeck.length + p1.colorDiscard.length
       + p1.shop.filter((c) => c && c.color !== 'colorless').length;
-    expect(colorCount).toBe(4);
+    expect(colorCount).toBe(BLUE_CARDS.length); // p1 is the blue seat
   });
 
   it('reshuffles an exhausted pool from its unbought discards', () => {

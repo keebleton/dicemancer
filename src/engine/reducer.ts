@@ -74,6 +74,20 @@ export function legalTargets(state: GameState, roller: number): number[] {
 export function applyAction(state: GameState, action: Action, rng: Rng): GameState {
   assertLegal(state, action);
   const next = structuredClone(state);
+  perform(next, action, rng);
+  return next;
+}
+
+/** Same rules path as applyAction, but mutates in place and returns the same
+ *  object. For the headless sim's hot loop ONLY (it owns its states); UI and
+ *  bot go through applyAction. */
+export function applyActionInPlace(state: GameState, action: Action, rng: Rng): GameState {
+  assertLegal(state, action);
+  perform(state, action, rng);
+  return state;
+}
+
+function perform(next: GameState, action: Action, rng: Rng): void {
   switch (action.type) {
     case 'ROLL':
       next.dice = [rollDie(rng), rollDie(rng)];
@@ -111,7 +125,6 @@ export function applyAction(state: GameState, action: Action, rng: Rng): GameSta
       endTurn(next, rng);
       break;
   }
-  return next;
 }
 
 function assertLegal(state: GameState, action: Action): void {

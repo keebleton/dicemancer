@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { COLORLESS_CARDS, RED_CARDS } from '../content/cards';
 import { applyAction, legalActions } from './reducer';
 import { mulberry32 } from './rng';
 import { deadRng, diceRng, newGame, newPoolGame, testCard } from './test-helpers';
@@ -26,14 +27,14 @@ describe('remaining primitives', () => {
     const before = s0.players[0]!.shop.map((c) => c?.id);
     const s = fireSlot1(s0, [{ kind: 'refreshShop' }]);
     const p = s.players[0]!;
-    expect(p.shop.every((c) => c !== null)).toBe(true); // exemplar pools cover a redeal
-    // Conservation: color pool is 4 red exemplars, colorless is 3, wherever they sit.
+    expect(p.shop.every((c) => c !== null)).toBe(true); // pools easily cover a redeal
+    // Conservation: every pool card stays in circulation, wherever it sits.
     const colorCount = p.colorDeck.length + p.colorDiscard.length
       + p.shop.filter((c) => c && c.color !== 'colorless').length;
     const colorlessCount = p.colorlessDeck.length + p.colorlessDiscard.length
       + p.shop.filter((c) => c && c.color === 'colorless').length;
-    expect(colorCount).toBe(4);
-    expect(colorlessCount).toBe(3);
+    expect(colorCount).toBe(RED_CARDS.length);
+    expect(colorlessCount).toBe(COLORLESS_CARDS.length);
     expect(before).toHaveLength(5); // sanity: there was a row to replace
   });
 });
