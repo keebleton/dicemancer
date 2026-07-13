@@ -11,10 +11,20 @@ let rng: Rng = mulberry32(1);
 
 export type SeatKind = 'human' | 'bot';
 
+/** A transient resource change, driving the floating +N animations. */
+export interface StatPulse {
+  id: number;
+  seat: number;
+  stat: 'hp' | 'money' | 'points';
+  delta: number;
+}
+let nextPulseId = 1;
+
 interface GameStore {
   game: GameState | null;
   seatKinds: SeatKind[];
   log: string[];
+  pulses: StatPulse[];
   start: (playerCount: number, roundCap: number, seed?: number, kinds?: SeatKind[]) => void;
   /** The ONLY writer: every state change goes through the engine's applyAction. */
   dispatch: (action: Action) => void;
@@ -25,6 +35,7 @@ export const useGame = create<GameStore>()((set, get) => ({
   game: null,
   seatKinds: [],
   log: [],
+  pulses: [],
   start: (playerCount, roundCap, seed, kinds) => {
     rng = mulberry32(seed ?? Date.now() >>> 0);
     const seatKinds: SeatKind[] =
@@ -52,7 +63,22 @@ export const useGame = create<GameStore>()((set, get) => ({
     const prev = get().game;
     if (!prev) return;
     const next = applyAction(prev, action, rng);
-    set({ game: next, log: [...get().log, ...describeTransition(prev, action, next)].slice(-120) });
+    const fresh: StatPulse[] = [];
+    next.players.forEach((p, seat) => {
+      const q = prev.players[seat]!;
+      if (p.hp !== q.hp) fresh.push({ id: nextPulseId++, seat, stat: 'hp', delta: p.hp - q.hp });
+      if (p.money !== q.money) {
+        fresh.push({ id: nextPulseId++, seat, stat: 'money', delta: p.money - q.money });
+      }
+      if (p.points !== q.points) {
+        fresh.push({ id: nextPulseId++, seat, stat: 'points', delta: p.points - q.points });
+      }
+    });
+    set({
+      game: next,
+      pulses: [...get().pulses, ...fresh].slice(-24),
+      log: [...get().log, ...describeTransition(prev, action, next)].slice(-120),
+    });
   },
-  reset: () => set({ game: null, log: [] }),
+  reset: () => set({ game: null, log: [], pulses: [] }),
 }));

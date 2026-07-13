@@ -1,6 +1,7 @@
 // Tiny inline effect icons so a card parses at a glance. Presentation only.
 import type { ConditionalWhen, Effect, TokenKind } from '../engine';
 import { fxText } from './describe';
+import type { StatPulse } from './store';
 
 function condShort(when: ConditionalWhen): string {
   const parts: string[] = [];
@@ -122,27 +123,47 @@ export function Die({ value }: { value: number | null }) {
   );
 }
 
-/** HP / money / points / token pills for a player row. */
+function Floats({ pulses, stat }: { pulses: StatPulse[]; stat: StatPulse['stat'] }) {
+  return (
+    <>
+      {pulses
+        .filter((p) => p.stat === stat)
+        .map((p) => (
+          <span key={p.id} className={'float ' + (p.delta > 0 ? 'gain' : 'loss')}>
+            {p.delta > 0 ? '+' : ''}
+            {p.delta}
+          </span>
+        ))}
+    </>
+  );
+}
+
+/** HP / money / points / token pills for a player row, with floating +N deltas. */
 export function StatChips(props: {
   hp: number;
   money: number;
   points: number;
   reroll: number;
   nudge: number;
+  pulses?: StatPulse[];
 }) {
+  const pulses = props.pulses ?? [];
   return (
     <div className="stats">
       <span className="stat" title="health">
         <Heart />
         {props.hp}
+        <Floats pulses={pulses} stat="hp" />
       </span>
       <span className="stat" title="money">
         <Coin />
         {props.money}
+        <Floats pulses={pulses} stat="money" />
       </span>
       <span className="stat" title="points">
         <Star />
         {props.points}
+        <Floats pulses={pulses} stat="points" />
       </span>
       {props.reroll > 0 && (
         <span className="stat glyph" title="reroll tokens">

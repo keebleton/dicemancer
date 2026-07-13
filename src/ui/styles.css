@@ -23,13 +23,27 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .colorless, .starter { color: #9aa0b4; }
 
 .dicetray { display: flex; gap: 8px; margin: 8px 0; }
-.die { width: 40px; height: 40px; }
+.die { width: 40px; height: 40px; animation: dicepop 0.28s ease-out; }
+@keyframes dicepop {
+  0% { transform: scale(0.6) rotate(-14deg); }
+  70% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
 
 .hint { background: #423a1f; border-left: 3px solid #f0b429; color: #ffe9a8; padding: 6px 10px; margin: 8px 0; font-size: 12.5px; border-radius: 0 6px 6px 0; }
 
 .stats { display: flex; gap: 7px; margin: 4px 0 10px; flex-wrap: wrap; }
-.stat { display: inline-flex; align-items: center; gap: 4px; background: #f2efe6; color: #2b2a26; border-radius: 12px; padding: 2px 9px; font-size: 12px; font-weight: 700; }
+.stat { position: relative; display: inline-flex; align-items: center; gap: 4px; background: #f2efe6; color: #2b2a26; border-radius: 12px; padding: 2px 9px; font-size: 12px; font-weight: 700; }
 .stat.glyph { color: #1d4ed8; }
+
+.float { position: absolute; left: 50%; bottom: 85%; font-size: 13px; font-weight: 800; pointer-events: none; white-space: nowrap; animation: floatup 1s ease-out forwards; }
+.float.gain { color: #4ade80; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); }
+.float.loss { color: #ff7a6b; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); }
+@keyframes floatup {
+  0% { opacity: 0; transform: translate(-50%, 6px) scale(1.3); }
+  12% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -22px) scale(1); }
+}
 
 .slots { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 6px 0; }
 .slotwrap { display: flex; flex-direction: column; justify-content: flex-end; }
@@ -39,7 +53,11 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 
 .slot { border: 1px solid #c9c2b2; border-radius: 8px; padding: 5px 6px; min-height: 64px; font-size: 11px; background: #f7f4ec; color: #2b2a26; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
 .slot.preview { background: #ffe9a8; border-color: #d8a921; }
-.slot.fired { background: #d9f0d9; border-color: #5aa15a; }
+.slot.fired { background: #d9f0d9; border-color: #5aa15a; animation: firedflash 0.7s ease-out; }
+@keyframes firedflash {
+  0% { background: #93e6a4; box-shadow: 0 0 12px 2px rgba(90, 200, 110, 0.8); }
+  100% { background: #d9f0d9; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+}
 .slot.buyable { outline: 3px dashed #3ee6b8; outline-offset: 2px; cursor: pointer; background: #eafbf2; animation: buypulse 1.1s ease-in-out infinite; }
 @keyframes buypulse {
   0%, 100% { box-shadow: 0 0 4px 1px rgba(62, 230, 184, 0.4); }
@@ -69,6 +87,10 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 
 .echo { font-size: 11px; margin-top: 4px; color: #a8adbd; }
 .log { max-height: 190px; overflow: auto; font-family: Consolas, monospace; font-size: 11.5px; background: #171a24; color: #cfd4e2; padding: 10px; border-radius: 8px; white-space: pre-wrap; }
-.winner { background: #f0b429; color: #2b2410; padding: 14px 16px; font-size: 20px; font-weight: 700; border-radius: 10px; margin: 12px 0; }
+.winner { background: #f0b429; color: #2b2410; padding: 14px 16px; font-size: 20px; font-weight: 700; border-radius: 10px; margin: 12px 0; animation: winnerpop 0.45s ease-out; }
+@keyframes winnerpop {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
 
 .setup { max-width: 440px; margin: 60px auto; background: #2c3348; border: 1px solid #3a4258; border-radius: 12px; padding: 24px 28px; display: flex; flex-direction: column; gap: 12px; }

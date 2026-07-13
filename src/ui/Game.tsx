@@ -5,6 +5,7 @@ import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
 import { fxList } from './describe';
 import { aggregateEchoEffects, Die, EffectIcons, IconLegend, StatChips } from './icons';
 import { useGame } from './store';
+import type { StatPulse } from './store';
 
 export function Game() {
   const game = useGame((s) => s.game)!;
@@ -12,6 +13,7 @@ export function Game() {
   const dispatch = useGame((s) => s.dispatch);
   const reset = useGame((s) => s.reset);
   const log = useGame((s) => s.log);
+  const pulses = useGame((s) => s.pulses);
   const [preview, setPreview] = useState<AllocationMode | null>(null);
   const [buyIndex, setBuyIndex] = useState<number | null>(null);
 
@@ -84,6 +86,7 @@ export function Game() {
           p={p}
           seat={seat}
           game={game}
+          pulses={pulses.filter((x) => x.seat === seat)}
           highlight={seat === game.current ? previewSlots : []}
           fired={seat === game.current ? firedSlots : []}
           buyable={seat === game.current ? buySlots : []}
@@ -156,8 +159,8 @@ function Controls(props: {
         <span className={me.color}>{me.name}</span>: {PHASE_HINT[game.phase]}
       </h3>
       <div className="dicetray">
-        <Die value={game.dice?.[0] ?? null} />
-        <Die value={game.dice?.[1] ?? null} />
+        <Die key={`a${game.dice?.[0] ?? 'x'}`} value={game.dice?.[0] ?? null} />
+        <Die key={`b${game.dice?.[1] ?? 'x'}`} value={game.dice?.[1] ?? null} />
       </div>
 
       {actions.some((a) => a.type === 'ROLL') && (
@@ -268,6 +271,7 @@ function PlayerPanel(props: {
   p: PlayerState;
   seat: number;
   game: GameState;
+  pulses: StatPulse[];
   highlight: number[];
   fired: number[];
   buyable: number[];
@@ -287,6 +291,7 @@ function PlayerPanel(props: {
         points={p.points}
         reroll={p.tokens.reroll}
         nudge={p.tokens.nudge}
+        pulses={props.pulses}
       />
       <div className="slots">
         {p.board.map((card, i) => {
