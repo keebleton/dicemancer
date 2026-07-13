@@ -8,7 +8,9 @@ export const DEFAULT_TUNABLES: Tunables = {
   roundCap: 25,
   playerMin: 2,
   playerMax: 4,
-  highEchoHearsSum: false,
+  // ON since 2026-07-13 (Jake): slots 7-12 fire so rarely on the active side
+  // (94% of fires land 1-6) that high cards need a life on other turns.
+  highEchoHearsSum: true,
 };
 
 /** P5 first tuning pass (2026-07-12, 1000-game sims, seeds 1+2): at HP 25

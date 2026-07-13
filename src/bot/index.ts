@@ -43,6 +43,13 @@ function bestEchoChoice(state: GameState): Action {
         if (entry.slot === n) v += scoreEchoLine(state, entry.def.echo, seat, roll);
       }
     }
+    // Under highEchoHearsSum, sum-matched high echoes fire either way; count
+    // them in both options so they cancel instead of skewing toward 'sum'.
+    if (state.tunables.highEchoHearsSum && roll.sum >= 7 && !numbers.includes(roll.sum)) {
+      for (const entry of stack) {
+        if (entry.slot === roll.sum) v += scoreEchoLine(state, entry.def.echo, seat, roll);
+      }
+    }
     return v;
   };
   const mode: AllocationMode =

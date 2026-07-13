@@ -378,6 +378,13 @@ function Stage(props: {
               const lines = numbers.flatMap((n) =>
                 actor.echoStack.filter((e) => e.slot === n).map((e) => e.def.echo),
               );
+              // High echoes (7-12) hear the sum under either choice.
+              const sum = dice[0] + dice[1];
+              if (game.tunables.highEchoHearsSum && sum >= 7 && !numbers.includes(sum)) {
+                lines.push(
+                  ...actor.echoStack.filter((e) => e.slot === sum).map((e) => e.def.echo),
+                );
+              }
               return (
                 <button
                   key={mode}

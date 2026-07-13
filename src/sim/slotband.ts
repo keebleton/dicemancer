@@ -7,7 +7,6 @@ import { chooseAction } from '../bot';
 import { pools } from '../content/cards';
 import { starterBoard } from '../content/starters';
 import {
-  actingSeat,
   applyActionInPlace,
   createGame,
   legalActions,
@@ -41,11 +40,13 @@ interface Tally {
   winsBySlotBand: Record<'low' | 'high', number>;
   buysByCardBand: Record<Band, number>;
   winsByCardBand: Record<Band, number>;
-  perCard: Map<string, { band: Band; bought: number; won: number }>;
+  perCard: Map<string, { band: Band; color: string; bought: number; won: number }>;
   colorWins: Record<SeatColor, number>;
   colorGames: Record<SeatColor, number>;
   /** color -> band -> [bought, buyerWon]; controls the color confound. */
   colorBand: Record<string, Record<'low' | 'high', [number, number]>>;
+  /** color -> [allBuys, buyerWon]: the per-color baseline for card deltas. */
+  colorAll: Record<string, [number, number]>;
 }
 
 function run(
@@ -72,6 +73,7 @@ function run(
     colorWins: { red: 0, blue: 0, black: 0, green: 0, yellow: 0 },
     colorGames: { red: 0, blue: 0, black: 0, green: 0, yellow: 0 },
     colorBand: {},
+    colorAll: {},
   };
 
   for (let g = 0; g < games; g++) {
@@ -106,23 +108,8 @@ function run(
         else t.allocSum += 1;
         for (const n of previewNumbers(s.dice!, a.mode)) t.activeFires[n]! += 1;
       } else if (a.type === 'ECHO_CHOICE') {
-        // Note: seats whose two interpretations are identical auto-resolve
-        // without an action, so echo fire counts undercount slightly (more so
-        // under highEchoHearsSum, where high-only stacks always auto-resolve).
-        const dice = s.dice!;
-        const sum = dice[0] + dice[1];
-        const nums = a.mode === 'individual' ? [dice[0], dice[1]] : [sum];
         if (a.mode === 'individual') t.echoSplit += 1;
         else t.echoSum += 1;
-        const seat = actingSeat(s);
-        for (const e of s.players[seat]!.echoStack) {
-          if (
-            nums.includes(e.slot)
-            || (tunables?.highEchoHearsSum && e.slot >= 7 && e.slot === sum)
-          ) {
-            t.echoFires[e.slot]! += 1;
-          }
-        }
       } else if (a.type === 'BUY' || a.type === 'BUY_MARKET') {
         const card =
           a.type === 'BUY' ? s.players[s.current]!.shop[a.shopIndex]! : s.market[a.marketIndex]!;
@@ -134,7 +121,18 @@ function run(
           color: card.color,
         });
       }
+      // Echo fires are read off the engine's own record (echoNumbers) so
+      // auto-resolved seats and the high-hears-sum rule are counted exactly.
+      const before = s.echoNumbers.map((n) => n !== null);
       s = applyActionInPlace(s, a, rng);
+      s.echoNumbers.forEach((heard, seat) => {
+        if (!heard || before[seat]) return;
+        for (const n of heard) {
+          for (const e of s.players[seat]!.echoStack) {
+            if (e.slot === n) t.echoFires[e.slot]! += 1;
+          }
+        }
+      });
     }
 
     if (s.winner === null) throw new Error(`game ${g} did not finish`);
@@ -146,13 +144,16 @@ function run(
         cb[p.band][0] += 1;
         if (p.seat === s.winner) cb[p.band][1] += 1;
       }
+      const ca = (t.colorAll[p.color] ??= [0, 0]);
+      ca[0] += 1;
+      if (p.seat === s.winner) ca[1] += 1;
     }
     for (const p of purchases) {
       t.buysBySlotBand[p.slotBand] += 1;
       t.buysByCardBand[p.band] += 1;
       let row = t.perCard.get(p.id);
       if (!row) {
-        row = { band: p.band, bought: 0, won: 0 };
+        row = { band: p.band, color: p.color, bought: 0, won: 0 };
         t.perCard.set(p.id, row);
       }
       row.bought += 1;
@@ -217,6 +218,30 @@ function report(label: string, players: number, t: Tally) {
   for (const [id, r] of high) {
     lines.push(`  ${id.padEnd(22)} bought ${String(r.bought).padStart(5)}  win ${pct(r.won, r.bought)}`);
   }
+  // Worst cards overall, measured against their own color's buyer baseline so
+  // a bad card in a strong color still surfaces (and vice versa).
+  const delta = (r: { color: string; bought: number; won: number }) => {
+    const base = t.colorAll[r.color];
+    const colorRate = base ? base[1] / Math.max(1, base[0]) : fair;
+    return (100 * r.won) / r.bought - 100 * colorRate;
+  };
+  const ranked = [...t.perCard.entries()]
+    .filter(([, r]) => r.bought >= 100)
+    .sort((a, b) => delta(a[1]) - delta(b[1]));
+  lines.push('worst cards vs their color baseline (bought >= 100):');
+  for (const [id, r] of ranked.slice(0, 15)) {
+    lines.push(
+      `  ${id.padEnd(22)} ${r.color.padEnd(10)} ${r.band.padEnd(6)} bought ${String(r.bought).padStart(5)}`
+        + `  win ${pct(r.won, r.bought)}  delta ${delta(r).toFixed(1)}`,
+    );
+  }
+  lines.push('best cards vs their color baseline:');
+  for (const [id, r] of ranked.slice(-8).reverse()) {
+    lines.push(
+      `  ${id.padEnd(22)} ${r.color.padEnd(10)} ${r.band.padEnd(6)} bought ${String(r.bought).padStart(5)}`
+        + `  win ${pct(r.won, r.bought)}  delta ${delta(r).toFixed(1)}`,
+    );
+  }
   console.log(lines.join('\n') + '\n');
 }
 
@@ -279,18 +304,17 @@ function variantPools(variant: string): ReturnType<typeof pools> {
 const players = Number(process.argv[2] ?? 2);
 const games = Number(process.argv[3] ?? 2000);
 const variant = process.argv[4] ?? 'base';
-const useHiEcho = variant.includes('hiecho');
-const statVariant = variant.replace(/hiecho\+?/, '') || 'base';
+// The rule defaults ON in the engine now; 'nohiecho' turns it off for A/B.
+const echoRule = variant.includes('nohiecho')
+  ? { highEchoHearsSum: false }
+  : variant.includes('hiecho')
+    ? { highEchoHearsSum: true }
+    : undefined;
+const statVariant = variant.replace(/(no)?hiecho\+?/, '') || 'base';
 const t0 = Date.now();
 report(
   `variant=${variant}`,
   players,
-  run(
-    players,
-    games,
-    12345,
-    variantPools(statVariant),
-    useHiEcho ? { highEchoHearsSum: true } : undefined,
-  ),
+  run(players, games, 12345, variantPools(statVariant), echoRule),
 );
 console.log(`(${((Date.now() - t0) / 1000).toFixed(1)}s)`);
