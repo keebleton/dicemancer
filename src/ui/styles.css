@@ -1,13 +1,17 @@
 /* Visual pass v2: dark game table, card-like slots, echo tabs. */
-body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 18px; background: radial-gradient(ellipse 90% 70% at 50% 32%, #2b3349 0%, #232839 55%, #1a1e2b 100%) fixed #1a1e2b; color: #e8eaf2; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 10px 18px; background: radial-gradient(ellipse 90% 70% at 50% 32%, #2b3349 0%, #232839 55%, #1a1e2b 100%) fixed #1a1e2b; color: #e8eaf2; }
 main { max-width: 1150px; margin: 0 auto; }
 main.game { max-width: 1560px; }
 
 /* ---- The table: opponents top/sides, dice + shops center, you at the bottom. */
-.table { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.table { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .table .panel { margin: 0; padding: 10px 12px; }
-.shopsrow { display: flex; gap: 10px; flex-wrap: wrap; }
-.shopsrow .panel { flex: 1 1 430px; min-width: 0; }
+
+/* One row per shop; every card in the row stretches to the tallest. */
+.shoprowcards { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; margin-top: 8px; }
+.shoprowcards .shopcard { margin: 0; flex: 0 0 122px; display: flex; flex-direction: column; }
+.shoprowcards .shopcard .cface { flex: 1; }
+.shoprowcards .placeholder { align-items: center; justify-content: center; min-height: 120px; color: #8a8f9e; background: #33394d; border-color: #4a5470; }
 .midrow { display: flex; gap: 10px; align-items: flex-start; }
 .centerzone { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .sidezone { width: 232px; flex: none; position: sticky; top: 10px; }
@@ -116,9 +120,11 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
   100% { opacity: 0; transform: translate(-50%, -22px) scale(1); }
 }
 
-.slots { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 4px 0 0; }
+.slots { display: grid; grid-template-columns: repeat(6, minmax(0, 158px)); justify-content: center; gap: 6px; margin: 4px 0 0; }
 .slotwrap { display: flex; flex-direction: column; justify-content: flex-end; }
-.echotab { visibility: hidden; height: 21px; box-sizing: border-box; align-self: flex-start; margin: 0 0 -1px 8px; background: #ece4fa; border: 1px solid #a78bda; border-bottom: none; border-radius: 7px 7px 0 0; padding: 2px 8px; display: inline-flex; align-items: center; gap: 6px; position: relative; z-index: 1; color: #4c2f86; }
+.slotwrap .slot { flex: 1 0 auto; display: flex; flex-direction: column; }
+.slot .cface { flex: 1; }
+.echotab { visibility: hidden; height: 19px; box-sizing: border-box; align-self: flex-start; margin: 0 0 -1px 8px; background: #ece4fa; border: 1px solid #a78bda; border-bottom: none; border-radius: 7px 7px 0 0; padding: 2px 8px; display: inline-flex; align-items: center; gap: 6px; position: relative; z-index: 1; color: #4c2f86; }
 .echotab.live { visibility: visible; }
 .echotab .rowlab { color: #6d4fae; }
 .echotab.paid { animation: echopaid 0.9s ease-out; }
@@ -164,8 +170,8 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .shop { margin: 10px 0; }
 .shopcard { display: inline-block; border: 1px solid #c9c2b2; border-radius: 8px; padding: 0; overflow: hidden; margin: 3px; width: 122px; vertical-align: top; font-size: 11px; background: #f7f4ec; color: #2b2a26; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); transition: transform 0.12s; }
 .shopcard:hover:not(.dead) { transform: translateY(-2px); }
-.shopcard .cart { height: 58px; }
-.shopcard .cart img { width: 48px; height: 48px; }
+.shopcard .cart { height: 54px; }
+.shopcard .cart img { width: 46px; height: 46px; }
 .lab .shopcard { width: 150px; }
 .lab .shopcard .cart { height: 72px; }
 .lab .shopcard .cart img { width: 60px; height: 60px; }

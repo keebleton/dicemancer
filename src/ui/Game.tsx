@@ -154,14 +154,10 @@ export function Game() {
               botActing={botTurn}
             />
 
-            <div className="shopsrow">
             {game.winner === null && game.market.length > 0 && (
               <section className="panel marketpanel">
-                <b>The Market</b>{' '}
-                <span className="dimtext">
-                  shared artifacts, first come first served ({game.marketDeck.length} left)
-                </span>
-                <div>
+                <b>The Market</b>
+                <div className="shoprowcards">
                   {game.market.map((card, i) => {
                     const buyable = humanRoller && marketBuys.some((a) => a.marketIndex === i);
                     const sel = buySel?.src === 'market' && buySel.i === i;
@@ -178,7 +174,7 @@ export function Game() {
                         <CardFace card={card} showCost />
                       </div>
                     ) : (
-                      <div key={i} className="shopcard dead">
+                      <div key={i} className="shopcard dead placeholder">
                         (sold out)
                       </div>
                     );
@@ -195,12 +191,8 @@ export function Game() {
                     {me.shopFrozen ? '❄ unfreeze shop' : '❄ freeze shop'}
                   </button>
                 )}
-                <span className="dimtext">
-                  {me.shopFrozen
-                    ? 'frozen: keeping these cards, no new options until you unfreeze'
-                    : 'rotates every turn | freeze the shop to keep this row'}
-                </span>
-                <div>
+                {me.shopFrozen && <span className="dimtext">frozen</span>}
+                <div className="shoprowcards">
                   {me.shop.map((card, i) => {
                     const buyable = humanRoller && shopBuys.some((a) => a.shopIndex === i);
                     const sel = buySel?.src === 'shop' && buySel.i === i;
@@ -220,7 +212,7 @@ export function Game() {
                         <CardFace card={card} showCost />
                       </div>
                     ) : (
-                      <div key={i} className="shopcard dead">
+                      <div key={i} className="shopcard dead placeholder">
                         (bought)
                       </div>
                     );
@@ -234,7 +226,6 @@ export function Game() {
                 )}
               </section>
             )}
-            </div>
           </div>
 
           {rightSeat !== null && <div className="sidezone">{oppMat(rightSeat)}</div>}
