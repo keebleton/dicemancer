@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { chooseAction } from '../bot';
 import { legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
 import { fxList } from './describe';
@@ -6,6 +7,7 @@ import { useGame } from './store';
 
 export function Game() {
   const game = useGame((s) => s.game)!;
+  const seatKinds = useGame((s) => s.seatKinds);
   const dispatch = useGame((s) => s.dispatch);
   const reset = useGame((s) => s.reset);
   const log = useGame((s) => s.log);
@@ -16,6 +18,20 @@ export function Game() {
     setPreview(null);
     setBuyIndex(null);
   }, [game.current, game.phase]);
+
+  // Bot turns auto-play, one action per tick so the log is followable.
+  const botTurn = game.winner === null && seatKinds[game.current] === 'bot';
+  useEffect(() => {
+    if (!botTurn) return;
+    const t = setTimeout(() => {
+      const g = useGame.getState().game;
+      const kinds = useGame.getState().seatKinds;
+      if (g && g.winner === null && kinds[g.current] === 'bot') {
+        useGame.getState().dispatch(chooseAction(g));
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [game, botTurn]);
 
   const actions = legalActions(game);
   const me = game.players[game.current]!;
@@ -105,8 +121,18 @@ function Controls(props: {
   setBuyIndex: (i: number | null) => void;
 }) {
   const { game, actions, dispatch, preview, setPreview, buyIndex, setBuyIndex } = props;
+  const seatKinds = useGame((s) => s.seatKinds);
   if (game.winner !== null) return null;
   const me = game.players[game.current]!;
+  if (seatKinds[game.current] === 'bot') {
+    return (
+      <section className="panel active">
+        <h3>
+          <span className={me.color}>{me.name}</span> is thinking...
+        </h3>
+      </section>
+    );
+  }
   const allocs = actions.filter((a): a is Action & { type: 'ALLOCATE' } => a.type === 'ALLOCATE');
   const tokens = actions.filter(
     (a): a is Action & { type: 'SPEND_TOKEN' } => a.type === 'SPEND_TOKEN',

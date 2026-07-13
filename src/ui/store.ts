@@ -9,10 +9,13 @@ import { describeTransition } from './describe';
 // and non-serializable). Seeded once per game.
 let rng: Rng = mulberry32(1);
 
+export type SeatKind = 'human' | 'bot';
+
 interface GameStore {
   game: GameState | null;
+  seatKinds: SeatKind[];
   log: string[];
-  start: (playerCount: number, roundCap: number, seed?: number) => void;
+  start: (playerCount: number, roundCap: number, seed?: number, kinds?: SeatKind[]) => void;
   /** The ONLY writer: every state change goes through the engine's applyAction. */
   dispatch: (action: Action) => void;
   reset: () => void;
@@ -20,14 +23,17 @@ interface GameStore {
 
 export const useGame = create<GameStore>()((set, get) => ({
   game: null,
+  seatKinds: [],
   log: [],
-  start: (playerCount, roundCap, seed) => {
+  start: (playerCount, roundCap, seed, kinds) => {
     rng = mulberry32(seed ?? Date.now() >>> 0);
+    const seatKinds: SeatKind[] =
+      kinds?.slice(0, playerCount) ?? Array<SeatKind>(playerCount).fill('human');
     const colors: SeatColor[] = ['red', 'blue', 'red', 'blue'];
     const game = createGame(
       {
         seats: Array.from({ length: playerCount }, (_, i) => ({
-          name: `Player ${i + 1}`,
+          name: seatKinds[i] === 'bot' ? `Bot ${i + 1}` : `Player ${i + 1}`,
           color: colors[i % colors.length] as SeatColor,
         })),
         starterBoard: starterBoard(),
@@ -36,7 +42,11 @@ export const useGame = create<GameStore>()((set, get) => ({
       },
       rng,
     );
-    set({ game, log: [`game started: ${playerCount} players, round cap ${roundCap}`] });
+    set({
+      game,
+      seatKinds,
+      log: [`game started: ${playerCount} players, round cap ${roundCap}`],
+    });
   },
   dispatch: (action) => {
     const prev = get().game;
