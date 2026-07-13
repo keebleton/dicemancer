@@ -3,7 +3,7 @@ import { chooseAction } from '../bot';
 import { legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
 import { fxList } from './describe';
-import { EffectIcons, IconLegend } from './icons';
+import { aggregateEchoEffects, EffectIcons, IconLegend } from './icons';
 import { useGame } from './store';
 
 export function Game() {
@@ -220,10 +220,11 @@ function Controls(props: {
                   <span className={card.color}>{card.color}</span> | slots{' '}
                   {card.legalSlots.length === 12 ? 'any' : card.legalSlots.join(',')}
                   <div className="fxline">
+                    <span className="rowlab">roll</span>
                     <EffectIcons effects={card.active} context="active" />
                   </div>
                   <div className="fxline dim">
-                    <span className="elab">e</span>
+                    <span className="rowlab">echo</span>
                     <EffectIcons effects={card.echo} context="echo" />
                   </div>
                 </div>
@@ -282,7 +283,7 @@ function PlayerPanel(props: {
             (fired.includes(slot) ? ' fired' : '') +
             (buyable.includes(slot) ? ' buyable' : '');
           const tip =
-            `${card.name}\nactive: ${fxList(card.active)}\necho if retired: ${fxList(card.echo)}` +
+            `${card.name}\nwhen rolled: ${fxList(card.active)}\necho if retired: ${fxList(card.echo)}` +
             (echoesHere.length > 0
               ? `\nechoing now: ${echoesHere
                   .map((e) => `${e.def.name} (${fxList(e.def.echo)})`)
@@ -294,19 +295,18 @@ function PlayerPanel(props: {
                 <b>{slot}</b> {card.name}
               </div>
               <div className="fxline">
+                <span className="rowlab">roll</span>
                 <EffectIcons effects={card.active} context="active" />
-              </div>
-              <div className="fxline dim">
-                <span className="elab">e</span>
-                <EffectIcons effects={card.echo} context="echo" />
               </div>
               {echoesHere.length > 0 && (
                 <div className="echozone">
-                  {echoesHere.map((entry, j) => (
-                    <div key={j} className="fxline">
-                      <EffectIcons effects={entry.def.echo} context="echo" />
-                    </div>
-                  ))}
+                  <span className="rowlab">
+                    echo{echoesHere.length > 1 ? ` ×${echoesHere.length}` : ''}
+                  </span>
+                  <EffectIcons
+                    effects={aggregateEchoEffects(echoesHere.map((e) => e.def.echo))}
+                    context="echo"
+                  />
                 </div>
               )}
             </div>

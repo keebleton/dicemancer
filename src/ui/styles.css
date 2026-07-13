@@ -30,8 +30,9 @@ input[type='number'] { width: 60px; }
 .fxchip { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; font-weight: 700; }
 .fxchip.glyph { color: #2563eb; }
 .fxif { border: 1px dashed #aaa; border-radius: 3px; padding: 0 3px; font-size: 10px; display: inline-flex; align-items: center; gap: 3px; }
-.elab { font-size: 9px; color: #7c3aed; border: 1px solid #c4b5fd; border-radius: 2px; padding: 0 2px; margin-right: 4px; }
+.rowlab { font-size: 9px; color: #9a9a94; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 5px; }
 .echozone { margin-top: 4px; padding: 2px 0 1px 4px; border-top: 1px dashed #b9a6d6; border-left: 2px solid #c4b5fd; }
+.echozone .rowlab { color: #7c3aed; }
 .legend { font-size: 11px; color: #555; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
 .legend .fxchip { font-weight: 400; }
 .dimtext { color: #999; }
