@@ -9,13 +9,15 @@ import { EffectIcons } from './icons';
 import {
   builtinIds,
   iconUrl,
+  loadOverrides,
   loadPacks,
   mergedPools,
+  saveOverrides,
   savePacks,
   uniqueId,
   validateCard,
 } from './packs';
-import type { CardPack } from './packs';
+import type { CardOverrides, CardPack } from './packs';
 
 const CARD_COLORS: CardColor[] = ['red', 'blue', 'black', 'green', 'yellow', 'colorless'];
 
@@ -51,6 +53,9 @@ export function Lab({ onClose }: { onClose: () => void }) {
   const [packName, setPackName] = useState('');
   const [draft, setDraft] = useState<CardDef | null>(null);
   const [editIndex, setEditIndex] = useState<number | null>(null);
+  /** Non-null while editing a BUILT-IN card: saves go to the overrides layer. */
+  const [overrideId, setOverrideId] = useState<string | null>(null);
+  const [overrides, setOverrides] = useState<CardOverrides>(() => loadOverrides());
   const [browsing, setBrowsing] = useState(false);
 
   const pack = packs.find((p) => p.id === packId) ?? null;
@@ -107,12 +112,36 @@ export function Lab({ onClose }: { onClose: () => void }) {
     if (clone.rarity === 'starter') clone.rarity = 'common';
     setDraft(clone); // saving re-generates a unique id, so the copy never collides
     setEditIndex(null);
+    setOverrideId(null);
+  };
+
+  const editFromCatalog = (c: CardDef) => {
+    setDraft(structuredClone(c)); // c already has any existing override applied
+    setEditIndex(null);
+    setOverrideId(c.id);
+  };
+
+  const resetOverride = (id: string) => {
+    const next = { ...overrides };
+    delete next[id];
+    setOverrides(next);
+    saveOverrides(next);
   };
 
   const saveDraft = () => {
-    if (!draft || !pack) return;
+    if (!draft) return;
     const check = validateCard(draft);
     if (check.errors.length > 0) return;
+    if (overrideId) {
+      // Built-in edit: the id stays anchored to the original card.
+      const next = { ...overrides, [overrideId]: { ...draft, id: overrideId } };
+      setOverrides(next);
+      saveOverrides(next);
+      setDraft(null);
+      setOverrideId(null);
+      return;
+    }
+    if (!pack) return;
     const taken = builtinIds();
     for (const p of packs) {
       p.cards.forEach((c, i) => {
@@ -151,6 +180,7 @@ export function Lab({ onClose }: { onClose: () => void }) {
                   setBrowsing(false);
                   setDraft(null);
                   setEditIndex(null);
+                  setOverrideId(null);
                 }}
               >
                 {p.name} ({p.cards.length})
@@ -191,6 +221,7 @@ export function Lab({ onClose }: { onClose: () => void }) {
               setBrowsing(true);
               setDraft(null);
               setEditIndex(null);
+              setOverrideId(null);
             }}
           >
             browse all cards ({CATALOG_COUNT})
@@ -199,7 +230,13 @@ export function Lab({ onClose }: { onClose: () => void }) {
 
         <section className="panel labmain">
           {browsing && !draft && (
-            <Catalog onCopy={copyFromCatalog} copyTarget={pack?.name ?? null} />
+            <Catalog
+              onCopy={copyFromCatalog}
+              onEdit={editFromCatalog}
+              onReset={resetOverride}
+              overrides={overrides}
+              copyTarget={pack?.name ?? null}
+            />
           )}
           {!pack && !browsing && (
             <p className="dimtext">Create or pick a pack, or browse the existing cards.</p>
@@ -217,6 +254,7 @@ export function Lab({ onClose }: { onClose: () => void }) {
                         onClick={() => {
                           setDraft(structuredClone(c));
                           setEditIndex(i);
+                          setOverrideId(null);
                         }}
                       >
                         edit
@@ -243,21 +281,24 @@ export function Lab({ onClose }: { onClose: () => void }) {
                 onClick={() => {
                   setDraft(blankCard());
                   setEditIndex(null);
+                  setOverrideId(null);
                 }}
               >
                 New card
               </button>
             </>
           )}
-          {pack && draft && (
+          {draft && (pack || overrideId) && (
             <CardEditor
               draft={draft}
               setDraft={setDraft}
               packs={packs}
+              editingBuiltin={overrideId !== null}
               onSave={saveDraft}
               onCancel={() => {
                 setDraft(null);
                 setEditIndex(null);
+                setOverrideId(null);
               }}
             />
           )}
@@ -269,9 +310,15 @@ export function Lab({ onClose }: { onClose: () => void }) {
 
 function Catalog({
   onCopy,
+  onEdit,
+  onReset,
+  overrides,
   copyTarget,
 }: {
   onCopy: (c: CardDef) => void;
+  onEdit: (c: CardDef) => void;
+  onReset: (id: string) => void;
+  overrides: CardOverrides;
   copyTarget: string | null;
 }) {
   const [filter, setFilter] = useState('');
@@ -286,6 +333,7 @@ function Catalog({
           onChange={(e) => setFilter(e.target.value)}
         />{' '}
         <span className="dimtext">
+          edit changes the card for all your games |{' '}
           {copyTarget
             ? `copy puts an editable duplicate into ${copyTarget}`
             : 'select or create a pack to copy cards into it'}
@@ -303,12 +351,25 @@ function Catalog({
             <h4 className={group.label === 'starters' ? 'starter' : group.label}>
               {group.label} ({cards.length})
             </h4>
-            {cards.map((c) => (
-              <div key={c.id} className="shopcard" style={{ cursor: 'default' }}>
-                <CardFace card={c} />
-                <button onClick={() => onCopy(c)}>copy</button>
-              </div>
-            ))}
+            {cards.map((c) => {
+              const eff = overrides[c.id] ?? c;
+              const edited = c.id in overrides;
+              return (
+                <div key={c.id} className="shopcard" style={{ cursor: 'default' }}>
+                  <CardFace card={eff} />
+                  {edited && <div className="editedtag">edited</div>}
+                  <div>
+                    <button onClick={() => onEdit(eff)}>edit</button>
+                    <button onClick={() => onCopy(eff)}>copy</button>
+                    {edited && (
+                      <button title="restore the original card" onClick={() => onReset(c.id)}>
+                        reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         );
       })}
@@ -349,16 +410,23 @@ function CardEditor(props: {
   draft: CardDef;
   setDraft: (c: CardDef) => void;
   packs: CardPack[];
+  editingBuiltin?: boolean;
   onSave: () => void;
   onCancel: () => void;
 }) {
-  const { draft, setDraft, packs, onSave, onCancel } = props;
+  const { draft, setDraft, packs, editingBuiltin, onSave, onCancel } = props;
   const [picking, setPicking] = useState(false);
   const check = validateCard(draft);
 
   return (
     <div>
       <h3>Card editor</h3>
+      {editingBuiltin && (
+        <p className="dimtext">
+          Editing a built-in card: saving changes it in every new game on this machine (the
+          catalog gets a reset button to restore the original).
+        </p>
+      )}
       <div className="labcols">
         <div className="labform">
           <div className="field">
@@ -377,6 +445,7 @@ function CardEditor(props: {
               value={draft.color}
               onChange={(e) => setDraft({ ...draft, color: e.target.value as CardColor })}
             >
+              {draft.color === 'starter' && <option value="starter">starter</option>}
               {CARD_COLORS.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -390,6 +459,7 @@ function CardEditor(props: {
                 setDraft({ ...draft, rarity: e.target.value as CardDef['rarity'] })
               }
             >
+              {draft.rarity === 'starter' && <option value="starter">starter</option>}
               <option value="common">common</option>
               <option value="rare">rare</option>
             </select>{' '}
@@ -444,7 +514,7 @@ function CardEditor(props: {
           ))}
           <div className="field">
             <button className="primary" disabled={check.errors.length > 0} onClick={onSave}>
-              Save card
+              {editingBuiltin ? 'Save changes to this card' : 'Save card'}
             </button>
             <button onClick={onCancel}>cancel</button>
           </div>

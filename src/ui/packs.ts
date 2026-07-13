@@ -20,6 +20,7 @@ export interface KV {
 }
 
 const KEY = 'dicemancer_packs_v1';
+const OVERRIDES_KEY = 'dicemancer_card_overrides_v1';
 
 function browserStorage(): KV | null {
   try {
@@ -47,17 +48,49 @@ export function savePacks(packs: CardPack[], store: KV | null = browserStorage()
   }
 }
 
-/** Base pools plus every card from every enabled pack, routed by card color. */
-export function mergedPools(packs: CardPack[]): Pools {
+/** Edited versions of BUILT-IN cards (icons, tweaked numbers...), keyed by the
+ *  original card id. Applied to every new game and to the Lab's catalog/sim. */
+export type CardOverrides = Record<string, CardDef>;
+
+export function loadOverrides(store: KV | null = browserStorage()): CardOverrides {
+  if (!store) return {};
+  try {
+    const raw = store.getItem(OVERRIDES_KEY);
+    return raw ? (JSON.parse(raw) as CardOverrides) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveOverrides(overrides: CardOverrides, store: KV | null = browserStorage()): void {
+  try {
+    store?.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
+  } catch {
+    // storage full or unavailable; edits live for the session only
+  }
+}
+
+/** Base pools with overrides applied. Cards re-bucket by their EFFECTIVE
+ *  color, so recoloring an edit moves it to the right pool. */
+export function effectivePools(overrides: CardOverrides = loadOverrides()): Pools {
   const base = pools();
-  const merged: Pools = {
-    red: [...base.red],
-    blue: [...base.blue],
-    black: [...base.black],
-    green: [...base.green],
-    yellow: [...base.yellow],
-    colorless: [...base.colorless],
-  };
+  const result: Pools = { red: [], blue: [], black: [], green: [], yellow: [], colorless: [] };
+  for (const bucket of Object.values(base)) {
+    for (const card of bucket) {
+      const eff = overrides[card.id] ?? card;
+      if (eff.color === 'starter') continue;
+      result[eff.color].push(eff);
+    }
+  }
+  return result;
+}
+
+/** Overridden base pools plus every card from every enabled pack. */
+export function mergedPools(
+  packs: CardPack[],
+  overrides: CardOverrides = loadOverrides(),
+): Pools {
+  const merged = effectivePools(overrides);
   for (const pack of packs) {
     if (!pack.enabled) continue;
     for (const card of pack.cards) {
@@ -66,6 +99,11 @@ export function mergedPools(packs: CardPack[]): Pools {
     }
   }
   return merged;
+}
+
+/** The starter board with any starter edits applied. */
+export function effectiveStarterBoard(overrides: CardOverrides = loadOverrides()): CardDef[] {
+  return starterBoard().map((c) => overrides[c.id] ?? c);
 }
 
 export function slugify(name: string): string {

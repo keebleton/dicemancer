@@ -1,9 +1,8 @@
 import { create } from 'zustand';
-import { starterBoard } from '../content/starters';
 import { applyAction, createGame, mulberry32 } from '../engine';
 import type { Action, GameState, Rng, SeatColor } from '../engine';
 import { describeTransition } from './describe';
-import { loadPacks, mergedPools } from './packs';
+import { effectiveStarterBoard, loadPacks, mergedPools } from './packs';
 import { playForDispatch } from './sfx';
 
 // The game's rng lives beside the store, not inside GameState (it is stateful
@@ -55,8 +54,8 @@ export const useGame = create<GameStore>()((set, get) => ({
           name: seatKinds[i] === 'bot' ? `Bot ${i + 1}` : `Player ${i + 1}`,
           color: seatColors[i % seatColors.length] as SeatColor,
         })),
-        starterBoard: starterBoard(),
-        pools: mergedPools(loadPacks()), // enabled Card Lab packs join the shop
+        starterBoard: effectiveStarterBoard(), // with any Card Lab edits applied
+        pools: mergedPools(loadPacks()), // Card Lab edits + enabled packs join the shop
         tunables: { roundCap },
       },
       rng,
