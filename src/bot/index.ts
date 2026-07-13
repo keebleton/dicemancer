@@ -258,15 +258,15 @@ function bestBuy(state: GameState, actions: Action[]): Action {
     }
   }
   if (best) return best;
-  // Nothing worth buying: consider calling dibs on an artifact we cannot
-  // afford yet, if it is clearly worth waiting a turn for.
+  // Nothing affordable is worth buying: consider freezing an own-shop card we
+  // cannot afford yet, if it is clearly worth carrying past the rotation.
   let bestFreeze: Action | null = null;
-  let freezeScore = 2; // the thin-shop cost means only strong cards qualify
+  let freezeScore = 1.5; // giving up fresh options means only strong cards qualify
   for (const a of actions) {
-    if (a.type !== 'FREEZE_MARKET') continue;
-    const card = state.market[a.marketIndex]!;
+    if (a.type !== 'FREEZE_SHOP') continue;
+    const card = me.shop[a.shopIndex]!;
     const prob = Math.max(...card.legalSlots.map(triggerProb));
-    const s = scoreEffects(state, card.active, seat) * prob - 0.5;
+    const s = scoreEffects(state, card.active, seat) * prob - 0.3;
     if (s > freezeScore) {
       freezeScore = s;
       bestFreeze = a;

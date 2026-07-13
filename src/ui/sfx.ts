@@ -121,7 +121,7 @@ export function playForDispatch(
 ): void {
   if (action.type === 'ROLL') sfx.roll();
   else if (action.type === 'BUY' || action.type === 'BUY_MARKET') sfx.buy();
-  else if (action.type === 'FREEZE_MARKET') sfx.freeze();
+  else if (action.type === 'FREEZE_SHOP') sfx.freeze();
   else if (action.type === 'SPEND_TOKEN' || action.type === 'SKIP_BUY') sfx.click();
   else if (
     action.type === 'ALLOCATE' ||

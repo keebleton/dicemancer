@@ -107,7 +107,7 @@ interface CardDef {
 - Each player has their own shop row of **4 own-color cards**, dealt from their shuffled pool.
 - Entire row refreshes at the start of that player's turn (aggressive rotation is intentional — forces adaptability).
 - **THE MARKET**: one shared display of **4 colorless artifacts** dealt from a single shared deck. Static — it never rotates; a bought slot refills from the deck immediately. All players compete over it, first come first served. Colorless cards are premium-priced (8–14) and stronger than color cards to match.
-- **FREEZE** (added 2026-07-13): during your buy phase you may freeze ONE market card you cannot afford — dibs. Nobody else can buy it until the end of your NEXT turn (then it thaws). Cost: your next shop deals 3 cards instead of 4. Limit one active freeze per player; freezing does not consume the turn's purchase.
+- **FREEZE** (added 2026-07-13; own-shop only, per design): during your buy phase you may freeze ONE card in YOUR OWN shop that you cannot afford. It survives your next row refresh — you keep it and only 3 new cards join it — then unfreezes. Limit one active freeze per player; freezing does not consume the turn's purchase. The market cannot be frozen.
 - Max 1 purchase per turn across shop AND market. Money persists between turns.
 - Empty color pool: reshuffle that pool's unbought discards. Empty market deck: sold-out slots stay empty.
 

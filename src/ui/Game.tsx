@@ -99,7 +99,6 @@ export function Game() {
         game={game}
         actions={actions}
         dispatch={dispatch}
-        preview={preview}
         setPreview={setPreview}
         botActing={botTurn}
       />
@@ -108,25 +107,17 @@ export function Game() {
         <section className="panel marketpanel">
           <b>The Market</b>{' '}
           <span className="dimtext">
-            shared artifacts, first come first served ({game.marketDeck.length} left in the deck) |
-            can{"'"}t afford one? freeze it to call dibs (your next shop deals 3)
+            shared artifacts, first come first served ({game.marketDeck.length} left in the deck)
           </span>
           <div>
             {game.market.map((card, i) => {
               const buyable = humanRoller && marketBuys.some((a) => a.marketIndex === i);
               const sel = buySel?.src === 'market' && buySel.i === i;
-              const freeze = game.marketFreezes.find((f) => f.marketIndex === i);
-              const canFreeze =
-                humanRoller &&
-                actions.some((a) => a.type === 'FREEZE_MARKET' && a.marketIndex === i);
               return card ? (
                 <div
                   key={i}
                   className={
-                    'shopcard market' +
-                    (freeze ? ' frozen' : '') +
-                    (sel ? ' selected' : '') +
-                    (buyable ? '' : ' dead')
+                    'shopcard market' + (sel ? ' selected' : '') + (buyable ? '' : ' dead')
                   }
                   onClick={() => {
                     if (buyable) setBuySel(sel ? null : { src: 'market', i });
@@ -153,24 +144,6 @@ export function Game() {
                     <span className="rowlab">echo</span>
                     <EffectIcons effects={card.echo} context="echo" />
                   </div>
-                  {freeze && (
-                    <div className="frozentag">
-                      {'❄'} dibs:{' '}
-                      <span className={game.players[freeze.seat]!.color}>
-                        {game.players[freeze.seat]!.name}
-                      </span>
-                    </div>
-                  )}
-                  {canFreeze && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        dispatch({ type: 'FREEZE_MARKET', marketIndex: i });
-                      }}
-                    >
-                      {'❄'} freeze
-                    </button>
-                  )}
                 </div>
               ) : (
                 <div key={i} className="shopcard dead">
@@ -184,17 +157,24 @@ export function Game() {
 
       {game.winner === null && me.shop.length > 0 && (
         <section className="panel">
-          <b>{me.name}{"'"}s shop</b> (money: {me.money})
+          <b>{me.name}{"'"}s shop</b> (money: {me.money}){' '}
+          <span className="dimtext">
+            rotates every turn | freeze a card you can{"'"}t afford to keep it (3 new cards join it)
+          </span>
           <div>
             {me.shop.map((card, i) => {
               const buyable = humanRoller && shopBuys.some((a) => a.shopIndex === i);
               const sel = buySel?.src === 'shop' && buySel.i === i;
+              const frozen = me.frozenShopIndex === i;
+              const canFreeze =
+                humanRoller && actions.some((a) => a.type === 'FREEZE_SHOP' && a.shopIndex === i);
               return card ? (
                 <div
                   key={i}
                   className={
                     'shopcard' +
                     (card.rarity === 'rare' ? ' rare' : '') +
+                    (frozen ? ' frozen' : '') +
                     (sel ? ' selected' : '') +
                     (buyable ? '' : ' dead')
                   }
@@ -224,6 +204,17 @@ export function Game() {
                     <span className="rowlab">echo</span>
                     <EffectIcons effects={card.echo} context="echo" />
                   </div>
+                  {frozen && <div className="frozentag">{'❄'} frozen: stays through the rotation</div>}
+                  {canFreeze && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dispatch({ type: 'FREEZE_SHOP', shopIndex: i });
+                      }}
+                    >
+                      {'❄'} freeze
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div key={i} className="shopcard dead">
@@ -291,11 +282,10 @@ function Stage(props: {
   game: GameState;
   actions: Action[];
   dispatch: (a: Action) => void;
-  preview: AllocationMode | null;
   setPreview: (m: AllocationMode | null) => void;
   botActing: boolean;
 }) {
-  const { game, actions, dispatch, preview, setPreview, botActing } = props;
+  const { game, actions, dispatch, setPreview, botActing } = props;
   if (game.winner !== null) return null;
   const acting = actingSeat(game);
   const actor = game.players[acting]!;
@@ -312,9 +302,6 @@ function Stage(props: {
   const echoChoices = actions.filter(
     (a): a is Action & { type: 'ECHO_CHOICE' } => a.type === 'ECHO_CHOICE',
   );
-  const echoCount = (numbers: number[]) =>
-    numbers.reduce((n, x) => n + actor.echoStack.filter((e) => e.slot === x).length, 0);
-
   return (
     <section className="panel stage">
       <div className="stagedice">
@@ -344,39 +331,67 @@ function Stage(props: {
             </button>
           ))}
 
-          {allocs.map((a) => (
-            <button
-              key={a.mode}
-              className="primary"
-              onMouseEnter={() => setPreview(a.mode)}
-              onMouseLeave={() => setPreview(null)}
-              onClick={() => {
-                setPreview(null);
-                dispatch(a);
-              }}
-            >
-              {a.mode === 'individual'
-                ? `Split the dice (slots ${dice![0]} + ${dice![1]})`
-                : `Take the sum (slot ${dice![0] + dice![1]})`}
-            </button>
-          ))}
+          {allocs.map((a) => {
+            const nums = previewNumbers(dice!, a.mode);
+            return (
+              <button
+                key={a.mode}
+                className="choicebtn"
+                onMouseEnter={() => setPreview(a.mode)}
+                onMouseLeave={() => setPreview(null)}
+                onClick={() => {
+                  setPreview(null);
+                  dispatch(a);
+                }}
+                title={nums
+                  .map((n) => `slot ${n}: ${fxList(roller.board[n - 1]!.active)}`)
+                  .join(' | ')}
+              >
+                <span className="choicelabel">
+                  {a.mode === 'individual'
+                    ? `Split: ${dice![0]} + ${dice![1]}`
+                    : `Sum: ${dice![0] + dice![1]}`}
+                </span>
+                <span className="choicefx">
+                  {nums.map((n, idx) => (
+                    <span key={idx} className="choiceslot">
+                      <span className="slotnum">{n}</span>
+                      <EffectIcons effects={roller.board[n - 1]!.active} context="active" />
+                    </span>
+                  ))}
+                </span>
+              </button>
+            );
+          })}
 
-          {echoChoices.length > 0 && dice && (
-            <>
-              <button
-                className="primary"
-                onClick={() => dispatch({ type: 'ECHO_CHOICE', mode: 'individual' })}
-              >
-                Hear {dice[0]} + {dice[1]} ({echoCount([dice[0], dice[1]])} echoes)
-              </button>
-              <button
-                className="primary"
-                onClick={() => dispatch({ type: 'ECHO_CHOICE', mode: 'sum' })}
-              >
-                Hear {dice[0] + dice[1]} ({echoCount([dice[0] + dice[1]])} echoes)
-              </button>
-            </>
-          )}
+          {echoChoices.length > 0 &&
+            dice &&
+            (
+              [
+                ['individual', `Hear ${dice[0]} + ${dice[1]}`, [dice[0], dice[1]]],
+                ['sum', `Hear ${dice[0] + dice[1]}`, [dice[0] + dice[1]]],
+              ] as [AllocationMode, string, number[]][]
+            ).map(([mode, label, numbers]) => {
+              const lines = numbers.flatMap((n) =>
+                actor.echoStack.filter((e) => e.slot === n).map((e) => e.def.echo),
+              );
+              return (
+                <button
+                  key={mode}
+                  className="choicebtn"
+                  onClick={() => dispatch({ type: 'ECHO_CHOICE', mode })}
+                >
+                  <span className="choicelabel">{label}</span>
+                  <span className="choicefx">
+                    {lines.length === 0 ? (
+                      <span className="dimtext">nothing</span>
+                    ) : (
+                      <EffectIcons effects={aggregateEchoEffects(lines)} context="echo" />
+                    )}
+                  </span>
+                </button>
+              );
+            })}
 
           {targets.map((t) => (
             <button key={t.playerId} className="primary" onClick={() => dispatch(t)}>
@@ -395,17 +410,6 @@ function Stage(props: {
         </div>
       )}
 
-      {preview && dice && (
-        <div className="hint">
-          would fire:{' '}
-          {previewNumbers(dice, preview)
-            .map(
-              (n) =>
-                `slot ${n} - ${roller.board[n - 1]!.name} (${fxList(roller.board[n - 1]!.active)})`,
-            )
-            .join('; ')}
-        </div>
-      )}
     </section>
   );
 }

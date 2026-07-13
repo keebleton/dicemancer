@@ -20,20 +20,24 @@ function draw(deck: CardDef[], discard: CardDef[], rng: Rng): CardDef | null {
   return deck.pop() ?? null;
 }
 
-/** Discard the row's remnants and deal a fresh own-color row.
+/** Discard the row's remnants and deal a fresh own-color row. A frozen card
+ *  survives the rotation (that IS the freeze: it rides along and only the
+ *  remaining slots get new cards), then the freeze mark clears.
  *  Runs at the owner's turn start and on the refreshShop effect.
  *  No-op for games created without pools (shop === []). */
 export function dealRow(state: GameState, seat: number, rng: Rng): void {
   const p = state.players[seat];
   if (!p || p.shop.length === 0) return;
-  for (const card of p.shop) {
-    if (card) p.colorDiscard.push(card);
-  }
-  // A pending freeze penalty thins this deal, then it is spent.
-  const count = Math.max(1, SHOP_COLOR_CARDS - p.shopPenalty);
-  p.shopPenalty = 0;
-  const row: (CardDef | null)[] = [];
-  for (let i = 0; i < count; i++) row.push(draw(p.colorDeck, p.colorDiscard, rng));
+  const frozenIdx = p.frozenShopIndex;
+  const keep = frozenIdx !== null ? (p.shop[frozenIdx] ?? null) : null;
+  p.frozenShopIndex = null; // the freeze has done its job
+  p.shop.forEach((card, i) => {
+    if (!card) return;
+    if (keep !== null && i === frozenIdx) return; // survives the rotation
+    p.colorDiscard.push(card);
+  });
+  const row: (CardDef | null)[] = keep ? [keep] : [];
+  while (row.length < SHOP_COLOR_CARDS) row.push(draw(p.colorDeck, p.colorDiscard, rng));
   p.shop = row;
 }
 

@@ -75,8 +75,9 @@ export interface PlayerState {
   tokens: { reroll: number; nudge: number };
   /** Green discounts bank here; consumed by the next BUY, reset when their turn ends. */
   buyDiscount: number;
-  /** Freezing a market card thins the next own-shop deal by this many cards. */
-  shopPenalty: number;
+  /** A frozen own-shop card survives the next row refresh (limit one); the
+   *  cost is that only 3 new cards join it. Cleared by that refresh. */
+  frozenShopIndex: number | null;
   /** Always 12 entries; index i holds the card installed in slot i+1. */
   board: CardDef[];
   echoStack: EchoEntry[];
@@ -132,9 +133,6 @@ export interface GameState {
    *  first buyer takes a card and the slot refills from the shared deck. */
   market: (CardDef | null)[];
   marketDeck: CardDef[];
-  /** Active market freezes: the seat has dibs on the slot until the end of
-   *  their NEXT turn (age 0 = frozen this turn, age 1 = thaws when their turn ends). */
-  marketFreezes: { seat: number; marketIndex: number; age: number }[];
   /** Seats (in order after the roller) still to hear this roll for their echoes.
    *  The head of the list is the seat an ECHO_CHOICE is awaited from. */
   echoPending: number[];
@@ -157,10 +155,10 @@ export type Action =
   | { type: 'BUY'; shopIndex: number; targetSlot: number }
   /** Buy from the shared colorless market (counts as the turn's one purchase). */
   | { type: 'BUY_MARKET'; marketIndex: number; targetSlot: number }
-  /** Call dibs on a market card you cannot afford: reserved for you until the
-   *  end of your next turn; your next shop deals one fewer card. Limit one
-   *  active freeze per player. Does not consume the turn's purchase. */
-  | { type: 'FREEZE_MARKET'; marketIndex: number }
+  /** Freeze a card in YOUR OWN shop that you cannot afford: it survives your
+   *  next row refresh (you get it plus only 3 new cards). Limit one active
+   *  freeze. Does not consume the turn's purchase. */
+  | { type: 'FREEZE_SHOP'; shopIndex: number }
   | { type: 'SKIP_BUY' }
   | { type: 'END_TURN' };
 // Deferred: RESOLVE_ORDER (cards resolve in die order; revisit if ordering ever matters).
