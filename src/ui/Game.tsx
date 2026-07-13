@@ -149,7 +149,6 @@ export function Game() {
             <div className="centerrow">
             {game.winner === null && game.market.length > 0 && (
               <section className="panel marketpanel">
-                <b>The Market</b>
                 <div className="shoprowcards">
                   {game.market.map((card, i) => {
                     const buyable = humanRoller && marketBuys.some((a) => a.marketIndex === i);
@@ -186,13 +185,6 @@ export function Game() {
 
             {game.winner === null && me.shop.length > 0 && (
               <section className={'panel shoppanel' + (me.shopFrozen ? ' shopfrozen' : '')}>
-                <b>{me.name}{"'"}s shop</b> (money: {me.money}){' '}
-                {humanRoller && actions.some((a) => a.type === 'FREEZE_SHOP') && (
-                  <button onClick={() => dispatch({ type: 'FREEZE_SHOP' })}>
-                    {me.shopFrozen ? '❄ unfreeze shop' : '❄ freeze shop'}
-                  </button>
-                )}
-                {me.shopFrozen && <span className="dimtext">frozen</span>}
                 <div className="shoprowcards">
                   {me.shop.map((card, i) => {
                     const buyable = humanRoller && shopBuys.some((a) => a.shopIndex === i);
@@ -219,12 +211,15 @@ export function Game() {
                     );
                   })}
                 </div>
-                {buySel !== null && (
-                  <div className="hint">
-                    click a glowing slot on your board below to install{' '}
+                <div className="buyrow">
+                  {buySel !== null ? (
                     <button onClick={() => setBuySel(null)}>cancel</button>
-                  </div>
-                )}
+                  ) : humanRoller && actions.some((a) => a.type === 'FREEZE_SHOP') ? (
+                    <button onClick={() => dispatch({ type: 'FREEZE_SHOP' })}>
+                      {me.shopFrozen ? '❄ unfreeze shop' : '❄ freeze shop'}
+                    </button>
+                  ) : null}
+                </div>
               </section>
             )}
             </div>
@@ -237,7 +232,6 @@ export function Game() {
           p={game.players[perspective]!}
           seat={perspective}
           game={game}
-          isHuman={seatKinds[perspective] === 'human'}
           pulses={pulses.filter((x) => x.seat === perspective)}
           highlight={perspective === game.current ? previewSlots : []}
           fired={perspective === game.current ? firedSlots : []}
@@ -271,7 +265,6 @@ export function Game() {
               p={game.players[inspect]!}
               seat={inspect}
               game={game}
-              isHuman={seatKinds[inspect] === 'human'}
               pulses={pulses.filter((x) => x.seat === inspect)}
               highlight={[]}
               fired={inspect === game.current ? firedSlots : []}
@@ -285,15 +278,6 @@ export function Game() {
     </main>
   );
 }
-
-const PHASE_HINT: Record<GameState['phase'], string> = {
-  roll: 'roll the dice',
-  allocate: 'spend tokens, then pick an allocation',
-  chooseTarget: 'choose a target',
-  echoChoice: 'choose how your echoes hear this roll',
-  buy: 'buy one card or skip',
-  end: 'end your turn',
-};
 
 /** The shared table center: everyone watches the same dice; whoever must act
  *  (the roller, or an opponent picking an echo interpretation) acts here. */
@@ -323,17 +307,13 @@ function Stage(props: {
   );
   return (
     <section className="panel stage">
+      <div className="stageinfo">
+        <span className={actor.color}>{actor.name}</span>
+        {"'"}s turn
+      </div>
       <div className="stagedice">
         <Die key={`a${dice?.[0] ?? 'x'}`} value={dice?.[0] ?? null} />
         <Die key={`b${dice?.[1] ?? 'x'}`} value={dice?.[1] ?? null} />
-      </div>
-      <div className="stageinfo">
-        {dice && (
-          <span className="dimtext">
-            rolled by <span className={roller.color}>{roller.name}</span> |{' '}
-          </span>
-        )}
-        <span className={actor.color}>{actor.name}</span>: {PHASE_HINT[game.phase]}
       </div>
 
       {botActing && <div className="dimtext">thinking...</div>}
@@ -441,14 +421,13 @@ function SelfMat(props: {
   p: PlayerState;
   seat: number;
   game: GameState;
-  isHuman: boolean;
   pulses: StatPulse[];
   highlight: number[];
   fired: number[];
   buyable: number[];
   onSlotClick: (slot: number) => void;
 }) {
-  const { p, seat, game, isHuman, highlight, fired, buyable, onSlotClick } = props;
+  const { p, seat, game, highlight, fired, buyable, onSlotClick } = props;
   const isTurn = seat === game.current;
   // Echo tabs flash on the numbers this seat chose to hear this turn.
   const paidSlots = game.echoNumbers[seat] ?? [];
@@ -456,10 +435,9 @@ function SelfMat(props: {
     <section
       className={'panel selfmat' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}
     >
-      <div className="mathead">
+      <div className="mathead selfhead">
         <h3>
           <span className={p.color}>{p.name}</span>
-          {isHuman ? ' (you)' : ''} {isTurn ? '(rolling)' : ''}
           {p.eliminated ? ' - ELIMINATED' : ''}
         </h3>
         <StatChips

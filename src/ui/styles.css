@@ -12,10 +12,13 @@ main.game { max-width: 1560px; }
 .centerrow { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
 .centerrow .stage { flex: 1 1 200px; min-width: 180px; justify-content: center; box-sizing: border-box; }
 .centerrow .marketpanel, .centerrow .shoppanel { flex: 0 0 268px; width: 268px; box-sizing: border-box; min-width: 0; }
-.shoprowcards { display: grid; grid-template-columns: repeat(2, 116px); gap: 6px; align-items: stretch; margin-top: 8px; }
+.shoprowcards { display: grid; grid-template-columns: repeat(2, 116px); grid-auto-rows: minmax(148px, auto); gap: 6px; align-items: stretch; }
+/* Always-reserved footer strip: freeze lives here, swaps to cancel during a
+   buy. Fixed height so nothing on the table ever shifts. */
+.buyrow { height: 32px; margin-top: 6px; display: flex; align-items: center; justify-content: center; }
 .shoprowcards .shopcard { margin: 0; width: auto; display: flex; flex-direction: column; }
 .shoprowcards .shopcard .cface { flex: 1; }
-.shoprowcards .placeholder { align-items: center; justify-content: center; min-height: 120px; color: #8a8f9e; background: #33394d; border-color: #4a5470; }
+.shoprowcards .placeholder { align-items: center; justify-content: center; color: #8a8f9e; background: #33394d; border-color: #4a5470; }
 .midrow { display: flex; gap: 10px; align-items: flex-start; }
 .centerzone { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .sidezone { width: 220px; flex: none; position: sticky; top: 10px; }
@@ -43,6 +46,7 @@ main.game { max-width: 1560px; }
 
 .selfmat { border-width: 2px; }
 .mathead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.selfhead { justify-content: center; }
 .mathead h3 { margin: 0; }
 .mathead .stats { margin: 0; }
 .mathead .zoomhint { margin-left: auto; }
@@ -93,7 +97,7 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .stage { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 12px; background: radial-gradient(ellipse at center, #35406129 0%, transparent 70%), #2c3348; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); }
 .stagedice { display: flex; gap: 14px; }
 .stage .die { width: 60px; height: 60px; }
-.stageinfo { font-size: 13.5px; }
+.stageinfo { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
 .stagebtns { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 4px; }
 .choicebtn { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 16px; background: #f7f4ec; color: #2b2a26; border: 2px solid #f0b429; border-radius: 9px; }
 .choicebtn:hover { background: #fffdf5; transform: translateY(-1px); }
