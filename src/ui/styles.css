@@ -83,8 +83,8 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .slot:hover { border-color: #8a8375; }
 
 .cface { display: flex; flex-direction: column; }
-.cart { position: relative; height: 52px; overflow: hidden; flex: none; }
-.cart img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cart { position: relative; height: 58px; overflow: hidden; flex: none; display: flex; align-items: center; justify-content: center; }
+.cart img { width: 50px; height: 50px; object-fit: contain; display: block; border-radius: 5px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35); }
 .cbadge { position: absolute; top: 3px; background: rgba(15, 17, 26, 0.75); color: #f2efe6; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 8px; max-width: 62%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cslots { left: 3px; }
 .ccost { right: 3px; background: rgba(133, 94, 11, 0.92); }
@@ -116,7 +116,8 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .shop { margin: 10px 0; }
 .shopcard { display: inline-block; border: 1px solid #c9c2b2; border-radius: 8px; padding: 0; overflow: hidden; margin: 3px; width: 150px; vertical-align: top; font-size: 11px; background: #f7f4ec; color: #2b2a26; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); transition: transform 0.12s; }
 .shopcard:hover:not(.dead) { transform: translateY(-2px); }
-.shopcard .cart { height: 64px; }
+.shopcard .cart { height: 72px; }
+.shopcard .cart img { width: 60px; height: 60px; }
 .shopcard > button, .shopcard > div > button { margin: 2px 4px 5px; }
 .shopcard .editedtag { margin: 2px 6px 0; }
 .panel.shopfrozen { border-color: #7ab5ff; box-shadow: 0 0 0 1px #7ab5ff; }
