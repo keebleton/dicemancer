@@ -8,6 +8,7 @@ export const DEFAULT_TUNABLES: Tunables = {
   roundCap: 25,
   playerMin: 2,
   playerMax: 4,
+  highEchoHearsSum: false,
 };
 
 /** P5 first tuning pass (2026-07-12, 1000-game sims, seeds 1+2): at HP 25

@@ -115,6 +115,10 @@ export interface Tunables {
   roundCap: number;
   playerMin: number;
   playerMax: number;
+  /** High-band compensation rule: echoes sitting in slots 7-12 hear the SUM
+   *  of every roll regardless of the owner's split/sum choice (the choice
+   *  still governs slots 1-6). */
+  highEchoHearsSum: boolean;
 }
 
 export interface GameState {

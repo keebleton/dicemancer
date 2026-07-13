@@ -349,7 +349,9 @@ function finishResolution(state: GameState, rng: Rng): void {
   processEchoQueue(state, rng);
 }
 
-/** Entry indices (with multiplicity) of a seat's echoes matched by `numbers`. */
+/** Entry indices (with multiplicity) of a seat's echoes matched by `numbers`.
+ *  With the highEchoHearsSum rule, echoes in slots 7-12 also match the roll's
+ *  sum even when it is not among the chosen numbers. */
 function matchedEntries(state: GameState, seat: number, numbers: number[]): number[] {
   const out: number[] = [];
   const stack = state.players[seat]!.echoStack;
@@ -357,6 +359,15 @@ function matchedEntries(state: GameState, seat: number, numbers: number[]): numb
     stack.forEach((entry, idx) => {
       if (entry.slot === n) out.push(idx);
     });
+  }
+  const dice = state.dice;
+  if (state.tunables.highEchoHearsSum && dice) {
+    const sum = dice[0] + dice[1];
+    if (sum >= 7 && !numbers.includes(sum)) {
+      stack.forEach((entry, idx) => {
+        if (entry.slot === sum) out.push(idx);
+      });
+    }
   }
   return out;
 }
@@ -395,7 +406,6 @@ function processEchoQueue(state: GameState, rng: Rng): void {
 }
 
 function fireEchoesFor(state: GameState, seat: number, numbers: number[], rng: Rng): void {
-  state.echoNumbers[seat] = numbers;
   const queue: QueuedEffect[] = [];
   const stack = state.players[seat]!.echoStack;
   for (const n of numbers) {
@@ -404,6 +414,21 @@ function fireEchoesFor(state: GameState, seat: number, numbers: number[], rng: R
       for (const effect of entry.def.echo) queue.push({ effect, owner: seat, echo: true });
     }
   }
+  const heard = [...numbers];
+  const dice = state.dice;
+  if (state.tunables.highEchoHearsSum && dice) {
+    const sum = dice[0] + dice[1];
+    if (sum >= 7 && !numbers.includes(sum)) {
+      let matched = false;
+      for (const entry of stack) {
+        if (entry.slot !== sum) continue;
+        matched = true;
+        for (const effect of entry.def.echo) queue.push({ effect, owner: seat, echo: true });
+      }
+      if (matched) heard.push(sum);
+    }
+  }
+  state.echoNumbers[seat] = heard;
   state.pendingEffects = queue;
   drainQueue(state, rng); // echo lines never pause (targets coerce to the roller)
 }
