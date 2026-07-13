@@ -106,3 +106,32 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 }
 
 .setup { max-width: 440px; margin: 60px auto; background: #2c3348; border: 1px solid #3a4258; border-radius: 12px; padding: 24px 28px; display: flex; flex-direction: column; gap: 12px; }
+
+.cicon { width: 16px; height: 16px; border-radius: 3px; vertical-align: -3px; }
+.lab .labcols { display: flex; gap: 14px; align-items: flex-start; }
+.labside { width: 260px; flex: none; }
+.labmain { flex: 1; min-width: 0; }
+.packrow { display: flex; gap: 3px; margin: 3px 0; }
+.packnew { display: flex; gap: 4px; margin-top: 8px; }
+.packnew input { flex: 1; min-width: 0; }
+input, select { background: #333b52; border: 1px solid #4a5470; color: #e8eaf2; border-radius: 6px; padding: 4px 6px; font-size: 12.5px; }
+.importlab { display: inline-block; margin-top: 8px; font-size: 12px; color: #a8adbd; cursor: pointer; text-decoration: underline; }
+.field { margin: 8px 0; }
+.labform { flex: 1; min-width: 0; }
+.numin { width: 52px; }
+.slotchip { min-width: 30px; padding: 3px 6px; }
+.fxrowedit { border: 1px solid #3a4258; border-radius: 8px; padding: 6px 8px; margin: 5px 0; background: #262d40; font-size: 12px; }
+.fxkind { font-weight: 700; margin-right: 6px; color: #f0b429; }
+.fxnest { border-left: 2px solid #4a5470; margin: 4px 0 4px 10px; padding-left: 8px; }
+.fxdel { float: right; }
+.wheneditor { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.whenfield { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; color: #a8adbd; }
+.iconpick-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.iconpick { background: #2c3348; border: 1px solid #4a5470; border-radius: 10px; padding: 14px; width: 660px; max-width: 92vw; max-height: 74vh; overflow: auto; }
+.iconpick input { width: 340px; }
+.icongrid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; margin-top: 8px; }
+.icongrid img { width: 100%; aspect-ratio: 1; border-radius: 6px; cursor: pointer; border: 1px solid #3a4258; background: #1c2130; }
+.icongrid img:hover { outline: 2px solid #f0b429; }
+.simtest { margin-top: 8px; }
+.warn { color: #ffd23f; font-size: 12px; }
+.err { color: #ff8272; font-size: 12px; }

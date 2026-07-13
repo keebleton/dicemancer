@@ -4,6 +4,7 @@ import { legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
 import { fxList } from './describe';
 import { aggregateEchoEffects, Die, EffectIcons, IconLegend, StatChips } from './icons';
+import { iconUrl } from './packs';
 import { useGame } from './store';
 import type { StatPulse } from './store';
 
@@ -229,7 +230,18 @@ function Controls(props: {
                     if (buyableIndexes.has(i)) setBuyIndex(buyIndex === i ? null : i);
                   }}
                 >
-                  <b>{card.name}</b> ({card.cost})<br />
+                  <b>
+                    {card.icon && (
+                      <img
+                        className="cicon"
+                        src={iconUrl(card.icon)}
+                        alt=""
+                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                      />
+                    )}{' '}
+                    {card.name}
+                  </b>{' '}
+                  ({card.cost})<br />
                   <span className={card.color}>{card.color}</span> | slots{' '}
                   {card.legalSlots.length === 12 ? 'any' : card.legalSlots.join(',')}
                   <div className="fxline">
@@ -336,7 +348,16 @@ function PlayerPanel(props: {
               </div>
               <div className={cls} onClick={() => onSlotClick(slot)} title={tip}>
                 <div className="slothead">
-                  <span className="slotnum">{slot}</span> {card.name}
+                  <span className="slotnum">{slot}</span>
+                  {card.icon && (
+                    <img
+                      className="cicon"
+                      src={iconUrl(card.icon)}
+                      alt=""
+                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                    />
+                  )}{' '}
+                  {card.name}
                 </div>
                 <div className="fxline">
                   <span className="rowlab">roll</span>

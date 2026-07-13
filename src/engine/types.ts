@@ -56,6 +56,8 @@ export interface CardDef {
   active: Effect[];
   echo: Effect[];
   flavor?: string;
+  /** Card-art filename (Card Lab custom cards). Presentation only; the engine ignores it. */
+  icon?: string;
 }
 
 export interface EchoEntry {

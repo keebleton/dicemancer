@@ -43,7 +43,11 @@ function seatColors(players: number, gameIndex: number): SeatColor[] {
   );
 }
 
-export function simulate(options: SimOptions): SimReport {
+export function simulate(
+  options: SimOptions,
+  poolsOverride?: ReturnType<typeof pools>,
+): SimReport {
+  const activePools = poolsOverride ?? pools();
   const seatWins = Array<number>(options.players).fill(0);
   const colorWins: Record<SeatColor, number> = { red: 0, blue: 0, black: 0, green: 0, yellow: 0 };
   const colorGames: Record<SeatColor, number> = { red: 0, blue: 0, black: 0, green: 0, yellow: 0 };
@@ -66,7 +70,7 @@ export function simulate(options: SimOptions): SimReport {
       {
         seats: colors.map((color, i) => ({ name: `S${i}`, color })),
         starterBoard: starterBoard(),
-        pools: pools(),
+        pools: activePools,
       },
       rng,
     );
