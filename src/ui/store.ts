@@ -4,6 +4,7 @@ import { applyAction, createGame, mulberry32 } from '../engine';
 import type { Action, GameState, Rng, SeatColor } from '../engine';
 import { describeTransition } from './describe';
 import { loadPacks, mergedPools } from './packs';
+import { playForDispatch } from './sfx';
 
 // The game's rng lives beside the store, not inside GameState (it is stateful
 // and non-serializable). Seeded once per game.
@@ -81,6 +82,7 @@ export const useGame = create<GameStore>()((set, get) => ({
         fresh.push({ id: nextPulseId++, seat, stat: 'points', delta: p.points - q.points });
       }
     });
+    playForDispatch(action, prev, next, fresh);
     set({
       game: next,
       pulses: [...get().pulses, ...fresh].slice(-24),

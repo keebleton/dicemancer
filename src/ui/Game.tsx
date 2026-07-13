@@ -5,6 +5,7 @@ import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
 import { fxList } from './describe';
 import { aggregateEchoEffects, Die, EffectIcons, IconLegend, StatChips } from './icons';
 import { iconUrl } from './packs';
+import { isMuted, setMuted } from './sfx';
 import { useGame } from './store';
 import type { StatPulse } from './store';
 
@@ -17,6 +18,7 @@ export function Game() {
   const pulses = useGame((s) => s.pulses);
   const [preview, setPreview] = useState<AllocationMode | null>(null);
   const [buyIndex, setBuyIndex] = useState<number | null>(null);
+  const [muted, setMutedState] = useState(isMuted());
 
   useEffect(() => {
     setPreview(null);
@@ -59,10 +61,25 @@ export function Game() {
             round {game.round}/{game.tunables.roundCap}
           </span>
           <span className={`chip turn ${me.color}`}>{me.name}{"'"}s turn</span>
+          <button
+            onClick={() => {
+              setMuted(!muted);
+              setMutedState(!muted);
+            }}
+          >
+            sound: {muted ? 'off' : 'on'}
+          </button>
           <button onClick={reset}>quit to setup</button>
         </div>
         <IconLegend />
       </header>
+
+      {game.winner === null && (
+        <div key={`toast-${game.round}-${game.current}`} className="turntoast">
+          <span className={me.color}>{me.name}</span>
+          {"'"}s turn
+        </div>
+      )}
 
       {game.winner !== null && (
         <div className="winner">
@@ -291,6 +308,11 @@ function PlayerPanel(props: {
 }) {
   const { p, seat, game, highlight, fired, buyable, onSlotClick } = props;
   const isTurn = seat === game.current;
+  // Echo tabs that just paid out on the roller's allocation get a flash.
+  const paidSlots =
+    !isTurn && game.lastAllocation && game.phase !== 'roll' && game.phase !== 'allocate'
+      ? game.lastAllocation.numbers
+      : [];
   return (
     <section className={'panel' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}>
       <h3>
@@ -325,7 +347,9 @@ function PlayerPanel(props: {
           return (
             <div key={slot} className="slotwrap">
               <div
-                className={'echotab' + (live ? ' live' : '')}
+                className={
+                  'echotab' + (live ? ' live' : '') + (live && paidSlots.includes(slot) ? ' paid' : '')
+                }
                 title={
                   live
                     ? `echoing in slot ${slot}: ${echoesHere

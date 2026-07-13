@@ -4,10 +4,10 @@ main { max-width: 1150px; margin: 0 auto; }
 h1 { font-size: 20px; margin: 0; letter-spacing: 2.5px; text-transform: uppercase; color: #f0b429; }
 h3 { margin: 0 0 8px; font-size: 14px; color: #e8eaf2; }
 
-button { padding: 5px 12px; cursor: pointer; border-radius: 7px; border: 1px solid #4a5470; background: #333b52; color: #dfe3ee; font-size: 12.5px; margin: 2px; }
+button { padding: 5px 12px; cursor: pointer; border-radius: 7px; border: 1px solid #4a5470; background: #333b52; color: #dfe3ee; font-size: 12.5px; margin: 2px; transition: background 0.12s, transform 0.12s; }
 button:hover { background: #3d4663; }
 button.primary { background: #f0b429; border-color: #f0b429; color: #2b2410; font-weight: 700; }
-button.primary:hover { background: #ffc94d; }
+button.primary:hover { background: #ffc94d; transform: translateY(-1px); }
 button.selected { outline: 2px solid #2dd4a7; }
 input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a5470; color: #e8eaf2; border-radius: 6px; padding: 4px 6px; }
 
@@ -62,8 +62,14 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .echotab { visibility: hidden; height: 21px; box-sizing: border-box; align-self: flex-start; margin: 0 0 -1px 8px; background: #ece4fa; border: 1px solid #a78bda; border-bottom: none; border-radius: 7px 7px 0 0; padding: 2px 8px; display: inline-flex; align-items: center; gap: 6px; position: relative; z-index: 1; color: #4c2f86; }
 .echotab.live { visibility: visible; }
 .echotab .rowlab { color: #6d4fae; }
+.echotab.paid { animation: echopaid 0.9s ease-out; }
+@keyframes echopaid {
+  0% { background: #c9b3f5; box-shadow: 0 0 12px 3px rgba(167, 139, 218, 0.9); }
+  100% { background: #ece4fa; box-shadow: none; }
+}
 
-.slot { border: 1px solid #c9c2b2; border-radius: 8px; padding: 5px 6px; min-height: 64px; font-size: 11px; background: #f7f4ec; color: #2b2a26; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+.slot { border: 1px solid #c9c2b2; border-radius: 8px; padding: 5px 6px; min-height: 64px; font-size: 11px; background: #f7f4ec; color: #2b2a26; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); transition: border-color 0.12s; }
+.slot:hover { border-color: #8a8375; }
 .slot.preview { background: #ffe9a8; border-color: #d8a921; }
 .slot.fired { background: #d9f0d9; border-color: #5aa15a; animation: firedflash 0.7s ease-out; }
 @keyframes firedflash {
@@ -88,7 +94,8 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .rowlab { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 5px; color: #9a9a94; }
 
 .shop { margin: 10px 0; }
-.shopcard { display: inline-block; border: 1px solid #c9c2b2; border-radius: 8px; padding: 6px 7px; margin: 3px; width: 150px; vertical-align: top; font-size: 11px; background: #f7f4ec; color: #2b2a26; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+.shopcard { display: inline-block; border: 1px solid #c9c2b2; border-radius: 8px; padding: 6px 7px; margin: 3px; width: 150px; vertical-align: top; font-size: 11px; background: #f7f4ec; color: #2b2a26; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); transition: transform 0.12s; }
+.shopcard:hover:not(.dead) { transform: translateY(-2px); }
 .shopcard.rare { border-color: #caa53d; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 2px 0 #caa53d; }
 .shopcard.selected { outline: 2px solid #2dd4a7; }
 .shopcard.dead { opacity: 0.4; cursor: default; }
@@ -99,6 +106,14 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 
 .echo { font-size: 11px; margin-top: 4px; color: #a8adbd; }
 .log { max-height: 190px; overflow: auto; font-family: Consolas, monospace; font-size: 11.5px; background: #171a24; color: #cfd4e2; padding: 10px; border-radius: 8px; white-space: pre-wrap; }
+.turntoast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: #2c3348; border: 1px solid #4a5470; border-radius: 20px; padding: 6px 18px; font-size: 14px; z-index: 40; pointer-events: none; opacity: 0; animation: turntoast 1.6s ease-out forwards; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); }
+@keyframes turntoast {
+  0% { opacity: 0; transform: translate(-50%, -8px); }
+  12% { opacity: 1; transform: translate(-50%, 0); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -4px); }
+}
+
 .winner { background: #f0b429; color: #2b2410; padding: 14px 16px; font-size: 20px; font-weight: 700; border-radius: 10px; margin: 12px 0; animation: winnerpop 0.45s ease-out; }
 @keyframes winnerpop {
   0% { transform: scale(0.92); opacity: 0; }
