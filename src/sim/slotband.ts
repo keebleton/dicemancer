@@ -54,7 +54,7 @@ function run(
   games: number,
   seed: number,
   activePools: ReturnType<typeof pools>,
-  tunables?: { highEchoHearsSum: boolean },
+  tunables?: { highEchoHearsSum?: boolean; startingHp?: number },
 ): Tally {
   const t: Tally = {
     games,
@@ -305,16 +305,22 @@ const players = Number(process.argv[2] ?? 2);
 const games = Number(process.argv[3] ?? 2000);
 const variant = process.argv[4] ?? 'base';
 // The rule defaults ON in the engine now; 'nohiecho' turns it off for A/B.
+// Optional 4th arg: a startingHp override (e.g. `... 2 4000 base 26`).
+const hpArg = Number(process.argv[5]);
 const echoRule = variant.includes('nohiecho')
   ? { highEchoHearsSum: false }
   : variant.includes('hiecho')
     ? { highEchoHearsSum: true }
     : undefined;
+const tun = {
+  ...(echoRule ?? {}),
+  ...(Number.isFinite(hpArg) && hpArg > 0 ? { startingHp: hpArg } : {}),
+};
 const statVariant = variant.replace(/(no)?hiecho\+?/, '') || 'base';
 const t0 = Date.now();
 report(
-  `variant=${variant}`,
+  `variant=${variant}${Number.isFinite(hpArg) && hpArg > 0 ? ` hp=${hpArg}` : ''}`,
   players,
-  run(players, games, 12345, variantPools(statVariant), echoRule),
+  run(players, games, 12345, variantPools(statVariant), Object.keys(tun).length ? tun : undefined),
 );
 console.log(`(${((Date.now() - t0) / 1000).toFixed(1)}s)`);

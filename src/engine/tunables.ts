@@ -4,7 +4,8 @@
 export const DEFAULT_TUNABLES: Tunables = {
   startingHp: 25,
   pointsToWin: 30,
-  startingMoney: 5,
+  // 5 -> 2 (Jake 2026-07-13): colorless artifacts came online too fast.
+  startingMoney: 2,
   roundCap: 25,
   playerMin: 2,
   playerMax: 4,
@@ -13,12 +14,13 @@ export const DEFAULT_TUNABLES: Tunables = {
   highEchoHearsSum: true,
 };
 
-/** P5 first tuning pass (2026-07-12, 1000-game sims, seeds 1+2): at HP 25
- *  points wins drowned KO (77%/96% at 2p/4p) and blue ran 57%/75%. HP is the
- *  lever, but no single value fits both counts: 2p balances near 22
- *  (red 52/51%, ko ~34%), 4p near 16 (red 45%, ko 37%) - the per-player-count
- *  scaling PLAN section 8 anticipated. Explicit startingHp overrides win. */
-export const HP_BY_PLAYER_COUNT: Record<number, number> = { 2: 22, 3: 18, 4: 16 };
+/** HP by player count is THE damage-race lever; retuned whenever the economy
+ *  moves. 2026-07-13 (starting money 5 -> 2, colorless high-band move, 25 new
+ *  high cards): slower economies strengthened the 2p KO race (red hit 72% at
+ *  HP 22) and weakened it at 4p (red 16% at HP 16). Re-simmed: 2p flattens at
+ *  28 (red 49.8%), 3p stays fine at 18, 4p needs 14 (red exactly 25%).
+ *  Explicit startingHp overrides win. */
+export const HP_BY_PLAYER_COUNT: Record<number, number> = { 2: 28, 3: 18, 4: 14 };
 
 /** Personal shop row: own-color cards only (colorless moved to the shared
  *  market, 2026-07-13). Buys per turn is 1 across shop AND market, hardcoded

@@ -5,6 +5,9 @@
 // tuned by the sim harness, never by intuition.
 
 const ALL_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+// Premium artifacts install high only (2026-07-13: colorless was bought too
+// often; the strongest pieces now live where fires are rare and echoes carry).
+const HIGH_SLOTS = [7, 8, 9, 10, 11, 12];
 
 export const RED_CARDS: CardDef[] = [
   {
@@ -212,6 +215,75 @@ export const RED_CARDS: CardDef[] = [
       { kind: 'gainPoints', amount: 2 },
     ],
     echo: [{ kind: 'damage', amount: 2, target: 'roller' }],
+  },
+  // --- 2026-07-13 high-band batch (Jake: 5 new 7-12 cards per color) ---
+  {
+    id: 'ember-storm',
+    name: 'Ember Storm',
+    icon: 'ability_warlock_burningembers.PNG',
+    color: 'red',
+    rarity: 'common',
+    cost: 4,
+    legalSlots: [9, 10],
+    active: [
+      { kind: 'damage', amount: 2, target: 'chooseOpponent' },
+      { kind: 'conditional', when: { sumAtLeast: 10 }, then: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }] },
+    ],
+    echo: [{ kind: 'damage', amount: 1, target: 'roller' }],
+  },
+  {
+    id: 'backdraft',
+    name: 'Backdraft',
+    icon: 'Ability_Warlock_Backdraft.PNG',
+    color: 'red',
+    rarity: 'common',
+    cost: 4,
+    legalSlots: [10],
+    active: [
+      { kind: 'damage', amount: 2, target: 'chooseOpponent' },
+      { kind: 'gainMoney', amount: 2 },
+    ],
+    echo: [{ kind: 'damage', amount: 1, target: 'roller' }],
+  },
+  {
+    id: 'slow-burn',
+    name: 'Slow Burn',
+    icon: 'INV_Jewelcrafting_Pyrestone_01.PNG',
+    color: 'red',
+    rarity: 'common',
+    cost: 3,
+    legalSlots: [9],
+    // Echo-centric: cover it and every heard 9 singes the roller.
+    active: [{ kind: 'gainMoney', amount: 2 }],
+    echo: [{ kind: 'damage', amount: 2, target: 'roller' }],
+  },
+  {
+    id: 'eruption',
+    name: 'Eruption',
+    icon: 'Ability_Rhyolith_Volcano.PNG',
+    color: 'red',
+    rarity: 'rare',
+    cost: 9,
+    legalSlots: [11, 12],
+    active: [
+      { kind: 'damage', amount: 4, target: 'chooseOpponent' },
+      { kind: 'gainPoints', amount: 2 },
+    ],
+    echo: [{ kind: 'damage', amount: 2, target: 'roller' }],
+  },
+  {
+    id: 'pyre-of-glory',
+    name: 'Pyre of Glory',
+    icon: 'INV_Inscription_Tarot_VolcanoCard.PNG',
+    color: 'red',
+    rarity: 'rare',
+    cost: 8,
+    legalSlots: [10, 11],
+    active: [
+      { kind: 'damage', amount: 1, target: 'roller' },
+      { kind: 'gainPoints', amount: 4 },
+    ],
+    echo: [{ kind: 'gainPoints', amount: 1 }],
   },
 ];
 
@@ -431,6 +503,75 @@ export const BLUE_CARDS: CardDef[] = [
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
+  // --- 2026-07-13 high-band batch: blue's sum territory is the 7 ---
+  {
+    id: 'lucky-seven',
+    name: 'Lucky Seven',
+    icon: 'INV_Misc_Dice_01.PNG',
+    color: 'blue',
+    rarity: 'common',
+    cost: 4,
+    legalSlots: [7],
+    active: [
+      { kind: 'gainMoney', amount: 2 },
+      { kind: 'gainToken', token: 'reroll', amount: 1 },
+    ],
+    echo: [{ kind: 'gainMoney', amount: 1 }],
+  },
+  {
+    id: 'riptide',
+    name: 'Riptide',
+    icon: 'Spell_Nature_Riptide.PNG',
+    color: 'blue',
+    rarity: 'common',
+    cost: 4,
+    legalSlots: [7],
+    active: [{ kind: 'gainMoney', amount: 3 }],
+    echo: [{ kind: 'gainMoney', amount: 2 }],
+  },
+  {
+    id: 'seventh-sense',
+    name: 'Seventh Sense',
+    icon: 'INV_Inscription_TarotIllusion.PNG',
+    color: 'blue',
+    rarity: 'common',
+    cost: 5,
+    legalSlots: [7],
+    active: [
+      { kind: 'gainPoints', amount: 1 },
+      { kind: 'gainMoney', amount: 1 },
+      { kind: 'gainToken', token: 'nudge', amount: 1 },
+    ],
+    echo: [{ kind: 'gainPoints', amount: 1 }],
+  },
+  {
+    id: 'crest-of-the-wave',
+    name: 'Crest of the Wave',
+    icon: 'Spell_Shaman_TidalWaves.PNG',
+    color: 'blue',
+    rarity: 'rare',
+    cost: 8,
+    legalSlots: [7],
+    active: [
+      { kind: 'gainPoints', amount: 2 },
+      { kind: 'gainMoney', amount: 2 },
+    ],
+    echo: [{ kind: 'gainPoints', amount: 1 }],
+  },
+  {
+    id: 'maelstrom',
+    name: 'Maelstrom',
+    icon: 'Spell_Shaman_MaelstromWeapon.PNG',
+    color: 'blue',
+    rarity: 'rare',
+    cost: 9,
+    legalSlots: [7],
+    active: [
+      { kind: 'gainMoney', amount: 4 },
+      { kind: 'gainPoints', amount: 1 },
+    ],
+    echo: [{ kind: 'gainPoints', amount: 1 }],
+  },
 ];
 
 // Colorless = MARKET ARTIFACTS (2026-07-13): a shared static shop all players
@@ -454,7 +595,7 @@ export const COLORLESS_CARDS: CardDef[] = [
     color: 'colorless',
     rarity: 'common',
     cost: 10, // tuning 2026-07-13: +6 delta at both counts
-    legalSlots: ALL_SLOTS,
+    legalSlots: HIGH_SLOTS,
     active: [
       { kind: 'gainMoney', amount: 2 },
       { kind: 'gainPoints', amount: 2 },
@@ -468,7 +609,7 @@ export const COLORLESS_CARDS: CardDef[] = [
     color: 'colorless',
     rarity: 'rare',
     cost: 12, // tuning 2026-07-13: +16 delta at 4p, the strongest card in the pool
-    legalSlots: ALL_SLOTS,
+    legalSlots: HIGH_SLOTS,
     active: [{ kind: 'gainPoints', amount: 3 }],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
@@ -537,7 +678,7 @@ export const COLORLESS_CARDS: CardDef[] = [
     color: 'colorless',
     rarity: 'common',
     cost: 8, // tuning 2026-07-13
-    legalSlots: ALL_SLOTS,
+    legalSlots: HIGH_SLOTS,
     active: [
       { kind: 'gainMoney', amount: 2 },
       { kind: 'conditional', when: { sumAtLeast: 8 }, then: [{ kind: 'gainMoney', amount: 3 }] },
@@ -551,7 +692,7 @@ export const COLORLESS_CARDS: CardDef[] = [
     color: 'colorless',
     rarity: 'rare',
     cost: 11,
-    legalSlots: ALL_SLOTS,
+    legalSlots: HIGH_SLOTS,
     active: [
       { kind: 'gainMoney', amount: 3 },
       { kind: 'gainPoints', amount: 2 },
@@ -565,7 +706,7 @@ export const COLORLESS_CARDS: CardDef[] = [
     color: 'colorless',
     rarity: 'rare',
     cost: 12,
-    legalSlots: ALL_SLOTS,
+    legalSlots: HIGH_SLOTS,
     active: [
       { kind: 'heal', amount: 3 },
       { kind: 'gainPoints', amount: 2 },
@@ -810,6 +951,75 @@ export const BLACK_CARDS: CardDef[] = [
     ],
     echo: [{ kind: 'gainPoints', amount: 1 }],
   },
+  // --- 2026-07-13 high-band batch: black's sum territory is the 12 ---
+  {
+    id: 'graveyard-shift',
+    name: 'Graveyard Shift',
+    icon: 'INV_GraveGolemPet.PNG',
+    color: 'black',
+    rarity: 'common',
+    cost: 3,
+    legalSlots: [12],
+    active: [
+      { kind: 'gainMoney', amount: 2 },
+      { kind: 'conditional', when: { echoStackAtLeast: 3 }, then: [{ kind: 'gainMoney', amount: 2 }] },
+    ],
+    echo: [{ kind: 'gainMoney', amount: 2 }],
+  },
+  {
+    id: 'last-rites',
+    name: 'Last Rites',
+    icon: 'Spell_Shadow_DarkRitual.PNG',
+    color: 'black',
+    rarity: 'common',
+    cost: 4,
+    legalSlots: [12],
+    active: [
+      { kind: 'gainPoints', amount: 2 },
+      { kind: 'conditional', when: { echoStackAtLeast: 2 }, then: [{ kind: 'gainPoints', amount: 1 }] },
+    ],
+    echo: [{ kind: 'gainPoints', amount: 1 }],
+  },
+  {
+    id: 'tombstone',
+    name: 'Tombstone',
+    icon: '70_inscription_vantus_rune_tomb.PNG',
+    color: 'black',
+    rarity: 'common',
+    cost: 4,
+    legalSlots: [12],
+    active: [{ kind: 'gainMoney', amount: 4 }],
+    echo: [{ kind: 'gainPoints', amount: 1 }],
+  },
+  {
+    id: 'dead-mans-hand',
+    name: "Dead Man's Hand",
+    icon: 'INV_Inscription_TarotDeath.PNG',
+    color: 'black',
+    rarity: 'rare',
+    cost: 8,
+    legalSlots: [12],
+    active: [
+      { kind: 'gainPoints', amount: 4 },
+      { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainPoints', amount: 2 }] },
+    ],
+    echo: [{ kind: 'gainPoints', amount: 1 }],
+  },
+  {
+    id: 'ossuary',
+    name: 'Ossuary',
+    icon: 'Achievement_Dungeon_TombOfSargeras.PNG',
+    color: 'black',
+    rarity: 'rare',
+    cost: 7,
+    legalSlots: [12],
+    active: [
+      { kind: 'gainMoney', amount: 2 },
+      { kind: 'gainPoints', amount: 2 },
+      { kind: 'conditional', when: { echoStackAtLeast: 4 }, then: [{ kind: 'gainMoney', amount: 2 }] },
+    ],
+    echo: [{ kind: 'gainMoney', amount: 2 }],
+  },
 ];
 
 // GREEN "Wildgrove": odd slots {1,3,5} + odd sums {3,5,9}. Odd-dice parity
@@ -1025,6 +1235,80 @@ export const GREEN_CARDS: CardDef[] = [
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
+  // --- 2026-07-13 high-band batch: green's sum territory is the 9. NOTE:
+  // bothDiceOdd can never be true on a summed 9 (odd sums split odd+even),
+  // so these stay parity-free on purpose - the cinder-crown lesson.
+  {
+    id: 'ninth-life',
+    name: 'Ninth Life',
+    icon: 'Ability_Druid_TreeofLife.PNG',
+    color: 'green',
+    rarity: 'common',
+    cost: 3,
+    legalSlots: [9],
+    active: [
+      { kind: 'gainMoney', amount: 2 },
+      { kind: 'discount', amount: 1 },
+    ],
+    echo: [{ kind: 'gainMoney', amount: 1 }],
+  },
+  {
+    id: 'moonlit-market',
+    name: 'Moonlit Market',
+    icon: 'Ability_Druid_ImprovedMoonkinForm.PNG',
+    color: 'green',
+    rarity: 'common',
+    cost: 4,
+    legalSlots: [9],
+    active: [
+      { kind: 'gainMoney', amount: 3 },
+      { kind: 'refreshShop' },
+    ],
+    echo: [{ kind: 'gainMoney', amount: 1 }],
+  },
+  {
+    id: 'autumn-tithe',
+    name: 'Autumn Tithe',
+    icon: 'Ability_Ardenweald_Paladin_Autumn.PNG',
+    color: 'green',
+    rarity: 'common',
+    cost: 5,
+    legalSlots: [9],
+    active: [
+      { kind: 'gainPoints', amount: 2 },
+      { kind: 'gainMoney', amount: 1 },
+    ],
+    echo: [{ kind: 'gainMoney', amount: 2 }],
+  },
+  {
+    id: 'elder-grove',
+    name: 'Elder Grove',
+    icon: 'Ability_Druid_ProtectionOfTheGrove.PNG',
+    color: 'green',
+    rarity: 'rare',
+    cost: 8,
+    legalSlots: [9],
+    active: [
+      { kind: 'gainPoints', amount: 2 },
+      { kind: 'gainMoney', amount: 2 },
+      { kind: 'discount', amount: 1 },
+    ],
+    echo: [{ kind: 'gainPoints', amount: 1 }],
+  },
+  {
+    id: 'season-of-plenty',
+    name: 'Season of Plenty',
+    icon: 'INV_Holiday_Thanksgiving_Cornucopia.PNG',
+    color: 'green',
+    rarity: 'rare',
+    cost: 9,
+    legalSlots: [9],
+    active: [
+      { kind: 'gainMoney', amount: 3 },
+      { kind: 'gainPoints', amount: 2 },
+    ],
+    echo: [{ kind: 'gainMoney', amount: 2 }],
+  },
 ];
 
 // YELLOW "Gildmint": slots {2,4} + the unclaimed middle sums {6,8}. Raw coin
@@ -1225,6 +1509,71 @@ export const YELLOW_CARDS: CardDef[] = [
       { kind: 'trade', pay: 2, then: [{ kind: 'heal', amount: 2 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
+  },
+  // --- 2026-07-13 high-band batch: yellow's sum territory is the 8 ---
+  {
+    id: 'loose-change',
+    name: 'Loose Change',
+    icon: 'Archaeology_5_0_MoguCoin.PNG',
+    color: 'yellow',
+    rarity: 'common',
+    cost: 3,
+    legalSlots: [8],
+    active: [{ kind: 'gainMoney', amount: 2 }],
+    echo: [{ kind: 'gainMoney', amount: 2 }],
+  },
+  {
+    id: 'bullion',
+    name: 'Bullion',
+    icon: 'INV_Ingot_03.PNG',
+    color: 'yellow',
+    rarity: 'common',
+    cost: 4,
+    legalSlots: [8],
+    active: [
+      { kind: 'gainMoney', amount: 3 },
+      { kind: 'trade', pay: 2, then: [{ kind: 'gainPoints', amount: 1 }] },
+    ],
+    echo: [{ kind: 'gainMoney', amount: 1 }],
+  },
+  {
+    id: 'treasure-map',
+    name: 'Treasure Map',
+    icon: 'Icon_TreasureMap.PNG',
+    color: 'yellow',
+    rarity: 'common',
+    cost: 5,
+    legalSlots: [8],
+    active: [
+      { kind: 'gainMoney', amount: 2 },
+      { kind: 'gainPoints', amount: 1 },
+    ],
+    echo: [{ kind: 'gainMoney', amount: 1 }],
+  },
+  {
+    id: 'the-vault',
+    name: 'The Vault',
+    icon: 'achievement_dungeon_VaultoftheWardens.PNG',
+    color: 'yellow',
+    rarity: 'rare',
+    cost: 8,
+    legalSlots: [8],
+    active: [
+      { kind: 'gainMoney', amount: 4 },
+      { kind: 'trade', pay: 3, then: [{ kind: 'gainPoints', amount: 3 }] },
+    ],
+    echo: [{ kind: 'gainMoney', amount: 2 }],
+  },
+  {
+    id: 'dragons-hoard',
+    name: "Dragon's Hoard",
+    icon: 'inv_misc_treasurechest01b.PNG',
+    color: 'yellow',
+    rarity: 'rare',
+    cost: 7,
+    legalSlots: [8],
+    active: [{ kind: 'gainMoney', amount: 5 }],
+    echo: [{ kind: 'gainMoney', amount: 2 }],
   },
 ];
 

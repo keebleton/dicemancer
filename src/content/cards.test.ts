@@ -54,9 +54,14 @@ describe('card pools', () => {
         }
       }
     }
+    // Colorless artifacts are either fully flexible or premium high-band only
+    // (2026-07-13: the strongest pieces moved to 7-12).
     for (const c of COLORLESS_CARDS) {
       expect(c.color).toBe('colorless');
-      expect(c.legalSlots).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+      expect(
+        [JSON.stringify([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]), JSON.stringify([7, 8, 9, 10, 11, 12])],
+        c.id,
+      ).toContain(JSON.stringify(c.legalSlots));
     }
   });
 

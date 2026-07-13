@@ -45,13 +45,13 @@ function seats(playerCount: number) {
   }));
 }
 
-// Mechanics tests pin startingHp 25 so their arithmetic stays put while the
-// per-player-count default scales; setup.test.ts covers the scaling itself.
+// Mechanics tests pin startingHp 25 and startingMoney 5 so their arithmetic
+// stays put while the shipping defaults move; setup.test.ts covers defaults.
 export function newGame(playerCount: number, tunables?: Partial<Tunables>): GameState {
   return createGame({
     seats: seats(playerCount),
     starterBoard: starterBoard(),
-    tunables: { startingHp: 25, ...tunables },
+    tunables: { startingHp: 25, startingMoney: 5, ...tunables },
   });
 }
 
@@ -66,7 +66,7 @@ export function newPoolGame(
       seats: seats(playerCount),
       starterBoard: starterBoard(),
       pools: pools(),
-      tunables: { startingHp: 25, ...tunables },
+      tunables: { startingHp: 25, startingMoney: 5, ...tunables },
     },
     mulberry32(seed),
   );
