@@ -1,5 +1,7 @@
 // The Card Lab: design custom cards, save them into packs, sim-test them.
 import { useEffect, useMemo, useState } from 'react';
+import { pools } from '../content/cards';
+import { starterBoard } from '../content/starters';
 import type { CardColor, CardDef, ConditionalWhen, Effect } from '../engine';
 import { simulate } from '../sim/sim';
 import { fxList } from './describe';
@@ -16,6 +18,21 @@ import {
 import type { CardPack } from './packs';
 
 const CARD_COLORS: CardColor[] = ['red', 'blue', 'black', 'green', 'yellow', 'colorless'];
+
+/** Every shipping card, grouped for the reference catalog. */
+const CATALOG: { label: string; cards: CardDef[] }[] = (() => {
+  const p = pools();
+  return [
+    { label: 'red', cards: p.red },
+    { label: 'blue', cards: p.blue },
+    { label: 'black', cards: p.black },
+    { label: 'green', cards: p.green },
+    { label: 'yellow', cards: p.yellow },
+    { label: 'colorless', cards: p.colorless },
+    { label: 'starters', cards: starterBoard() },
+  ];
+})();
+const CATALOG_COUNT = CATALOG.reduce((n, g) => n + g.cards.length, 0);
 
 const blankCard = (): CardDef => ({
   id: 'new-card',
@@ -34,6 +51,7 @@ export function Lab({ onClose }: { onClose: () => void }) {
   const [packName, setPackName] = useState('');
   const [draft, setDraft] = useState<CardDef | null>(null);
   const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [browsing, setBrowsing] = useState(false);
 
   const pack = packs.find((p) => p.id === packId) ?? null;
 
@@ -79,6 +97,18 @@ export function Lab({ onClose }: { onClose: () => void }) {
     });
   };
 
+  const copyFromCatalog = (c: CardDef) => {
+    if (!pack) {
+      window.alert('Select or create a pack first, then copy cards into it.');
+      return;
+    }
+    const clone = structuredClone(c);
+    if (clone.color === 'starter') clone.color = 'colorless';
+    if (clone.rarity === 'starter') clone.rarity = 'common';
+    setDraft(clone); // saving re-generates a unique id, so the copy never collides
+    setEditIndex(null);
+  };
+
   const saveDraft = () => {
     if (!draft || !pack) return;
     const check = validateCard(draft);
@@ -115,9 +145,10 @@ export function Lab({ onClose }: { onClose: () => void }) {
           {packs.map((p) => (
             <div key={p.id} className={'packrow' + (p.id === packId ? ' current' : '')}>
               <button
-                className={p.id === packId ? 'selected' : ''}
+                className={p.id === packId && !browsing ? 'selected' : ''}
                 onClick={() => {
                   setPackId(p.id);
+                  setBrowsing(false);
                   setDraft(null);
                   setEditIndex(null);
                 }}
@@ -153,11 +184,27 @@ export function Lab({ onClose }: { onClose: () => void }) {
               }}
             />
           </label>
+          <h3 style={{ marginTop: 14 }}>Reference</h3>
+          <button
+            className={browsing ? 'selected' : ''}
+            onClick={() => {
+              setBrowsing(true);
+              setDraft(null);
+              setEditIndex(null);
+            }}
+          >
+            browse all cards ({CATALOG_COUNT})
+          </button>
         </section>
 
         <section className="panel labmain">
-          {!pack && <p className="dimtext">Create or pick a pack to start designing.</p>}
-          {pack && !draft && (
+          {browsing && !draft && (
+            <Catalog onCopy={copyFromCatalog} copyTarget={pack?.name ?? null} />
+          )}
+          {!pack && !browsing && (
+            <p className="dimtext">Create or pick a pack, or browse the existing cards.</p>
+          )}
+          {pack && !draft && !browsing && (
             <>
               <h3>{pack.name}</h3>
               {pack.cards.length === 0 && <p className="dimtext">No cards yet.</p>}
@@ -217,6 +264,55 @@ export function Lab({ onClose }: { onClose: () => void }) {
         </section>
       </div>
     </main>
+  );
+}
+
+function Catalog({
+  onCopy,
+  copyTarget,
+}: {
+  onCopy: (c: CardDef) => void;
+  copyTarget: string | null;
+}) {
+  const [filter, setFilter] = useState('');
+  const q = filter.trim().toLowerCase();
+  return (
+    <>
+      <h3>All existing cards</h3>
+      <div className="field">
+        <input
+          placeholder="filter by name..."
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        />{' '}
+        <span className="dimtext">
+          {copyTarget
+            ? `copy puts an editable duplicate into ${copyTarget}`
+            : 'select or create a pack to copy cards into it'}
+        </span>
+      </div>
+      {CATALOG.map((group) => {
+        const cards = q
+          ? group.cards.filter(
+              (c) => c.name.toLowerCase().includes(q) || c.id.includes(q),
+            )
+          : group.cards;
+        if (cards.length === 0) return null;
+        return (
+          <div key={group.label}>
+            <h4 className={group.label === 'starters' ? 'starter' : group.label}>
+              {group.label} ({cards.length})
+            </h4>
+            {cards.map((c) => (
+              <div key={c.id} className="shopcard" style={{ cursor: 'default' }}>
+                <CardFace card={c} />
+                <button onClick={() => onCopy(c)}>copy</button>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </>
   );
 }
 
