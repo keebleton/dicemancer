@@ -1,30 +1,62 @@
-import { applyEffects } from './effects';
+import { applyEffect, conditionHolds, damagePlayer } from './effects';
 import { rollDie } from './rng';
-import type { Action, AllocationMode, GameState, Rng, TurnPhase } from './types';
+import { dealRow } from './shop';
+import type { Action, AllocationMode, GameState, QueuedEffect, Rng } from './types';
 
 /** Everything the UI and bot may do right now. They consume this and
  *  applyAction only; neither ever computes rules on its own. */
 export function legalActions(state: GameState): Action[] {
   if (state.winner !== null) return [];
+  const me = state.players[state.current];
+  if (!me) return [];
   switch (state.phase) {
     case 'roll':
       return [{ type: 'ROLL' }];
-    case 'allocate':
-      // Boards are always full (starters get replaced, never removed), so both
-      // modes are always legal: dice 1-6 hit slots 1-6, sums 2-12 hit slots 2-12.
-      return [
+    case 'allocate': {
+      const actions: Action[] = [
         { type: 'ALLOCATE', mode: 'individual' },
         { type: 'ALLOCATE', mode: 'sum' },
       ];
-    case 'buy':
-      return [{ type: 'SKIP_BUY' }]; // BUY joins in Phase 2 with the shop
+      const dice = state.dice;
+      if (dice) {
+        if (me.tokens.reroll > 0) {
+          actions.push({ type: 'SPEND_TOKEN', kind: 'reroll', dieIndex: 0 });
+          actions.push({ type: 'SPEND_TOKEN', kind: 'reroll', dieIndex: 1 });
+        }
+        if (me.tokens.nudge > 0) {
+          for (const dieIndex of [0, 1] as const) {
+            for (const delta of [-1, 1] as const) {
+              const v = dice[dieIndex] + delta;
+              if (v >= 1 && v <= 6) {
+                actions.push({ type: 'SPEND_TOKEN', kind: 'nudge', dieIndex, delta });
+              }
+            }
+          }
+        }
+      }
+      return actions;
+    }
+    case 'chooseTarget':
+      return legalTargets(state, state.current).map((seat) => ({
+        type: 'CHOOSE_TARGET',
+        playerId: seat,
+      }));
+    case 'buy': {
+      const actions: Action[] = [{ type: 'SKIP_BUY' }];
+      me.shop.forEach((card, shopIndex) => {
+        if (!card || card.cost > me.money) return;
+        for (const targetSlot of card.legalSlots) {
+          actions.push({ type: 'BUY', shopIndex, targetSlot });
+        }
+      });
+      return actions;
+    }
     case 'end':
       return [{ type: 'END_TURN' }];
   }
 }
 
-/** Seats a chooseOpponent effect may target: living opponents of the roller.
- *  Eliminated players are untargetable. CHOOSE_TARGET consumes this in Phase 2. */
+/** Seats a chooseOpponent effect may target: living opponents of the roller. */
 export function legalTargets(state: GameState, roller: number): number[] {
   return state.players
     .map((p, seat) => ({ p, seat }))
@@ -41,83 +73,192 @@ export function applyAction(state: GameState, action: Action, rng: Rng): GameSta
       next.dice = [rollDie(rng), rollDie(rng)];
       next.phase = 'allocate';
       break;
-    case 'ALLOCATE':
-      allocate(next, action.mode);
+    case 'SPEND_TOKEN': {
+      const me = next.players[next.current]!;
+      const dice = next.dice!;
+      me.tokens[action.kind] -= 1;
+      if (action.kind === 'reroll') dice[action.dieIndex] = rollDie(rng);
+      else dice[action.dieIndex] += action.delta!;
       break;
+    }
+    case 'ALLOCATE':
+      allocate(next, action.mode, rng);
+      break;
+    case 'CHOOSE_TARGET':
+      chooseTarget(next, action.playerId, rng);
+      break;
+    case 'BUY': {
+      const me = next.players[next.current]!;
+      const card = me.shop[action.shopIndex]!;
+      me.money -= card.cost;
+      const displaced = me.board[action.targetSlot - 1]!;
+      me.echoStack.push({ def: displaced, slot: action.targetSlot });
+      me.board[action.targetSlot - 1] = card;
+      me.shop[action.shopIndex] = null;
+      next.phase = 'end'; // max 1 buy per turn
+      break;
+    }
     case 'SKIP_BUY':
       next.phase = 'end';
       break;
     case 'END_TURN':
-      endTurn(next);
+      endTurn(next, rng);
       break;
   }
   return next;
 }
 
-const EXPECTED: Record<TurnPhase, Action['type']> = {
-  roll: 'ROLL',
-  allocate: 'ALLOCATE',
-  buy: 'SKIP_BUY',
-  end: 'END_TURN',
-};
-
 function assertLegal(state: GameState, action: Action): void {
   if (state.winner !== null) {
     throw new Error(`game is over (winner: seat ${state.winner}); no further actions`);
   }
-  if (action.type !== EXPECTED[state.phase]) {
+  const fail = (): never => {
     throw new Error(`illegal action ${action.type} during ${state.phase} phase`);
+  };
+  switch (action.type) {
+    case 'ROLL':
+      if (state.phase !== 'roll') fail();
+      return;
+    case 'SPEND_TOKEN': {
+      if (state.phase !== 'allocate' || !state.dice) return fail();
+      const me = state.players[state.current]!;
+      if (me.tokens[action.kind] <= 0) throw new Error(`no ${action.kind} token to spend`);
+      if (action.dieIndex !== 0 && action.dieIndex !== 1) return fail();
+      if (action.kind === 'nudge') {
+        if (action.delta !== 1 && action.delta !== -1) {
+          throw new Error('nudge needs delta 1 or -1');
+        }
+        const v = state.dice[action.dieIndex] + action.delta;
+        if (v < 1 || v > 6) throw new Error(`nudge would push die to ${v}`);
+      }
+      return;
+    }
+    case 'ALLOCATE':
+      if (state.phase !== 'allocate') fail();
+      return;
+    case 'CHOOSE_TARGET':
+      if (state.phase !== 'chooseTarget') return fail();
+      if (!legalTargets(state, state.current).includes(action.playerId)) {
+        throw new Error(`seat ${action.playerId} is not a legal target`);
+      }
+      return;
+    case 'BUY': {
+      if (state.phase !== 'buy') return fail();
+      const me = state.players[state.current]!;
+      const card = me.shop[action.shopIndex];
+      if (!card) throw new Error(`nothing at shop index ${action.shopIndex}`);
+      if (card.cost > me.money) throw new Error(`cannot afford ${card.id}`);
+      if (!card.legalSlots.includes(action.targetSlot)) {
+        throw new Error(`slot ${action.targetSlot} is not legal for ${card.id}`);
+      }
+      return;
+    }
+    case 'SKIP_BUY':
+      if (state.phase !== 'buy') fail();
+      return;
+    case 'END_TURN':
+      if (state.phase !== 'end') fail();
+      return;
   }
 }
 
-/** Turn steps 3-5: allocate, resolve actives, fire opponents' echoes. */
-function allocate(state: GameState, mode: AllocationMode): void {
+/** Turn steps 3-5: build the full effect queue (actives then echoes) and drain
+ *  it. Draining pauses at an active chooseOpponent with several legal targets. */
+function allocate(state: GameState, mode: AllocationMode, rng: Rng): void {
   const dice = state.dice;
-  if (!dice) throw new Error('no dice on the table'); // unreachable via legalActions
+  if (!dice) throw new Error('no dice on the table');
   const roller = state.current;
-  const rollerState = state.players[roller];
-  if (!rollerState) throw new Error(`no player at seat ${roller}`);
-
-  // Mode A produces both die values (doubles produce the number twice, which is
-  // the double-fire); Mode B produces the one sum.
+  const rollerState = state.players[roller]!;
   const numbers: number[] = mode === 'individual' ? [dice[0], dice[1]] : [dice[0] + dice[1]];
   state.lastAllocation = { mode, numbers };
 
-  // Resolve: the roller's card in each produced slot fires its active lines.
+  const queue: QueuedEffect[] = [];
   for (const slot of numbers) {
     const card = rollerState.board[slot - 1];
-    if (!card) throw new Error(`slot ${slot} has no card`); // boards are always full
-    applyEffects(state, card.active, { owner: roller, roller });
+    if (!card) throw new Error(`slot ${slot} has no card`);
+    for (const effect of card.active) queue.push({ effect, owner: roller, echo: false });
   }
-
-  // Echo: for each produced number, every living opponent fires the echo lines
-  // of every matching card in their Echo Stack. Eliminated stacks are inert.
+  // Echoes queue up-front; a queued echo whose owner dies mid-resolution is
+  // skipped at drain time (their stack went inert the moment they dropped).
   for (const slot of numbers) {
     for (let offset = 1; offset < state.players.length; offset++) {
       const seat = (roller + offset) % state.players.length;
-      const opponent = state.players[seat];
-      if (!opponent || opponent.eliminated) continue;
+      const opponent = state.players[seat]!;
+      if (opponent.eliminated) continue;
       for (const entry of opponent.echoStack) {
         if (entry.slot !== slot) continue;
-        applyEffects(state, entry.def.echo, { owner: seat, roller });
+        for (const effect of entry.def.echo) queue.push({ effect, owner: seat, echo: true });
       }
     }
   }
-
-  state.phase = 'buy';
-  checkKo(state);
-
-  // Echo damage can eliminate the roller mid-turn; their turn ends on the spot.
-  if (state.winner === null && state.players[roller]?.eliminated) {
-    endTurn(state);
-  }
+  state.pendingEffects = queue;
+  if (drainQueue(state, rng)) finishResolution(state, rng);
 }
 
-/** Turn step 7: win checks, then pass to the next living seat. */
-function endTurn(state: GameState): void {
-  // Points win is checked at end of turn (PLAN section 2): a mid-turn crossing
-  // of the threshold waits until here. Echoes can push several players over at
-  // once (Phase 2+); highest points wins, HP then seat order break ties.
+function chooseTarget(state: GameState, playerId: number, rng: Rng): void {
+  const queue = state.pendingEffects;
+  const head = queue?.shift();
+  if (!head || head.effect.kind !== 'damage') {
+    throw new Error('no pending target choice'); // unreachable via assertLegal
+  }
+  damagePlayer(state, playerId, head.effect.amount);
+  if (drainQueue(state, rng)) finishResolution(state, rng);
+}
+
+/** Applies queued effects until empty (true) or paused for a target (false). */
+function drainQueue(state: GameState, rng: Rng): boolean {
+  const queue = state.pendingEffects;
+  if (!queue) return true;
+  while (queue.length > 0) {
+    if (state.winner !== null) break; // KO mid-queue ends everything
+    const item = queue[0]!;
+    if (state.players[item.owner]!.eliminated) {
+      queue.shift(); // dead owners' remaining lines fizzle
+      continue;
+    }
+    const eff = item.effect;
+    if (eff.kind === 'conditional') {
+      queue.shift();
+      if (conditionHolds(state, eff.when, item.owner)) {
+        queue.unshift(
+          ...eff.then.map((effect) => ({ effect, owner: item.owner, echo: item.echo })),
+        );
+      }
+      continue;
+    }
+    if (eff.kind === 'damage' && eff.target === 'chooseOpponent' && !item.echo) {
+      const targets = legalTargets(state, state.current);
+      if (targets.length === 0) {
+        queue.shift(); // nobody to hit
+        continue;
+      }
+      if (targets.length > 1) {
+        state.phase = 'chooseTarget'; // pause; head stays queued for CHOOSE_TARGET
+        return false;
+      }
+      queue.shift();
+      damagePlayer(state, targets[0]!, eff.amount); // single target: no pointless choice
+      continue;
+    }
+    queue.shift();
+    applyEffect(state, eff, { owner: item.owner, roller: state.current, echo: item.echo }, rng);
+  }
+  state.pendingEffects = null;
+  return true;
+}
+
+function finishResolution(state: GameState, rng: Rng): void {
+  if (state.winner !== null) return;
+  state.phase = 'buy';
+  // Echo damage (or self-damage) can eliminate the roller mid-turn.
+  if (state.players[state.current]!.eliminated) endTurn(state, rng);
+}
+
+/** Turn step 7: win checks, then pass to the next living seat, whose shop
+ *  row refreshes at their turn start. */
+function endTurn(state: GameState, rng: Rng): void {
+  // Points win is checked at end of turn (PLAN section 2). Echoes can push
+  // several players over at once; highest points wins, HP then seat break ties.
   const contenders = state.players
     .map((p, seat) => ({ p, seat }))
     .filter((x) => !x.p.eliminated && x.p.points >= state.tunables.pointsToWin)
@@ -133,14 +274,13 @@ function endTurn(state: GameState): void {
   const wrapped = nextSeat <= state.current;
 
   if (wrapped && state.round >= state.tunables.roundCap) {
-    // Failsafe: the round cap is done; highest points among the living wins,
-    // HP then seat order break ties.
+    // Failsafe: highest points among the living, HP then seat break ties.
     const ranked = state.players
       .map((p, seat) => ({ p, seat }))
       .filter((x) => !x.p.eliminated)
       .sort((a, b) => b.p.points - a.p.points || b.p.hp - a.p.hp || a.seat - b.seat);
     const survivor = ranked[0];
-    if (!survivor) throw new Error('no living players at failsafe'); // unreachable: KO wins earlier
+    if (!survivor) throw new Error('no living players at failsafe');
     state.winner = survivor.seat;
     state.winReason = 'failsafe';
     return;
@@ -151,18 +291,7 @@ function endTurn(state: GameState): void {
   state.phase = 'roll';
   state.dice = null;
   state.lastAllocation = null;
-}
-
-/** Last player standing wins the moment everyone else is eliminated. */
-function checkKo(state: GameState): void {
-  if (state.winner !== null) return;
-  const living = state.players
-    .map((p, seat) => ({ p, seat }))
-    .filter((x) => !x.p.eliminated);
-  if (living.length === 1 && living[0]) {
-    state.winner = living[0].seat;
-    state.winReason = 'ko';
-  }
+  dealRow(state, nextSeat, rng); // "entire row refreshes at the start of that player's turn"
 }
 
 /** Next non-eliminated seat after `from`, in seat order. */

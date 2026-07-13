@@ -13,13 +13,13 @@ export type TokenKind = 'reroll' | 'nudge';
 export type EffectTarget = 'chooseOpponent' | 'roller';
 
 export interface ConditionalWhen {
+  /** Roll total (both dice), regardless of allocation mode. */
   sumAtLeast?: number;
   allocatedIndividually?: boolean;
+  /** Checked against the card owner's HP. */
   hpAtOrBelow?: number;
 }
 
-/** The full primitive set from PLAN.md section 4. Phase 1 interprets the subset
- *  starter-only games exercise; the rest throw until the Phase 2 interpreter. */
 export type Effect =
   | { kind: 'gainMoney'; amount: number }
   | { kind: 'gainPoints'; amount: number }
@@ -58,22 +58,34 @@ export interface PlayerState {
   board: CardDef[];
   echoStack: EchoEntry[];
   eliminated: boolean;
+  /** 5 entries in pooled games (null = bought this rotation); [] when the game has no pools. */
+  shop: (CardDef | null)[];
+  colorDeck: CardDef[];
+  colorDiscard: CardDef[];
+  colorlessDeck: CardDef[];
+  colorlessDiscard: CardDef[];
 }
 
-export type TurnPhase = 'roll' | 'allocate' | 'buy' | 'end';
+export type TurnPhase = 'roll' | 'allocate' | 'chooseTarget' | 'buy' | 'end';
 
 export type AllocationMode = 'individual' | 'sum';
 
 export interface Allocation {
   mode: AllocationMode;
-  /** Numbers produced this turn: both die values (individual) or the one sum.
-   *  Drives the echo step and, in Phase 2, allocatedIndividually conditionals. */
+  /** Numbers produced this turn: both die values (individual) or the one sum. */
   numbers: number[];
+}
+
+/** One effect line waiting to resolve. echo=true means it came from an Echo
+ *  Stack, where damage always targets the roller and nothing ever pauses. */
+export interface QueuedEffect {
+  effect: Effect;
+  owner: number;
+  echo: boolean;
 }
 
 export type WinReason = 'points' | 'ko' | 'failsafe';
 
-/** PLAN.md section 8: the single tunables surface. Balance edits land here. */
 export interface Tunables {
   startingHp: number;
   pointsToWin: number;
@@ -93,17 +105,23 @@ export interface GameState {
   phase: TurnPhase;
   dice: [number, number] | null;
   lastAllocation: Allocation | null;
+  /** Effects still resolving this allocation; non-null only mid-resolution. */
+  pendingEffects: QueuedEffect[] | null;
   winner: number | null;
   winReason: WinReason | null;
 }
 
-/** Phase 1 actions. Phase 2 extends this union with
- *  SPEND_TOKEN, RESOLVE_ORDER, CHOOSE_TARGET, and BUY. */
 export type Action =
   | { type: 'ROLL' }
+  /** Manipulation window: legal after ROLL, before ALLOCATE. delta is nudge-only
+   *  (PLAN's action shape had no direction; +-1 needs one). */
+  | { type: 'SPEND_TOKEN'; kind: TokenKind; dieIndex: 0 | 1; delta?: -1 | 1 }
   | { type: 'ALLOCATE'; mode: AllocationMode }
+  | { type: 'CHOOSE_TARGET'; playerId: number }
+  | { type: 'BUY'; shopIndex: number; targetSlot: number }
   | { type: 'SKIP_BUY' }
   | { type: 'END_TURN' };
+// Deferred: RESOLVE_ORDER (cards resolve in die order; revisit if ordering ever matters).
 
 /** Injected randomness source. The engine itself never calls Math.random. */
 export interface Rng {

@@ -1,22 +1,40 @@
 import { describe, expect, it } from 'vitest';
+import { pools } from '../content/cards';
+import { starterBoard } from '../content/starters';
 import { applyAction, legalActions } from './reducer';
 import { mulberry32 } from './rng';
+import { createGame } from './setup';
 import { newGame } from './test-helpers';
-import type { GameState, Rng } from './types';
+import type { GameState, Rng, SeatColor, WinReason } from './types';
+
+function pooledGame(playerCount: number, rng: Rng): GameState {
+  const colors: SeatColor[] = ['red', 'blue', 'red', 'blue'];
+  return createGame(
+    {
+      seats: Array.from({ length: playerCount }, (_, i) => ({
+        name: `P${i}`,
+        color: colors[i % colors.length] as SeatColor,
+      })),
+      starterBoard: starterBoard(),
+      pools: pools(),
+    },
+    rng,
+  );
+}
 
 /** Plays every action from legalActions until the game ends, choosing
- *  uniformly with the same rng that rolls the dice. */
-function playOut(playerCount: number, seed: number): GameState {
-  let s = newGame(playerCount);
+ *  uniformly with the same rng that rolls the dice and shuffles the pools. */
+function playOut(playerCount: number, seed: number, pooled = false): GameState {
   const rng = mulberry32(seed);
-  for (let step = 0; step < 10_000; step++) {
+  let s = pooled ? pooledGame(playerCount, rng) : newGame(playerCount);
+  for (let step = 0; step < 20_000; step++) {
     const actions = legalActions(s);
     if (actions.length === 0) return s;
     const pick = actions[Math.floor(rng.next() * actions.length)]!;
     s = applyAction(s, pick, rng);
     assertInvariants(s);
   }
-  throw new Error('game did not terminate within 10k actions');
+  throw new Error('game did not terminate within 20k actions');
 }
 
 function assertInvariants(s: GameState): void {
@@ -29,6 +47,8 @@ function assertInvariants(s: GameState): void {
   expect(s.round).toBeLessThanOrEqual(s.tunables.roundCap);
   expect(s.players.some((p) => !p.eliminated)).toBe(true);
 }
+
+const WIN_REASONS: WinReason[] = ['points', 'ko', 'failsafe'];
 
 describe('full games with starter cards only', () => {
   it('a 2-player game plays to a win through legalActions alone', () => {
@@ -51,14 +71,40 @@ describe('full games with starter cards only', () => {
   });
 });
 
+describe('full games with the exemplar pools (shop, buys, tokens, targeting)', () => {
+  it('a 2-player pooled game plays to a win', () => {
+    const s = playOut(2, 42, true);
+    expect(s.winner).not.toBeNull();
+    expect(WIN_REASONS).toContain(s.winReason);
+  });
+
+  it('a 4-player pooled game plays to a win', () => {
+    const s = playOut(4, 1337, true);
+    expect(s.winner).not.toBeNull();
+    expect(WIN_REASONS).toContain(s.winReason);
+  });
+
+  it('random play actually buys cards and grows echo stacks', () => {
+    const s = playOut(4, 99, true);
+    const retired = s.players.reduce((sum, p) => sum + p.echoStack.length, 0);
+    expect(retired).toBeGreaterThan(0);
+  });
+
+  it('is deterministic with pools too', () => {
+    const a = playOut(4, 55, true);
+    const b = playOut(4, 55, true);
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+});
+
 describe('serializability', () => {
   it('GameState survives a JSON round trip mid-game and plays on identically', () => {
     const seed = 99;
     const steps = 37;
 
     // Uninterrupted reference run.
-    let a = newGame(2);
     const rngA = mulberry32(seed);
+    let a = pooledGame(2, rngA);
     for (let i = 0; i < steps * 2; i++) {
       const actions = legalActions(a);
       if (actions.length === 0) break;
@@ -66,8 +112,8 @@ describe('serializability', () => {
     }
 
     // Same run, serialized and revived halfway through.
-    let b: GameState = newGame(2);
     const rngB: Rng = mulberry32(seed);
+    let b: GameState = pooledGame(2, rngB);
     for (let i = 0; i < steps; i++) {
       const actions = legalActions(b);
       if (actions.length === 0) break;

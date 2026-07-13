@@ -1,6 +1,8 @@
 // Test-only helpers (imported by *.test.ts, never by shipping code).
+import { pools } from '../content/cards';
 import { starterBoard } from '../content/starters';
 import { applyAction } from './reducer';
+import { mulberry32 } from './rng';
 import { createGame } from './setup';
 import type {
   AllocationMode,
@@ -35,31 +37,45 @@ export function deadRng(): Rng {
   };
 }
 
-export function newGame(playerCount: number, tunables?: Partial<Tunables>): GameState {
+function seats(playerCount: number) {
   const colors: SeatColor[] = ['red', 'blue', 'red', 'blue'];
-  return createGame({
-    seats: Array.from({ length: playerCount }, (_, i) => ({
-      name: `P${i}`,
-      color: colors[i % colors.length] as SeatColor,
-    })),
-    starterBoard: starterBoard(),
-    tunables,
-  });
+  return Array.from({ length: playerCount }, (_, i) => ({
+    name: `P${i}`,
+    color: colors[i % colors.length] as SeatColor,
+  }));
+}
+
+export function newGame(playerCount: number, tunables?: Partial<Tunables>): GameState {
+  return createGame({ seats: seats(playerCount), starterBoard: starterBoard(), tunables });
+}
+
+/** Game with the exemplar card pools and shops dealt from the given seed. */
+export function newPoolGame(
+  playerCount: number,
+  seed: number,
+  tunables?: Partial<Tunables>,
+): GameState {
+  return createGame(
+    { seats: seats(playerCount), starterBoard: starterBoard(), pools: pools(), tunables },
+    mulberry32(seed),
+  );
 }
 
 /** One full scripted turn: roll the given faces, allocate, skip buy, end turn.
- *  Stops early if a win (or a mid-turn roller death) already ended the turn. */
+ *  Stops early if a win (or a mid-turn roller death) already ended the turn.
+ *  Non-roll steps get a fixed-seed rng: shop refreshes may shuffle. */
 export function playTurn(
   state: GameState,
   faces: [number, number],
   mode: AllocationMode,
 ): GameState {
+  const rng = mulberry32(0xd1ce);
   let s = applyAction(state, { type: 'ROLL' }, diceRng(...faces));
-  s = applyAction(s, { type: 'ALLOCATE', mode }, deadRng());
+  s = applyAction(s, { type: 'ALLOCATE', mode }, rng);
   if (s.winner !== null || s.phase !== 'buy') return s;
-  s = applyAction(s, { type: 'SKIP_BUY' }, deadRng());
+  s = applyAction(s, { type: 'SKIP_BUY' }, rng);
   if (s.winner !== null) return s;
-  return applyAction(s, { type: 'END_TURN' }, deadRng());
+  return applyAction(s, { type: 'END_TURN' }, rng);
 }
 
 /** Minimal card for crafting boards and echo stacks in tests. */
