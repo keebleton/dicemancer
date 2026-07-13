@@ -124,9 +124,12 @@ export const RED_CARDS: CardDef[] = [
     icon: 'Ability_DemonHunter_ChaoticImprint_Fire.PNG',
     color: 'red',
     rarity: 'common',
-    cost: 4,
+    cost: 3, // tuning 2026-07-13: -18 delta; the clutch heal for the blood color
     legalSlots: [4, 6],
-    active: [{ kind: 'heal', amount: 2 }],
+    active: [
+      { kind: 'heal', amount: 2 },
+      { kind: 'conditional', when: { hpAtOrBelow: 10 }, then: [{ kind: 'heal', amount: 2 }] },
+    ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
   {
@@ -191,7 +194,7 @@ export const RED_CARDS: CardDef[] = [
     cost: 8,
     legalSlots: [11, 12],
     active: [{ kind: 'damage', amount: 5, target: 'chooseOpponent' }],
-    echo: [{ kind: 'damage', amount: 1, target: 'roller' }],
+    echo: [{ kind: 'damage', amount: 2, target: 'roller' }], // tuning 2026-07-13 round 2
   },
   {
     id: 'cinder-crown',
@@ -199,14 +202,16 @@ export const RED_CARDS: CardDef[] = [
     icon: 'INV_Crown_13.PNG',
     color: 'red',
     rarity: 'rare',
-    cost: 9,
+    cost: 8, // tuning 2026-07-13: -13 delta at cost 9
     legalSlots: [10, 11],
     active: [
       { kind: 'damage', amount: 3, target: 'chooseOpponent' },
       { kind: 'gainMoney', amount: 2 },
-      { kind: 'conditional', when: { sumAtLeast: 11 }, then: [{ kind: 'gainPoints', amount: 2 }] },
+      // tuning 2026-07-13 round 2: was sumAtLeast 11, which can never pay in
+      // slot 10 (a slot-10 hit means the sum was exactly 10) - a dead bonus.
+      { kind: 'gainPoints', amount: 2 },
     ],
-    echo: [{ kind: 'damage', amount: 1, target: 'roller' }],
+    echo: [{ kind: 'damage', amount: 2, target: 'roller' }],
   },
 ];
 
@@ -275,7 +280,7 @@ export const BLUE_CARDS: CardDef[] = [
     cost: 3,
     legalSlots: [1],
     active: [
-      { kind: 'gainMoney', amount: 1 },
+      { kind: 'gainMoney', amount: 2 }, // tuning 2026-07-13: was 1 (-11 delta)
       { kind: 'gainToken', token: 'nudge', amount: 1 },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
@@ -315,9 +320,9 @@ export const BLUE_CARDS: CardDef[] = [
     icon: 'INV_Misc_Spyglass_02.PNG',
     color: 'blue',
     rarity: 'common',
-    cost: 4,
+    cost: 3, // tuning 2026-07-13: -10 delta at both counts
     legalSlots: [1, 2],
-    active: [{ kind: 'refreshShop' }, { kind: 'gainMoney', amount: 1 }],
+    active: [{ kind: 'refreshShop' }, { kind: 'gainMoney', amount: 2 }],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
   {
@@ -350,7 +355,8 @@ export const BLUE_CARDS: CardDef[] = [
       { kind: 'gainMoney', amount: 2 },
       { kind: 'gainPoints', amount: 1 },
     ],
-    echo: [{ kind: 'gainMoney', amount: 1 }],
+    // tuning 2026-07-13: slot-7 echoes hear every sum now; a point echo is the payoff
+    echo: [{ kind: 'gainPoints', amount: 1 }],
   },
   {
     id: 'seventh-wave',
@@ -358,13 +364,13 @@ export const BLUE_CARDS: CardDef[] = [
     icon: 'Spell_AnimaArdenweald_Wave.PNG',
     color: 'blue',
     rarity: 'common',
-    cost: 5,
+    cost: 4, // tuning 2026-07-13: worst high card at 2p (40% buyer win)
     legalSlots: [7],
     active: [
       { kind: 'gainPoints', amount: 2 },
       { kind: 'gainToken', token: 'nudge', amount: 1 },
     ],
-    echo: [{ kind: 'gainMoney', amount: 1 }],
+    echo: [{ kind: 'gainPoints', amount: 1 }],
   },
   {
     id: 'ebb-gate',
@@ -439,7 +445,7 @@ export const COLORLESS_CARDS: CardDef[] = [
     cost: 7,
     legalSlots: ALL_SLOTS,
     active: [{ kind: 'gainMoney', amount: 3 }],
-    echo: [{ kind: 'gainMoney', amount: 1 }],
+    echo: [{ kind: 'gainMoney', amount: 2 }], // tuning 2026-07-13: -9 delta at 4p
   },
   {
     id: 'lucky-charm',
@@ -447,7 +453,7 @@ export const COLORLESS_CARDS: CardDef[] = [
     icon: 'INV_Jewelry_Necklace_03.PNG',
     color: 'colorless',
     rarity: 'common',
-    cost: 9,
+    cost: 10, // tuning 2026-07-13: +6 delta at both counts
     legalSlots: ALL_SLOTS,
     active: [
       { kind: 'gainMoney', amount: 2 },
@@ -461,10 +467,10 @@ export const COLORLESS_CARDS: CardDef[] = [
     icon: 'INV_Enchant_ShardPrismaticLarge.PNG',
     color: 'colorless',
     rarity: 'rare',
-    cost: 11,
+    cost: 12, // tuning 2026-07-13: +16 delta at 4p, the strongest card in the pool
     legalSlots: ALL_SLOTS,
     active: [{ kind: 'gainPoints', amount: 3 }],
-    echo: [{ kind: 'gainPoints', amount: 1 }],
+    echo: [{ kind: 'gainMoney', amount: 1 }],
   },
   {
     id: 'tin-totem',
@@ -476,7 +482,8 @@ export const COLORLESS_CARDS: CardDef[] = [
     legalSlots: ALL_SLOTS,
     active: [
       { kind: 'gainMoney', amount: 2 },
-      { kind: 'conditional', when: { hpAtOrBelow: 12 }, then: [{ kind: 'gainMoney', amount: 2 }] },
+      // tuning 2026-07-13: threshold 12 -> 15 (HP pools are 22/18/16 by player count)
+      { kind: 'conditional', when: { hpAtOrBelow: 15 }, then: [{ kind: 'gainMoney', amount: 2 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
@@ -486,9 +493,9 @@ export const COLORLESS_CARDS: CardDef[] = [
     icon: 'INV_Misc_Archstone_01.PNG',
     color: 'colorless',
     rarity: 'common',
-    cost: 8,
+    cost: 7, // tuning 2026-07-13
     legalSlots: ALL_SLOTS,
-    active: [{ kind: 'gainMoney', amount: 3 }, { kind: 'refreshShop' }],
+    active: [{ kind: 'gainMoney', amount: 4 }, { kind: 'refreshShop' }], // tuning round 2
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
   {
@@ -518,7 +525,7 @@ export const COLORLESS_CARDS: CardDef[] = [
     cost: 7,
     legalSlots: ALL_SLOTS,
     active: [
-      { kind: 'heal', amount: 2 },
+      { kind: 'heal', amount: 3 }, // tuning 2026-07-13
       { kind: 'gainMoney', amount: 2 },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
@@ -529,7 +536,7 @@ export const COLORLESS_CARDS: CardDef[] = [
     icon: 'INV_Archaeology_70_Highborne_InertLeystoneCharm.PNG',
     color: 'colorless',
     rarity: 'common',
-    cost: 9,
+    cost: 8, // tuning 2026-07-13
     legalSlots: ALL_SLOTS,
     active: [
       { kind: 'gainMoney', amount: 2 },
@@ -623,7 +630,8 @@ export const BLACK_CARDS: CardDef[] = [
     legalSlots: [1, 2],
     active: [
       { kind: 'gainMoney', amount: 1 },
-      { kind: 'conditional', when: { rolledDoubles: true }, then: [{ kind: 'gainMoney', amount: 2 }] },
+      // tuning 2026-07-13: doubles bonus 2 -> 3
+      { kind: 'conditional', when: { rolledDoubles: true }, then: [{ kind: 'gainMoney', amount: 3 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
@@ -637,7 +645,8 @@ export const BLACK_CARDS: CardDef[] = [
     legalSlots: [6],
     active: [
       { kind: 'gainMoney', amount: 1 },
-      { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainPoints', amount: 1 }] },
+      // tuning 2026-07-13: threshold 5 -> 4
+      { kind: 'conditional', when: { echoStackAtLeast: 4 }, then: [{ kind: 'gainPoints', amount: 1 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
@@ -720,7 +729,7 @@ export const BLACK_CARDS: CardDef[] = [
     cost: 5,
     legalSlots: [12],
     active: [
-      { kind: 'gainPoints', amount: 3 },
+      { kind: 'gainPoints', amount: 4 }, // tuning 2026-07-13: sum 12 is 1/36; jackpot or nothing
       { kind: 'conditional', when: { echoStackAtLeast: 4 }, then: [{ kind: 'gainPoints', amount: 2 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
@@ -750,7 +759,8 @@ export const BLACK_CARDS: CardDef[] = [
     legalSlots: [1, 6],
     active: [
       { kind: 'gainMoney', amount: 2 },
-      { kind: 'conditional', when: { rolledDoubles: true }, then: [{ kind: 'gainPoints', amount: 3 }] },
+      // tuning 2026-07-13: doubles jackpot 3 -> 4
+      { kind: 'conditional', when: { rolledDoubles: true }, then: [{ kind: 'gainPoints', amount: 4 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
@@ -815,7 +825,8 @@ export const GREEN_CARDS: CardDef[] = [
     legalSlots: [3],
     active: [
       { kind: 'gainMoney', amount: 1 },
-      { kind: 'conditional', when: { bothDiceOdd: true }, then: [{ kind: 'gainMoney', amount: 1 }] },
+      // tuning 2026-07-13: odd-parity bonus 1 -> 2 (-8 delta)
+      { kind: 'conditional', when: { bothDiceOdd: true }, then: [{ kind: 'gainMoney', amount: 2 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
@@ -855,7 +866,8 @@ export const GREEN_CARDS: CardDef[] = [
     rarity: 'common',
     cost: 4,
     legalSlots: [1, 5],
-    active: [{ kind: 'refreshShop' }, { kind: 'discount', amount: 1 }],
+    // tuning 2026-07-13: had no direct gain at all
+    active: [{ kind: 'refreshShop' }, { kind: 'discount', amount: 1 }, { kind: 'gainMoney', amount: 1 }],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
   {
@@ -867,7 +879,7 @@ export const GREEN_CARDS: CardDef[] = [
     cost: 4,
     legalSlots: [3, 5],
     active: [
-      { kind: 'gainMoney', amount: 1 },
+      { kind: 'gainMoney', amount: 2 }, // tuning 2026-07-13: base 1 -> 2 (-8.5 delta)
       { kind: 'conditional', when: { bothDiceOdd: true }, then: [{ kind: 'gainMoney', amount: 2 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
@@ -898,7 +910,7 @@ export const GREEN_CARDS: CardDef[] = [
       { kind: 'gainPoints', amount: 2 },
       { kind: 'discount', amount: 1 },
     ],
-    echo: [{ kind: 'gainMoney', amount: 1 }],
+    echo: [{ kind: 'gainMoney', amount: 2 }], // tuning 2026-07-13: slot-9 echoes hear every sum now
   },
   {
     id: 'bargain-bloom',
@@ -924,7 +936,7 @@ export const GREEN_CARDS: CardDef[] = [
       { kind: 'gainPoints', amount: 1 },
       { kind: 'discount', amount: 1 },
     ],
-    echo: [{ kind: 'gainMoney', amount: 1 }],
+    echo: [{ kind: 'gainMoney', amount: 2 }], // tuning 2026-07-13
   },
   {
     id: 'odd-omen',
@@ -960,7 +972,7 @@ export const GREEN_CARDS: CardDef[] = [
     icon: 'artifactability_BalanceDruid_Fullmoon.PNG',
     color: 'green',
     rarity: 'rare',
-    cost: 9,
+    cost: 8, // tuning 2026-07-13
     legalSlots: [9],
     active: [
       { kind: 'gainPoints', amount: 2 },
@@ -1046,7 +1058,7 @@ export const YELLOW_CARDS: CardDef[] = [
     icon: 'Ability_Racial_TimeIsMoney.PNG',
     color: 'yellow',
     rarity: 'common',
-    cost: 4,
+    cost: 3, // tuning 2026-07-13: -10 delta at cost 4
     legalSlots: [4],
     active: [
       { kind: 'gainMoney', amount: 1 },
@@ -1074,7 +1086,7 @@ export const YELLOW_CARDS: CardDef[] = [
     cost: 4,
     legalSlots: [8],
     active: [{ kind: 'gainMoney', amount: 3 }],
-    echo: [{ kind: 'gainMoney', amount: 1 }],
+    echo: [{ kind: 'gainMoney', amount: 2 }], // tuning 2026-07-13: the toll pays on others' turns
   },
   {
     id: 'exchange-window',
@@ -1084,7 +1096,11 @@ export const YELLOW_CARDS: CardDef[] = [
     rarity: 'common',
     cost: 5,
     legalSlots: [4, 6],
-    active: [{ kind: 'trade', pay: 3, then: [{ kind: 'gainPoints', amount: 2 }] }],
+    // tuning 2026-07-13: pure trade with no base gain ran -12
+    active: [
+      { kind: 'gainMoney', amount: 1 },
+      { kind: 'trade', pay: 3, then: [{ kind: 'gainPoints', amount: 2 }] },
+    ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
   {
@@ -1097,7 +1113,7 @@ export const YELLOW_CARDS: CardDef[] = [
     legalSlots: [4],
     active: [
       { kind: 'gainMoney', amount: 1 },
-      { kind: 'trade', pay: 1, then: [{ kind: 'heal', amount: 1 }] },
+      { kind: 'trade', pay: 1, then: [{ kind: 'heal', amount: 2 }] }, // tuning 2026-07-13
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
