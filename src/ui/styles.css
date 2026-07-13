@@ -1,0 +1,34 @@
+/* Utilitarian MVP styling. A real visual pass is a later phase on purpose. */
+body { font-family: system-ui, sans-serif; margin: 16px; background: #f4f2ec; color: #222; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h3 { margin: 0 0 6px; font-size: 14px; }
+button { margin: 2px; padding: 4px 10px; cursor: pointer; }
+button.selected, button.start { outline: 2px solid #2a7; }
+input[type='number'] { width: 60px; }
+
+.panel { border: 1px solid #bbb; padding: 8px; margin: 8px 0; background: #fbfaf7; }
+.panel.active { border: 2px solid #333; }
+.panel.out { opacity: 0.5; }
+.red { color: #a33; font-weight: bold; }
+.blue { color: #2559a8; font-weight: bold; }
+.colorless, .starter { color: #666; }
+
+.dice { font-size: 18px; margin: 4px 0; }
+.hint { background: #fff5cc; padding: 4px 8px; margin: 4px 0; font-size: 12px; }
+
+.slots { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 6px 0; }
+.slot { border: 1px solid #999; padding: 3px; min-height: 58px; font-size: 11px; background: #fff; }
+.slot .fx { color: #666; font-size: 10px; }
+.slot.preview { background: #ffe9a8; }
+.slot.fired { background: #d9f0d9; }
+.slot.buyable { outline: 2px dashed #2a7; cursor: pointer; background: #eefcf3; }
+
+.shop { margin: 6px 0; }
+.shopcard { display: inline-block; border: 1px solid #999; padding: 5px; margin: 3px; width: 150px; vertical-align: top; font-size: 11px; background: #fff; cursor: pointer; }
+.shopcard .fx { color: #666; font-size: 10px; }
+.shopcard.selected { outline: 2px solid #2a7; }
+.shopcard.dead { opacity: 0.45; cursor: default; }
+
+.echo { font-size: 11px; margin-top: 4px; color: #444; }
+.log { max-height: 180px; overflow: auto; font-family: monospace; font-size: 11px; background: #171717; color: #ddd; padding: 8px; white-space: pre-wrap; }
+.winner { background: #2a7; color: #fff; padding: 12px; font-size: 20px; margin: 8px 0; }

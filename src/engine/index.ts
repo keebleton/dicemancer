@@ -6,4 +6,4 @@ export { mulberry32, rollDie } from './rng';
 export { DEFAULT_TUNABLES } from './tunables';
 export { createGame } from './setup';
 export type { GameConfig, SeatConfig } from './setup';
-export { applyAction, legalActions, legalTargets } from './reducer';
+export { applyAction, legalActions, legalTargets, previewNumbers } from './reducer';

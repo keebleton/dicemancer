@@ -56,6 +56,12 @@ export function legalActions(state: GameState): Action[] {
   }
 }
 
+/** Numbers an allocation mode would produce from these dice. The UI preview
+ *  uses this so the rule lives here, not in React. */
+export function previewNumbers(dice: [number, number], mode: AllocationMode): number[] {
+  return mode === 'individual' ? [dice[0], dice[1]] : [dice[0] + dice[1]];
+}
+
 /** Seats a chooseOpponent effect may target: living opponents of the roller. */
 export function legalTargets(state: GameState, roller: number): number[] {
   return state.players
@@ -169,7 +175,7 @@ function allocate(state: GameState, mode: AllocationMode, rng: Rng): void {
   if (!dice) throw new Error('no dice on the table');
   const roller = state.current;
   const rollerState = state.players[roller]!;
-  const numbers: number[] = mode === 'individual' ? [dice[0], dice[1]] : [dice[0] + dice[1]];
+  const numbers = previewNumbers(dice, mode);
   state.lastAllocation = { mode, numbers };
 
   const queue: QueuedEffect[] = [];
