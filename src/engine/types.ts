@@ -79,12 +79,10 @@ export interface PlayerState {
   board: CardDef[];
   echoStack: EchoEntry[];
   eliminated: boolean;
-  /** 5 entries in pooled games (null = bought this rotation); [] when the game has no pools. */
+  /** Own-color row in pooled games (null = bought this rotation); [] when the game has no pools. */
   shop: (CardDef | null)[];
   colorDeck: CardDef[];
   colorDiscard: CardDef[];
-  colorlessDeck: CardDef[];
-  colorlessDiscard: CardDef[];
 }
 
 export type TurnPhase = 'roll' | 'allocate' | 'chooseTarget' | 'echoChoice' | 'buy' | 'end';
@@ -128,6 +126,10 @@ export interface GameState {
   lastAllocation: Allocation | null;
   /** Effects still resolving this allocation; non-null only mid-resolution. */
   pendingEffects: QueuedEffect[] | null;
+  /** The shared colorless MARKET: static (never rotates), visible to all,
+   *  first buyer takes a card and the slot refills from the shared deck. */
+  market: (CardDef | null)[];
+  marketDeck: CardDef[];
   /** Seats (in order after the roller) still to hear this roll for their echoes.
    *  The head of the list is the seat an ECHO_CHOICE is awaited from. */
   echoPending: number[];
@@ -148,6 +150,8 @@ export type Action =
    *  the two dice individually, or the one sum (the Space Base rule). */
   | { type: 'ECHO_CHOICE'; mode: AllocationMode }
   | { type: 'BUY'; shopIndex: number; targetSlot: number }
+  /** Buy from the shared colorless market (counts as the turn's one purchase). */
+  | { type: 'BUY_MARKET'; marketIndex: number; targetSlot: number }
   | { type: 'SKIP_BUY' }
   | { type: 'END_TURN' };
 // Deferred: RESOLVE_ORDER (cards resolve in die order; revisit if ordering ever matters).

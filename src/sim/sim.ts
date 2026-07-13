@@ -80,12 +80,18 @@ export function simulate(
       if (legalActions(s).length === 0) break;
       const action = chooseAction(s);
       if (action.type === 'ROLL') {
-        // One row per turn: count the roller's current offers.
+        // One row per turn: count the roller's offers (their row + the market).
         for (const card of s.players[s.current]!.shop) {
+          if (card) stat(card.id).offered += 1;
+        }
+        for (const card of s.market) {
           if (card) stat(card.id).offered += 1;
         }
       } else if (action.type === 'BUY') {
         const card = s.players[s.current]!.shop[action.shopIndex];
+        if (card) purchases.push({ id: card.id, seat: s.current });
+      } else if (action.type === 'BUY_MARKET') {
+        const card = s.market[action.marketIndex];
         if (card) purchases.push({ id: card.id, seat: s.current });
       }
       s = applyActionInPlace(s, action, rng);

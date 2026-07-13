@@ -12,49 +12,45 @@ function toBuyPhase(state: GameState, faces: [number, number] = [1, 2]): GameSta
   return applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
 }
 
+const tiny = (ids: string[], color: CardDef['color']): CardDef[] =>
+  ids.map((id) => ({
+    id,
+    name: id,
+    color,
+    rarity: 'common',
+    cost: 3,
+    legalSlots: color === 'colorless' ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : [1, 2],
+    active: [{ kind: 'gainMoney', amount: 1 }],
+    echo: [],
+  }));
+
 describe('shop deal', () => {
-  it('deals every seat 3 own-color cards + 2 colorless at setup', () => {
+  it('deals every seat an own-color row and one shared market at setup', () => {
     const s = newPoolGame(4, 11);
     for (const p of s.players) {
-      expect(p.shop).toHaveLength(5);
-      for (const card of p.shop.slice(0, 3)) expect(card?.color).toBe(p.color);
-      for (const card of p.shop.slice(3)) expect(card?.color).toBe('colorless');
+      expect(p.shop).toHaveLength(4);
+      for (const card of p.shop) expect(card?.color).toBe(p.color);
     }
+    expect(s.market).toHaveLength(4);
+    for (const card of s.market) expect(card?.color).toBe('colorless');
+    expect(s.marketDeck.length).toBe(COLORLESS_CARDS.length - 4);
   });
 
   it('refreshes the incoming player row at their turn start, not the leaver', () => {
     const s0 = newPoolGame(2, 11);
     const p0Row = s0.players[0]!.shop.map((c) => c!.id);
-    const p1DiscardsBefore =
-      s0.players[1]!.colorDiscard.length + s0.players[1]!.colorlessDiscard.length;
     const s = playTurn(s0, [1, 2], 'individual'); // p0 skips buy; now p1's turn
     expect(s.players[0]!.shop.map((c) => c!.id)).toEqual(p0Row); // untouched until p0's next turn
     const p1 = s.players[1]!;
     expect(p1.shop.every((c) => c !== null)).toBe(true);
-    // The old row went through the discards (some may already be reshuffled back).
-    expect(
-      p1.colorDiscard.length + p1.colorlessDiscard.length + p1.colorDeck.length
-        + p1.colorlessDeck.length,
-    ).toBeGreaterThanOrEqual(p1DiscardsBefore);
     // Conservation across the refresh: every pool card stays in circulation.
-    const colorCount = p1.colorDeck.length + p1.colorDiscard.length
-      + p1.shop.filter((c) => c && c.color !== 'colorless').length;
+    const colorCount =
+      p1.colorDeck.length + p1.colorDiscard.length + p1.shop.filter((c) => c !== null).length;
     expect(colorCount).toBe(BLUE_CARDS.length); // p1 is the blue seat
   });
 
-  it('reshuffles an exhausted pool from its unbought discards', () => {
+  it('reshuffles an exhausted color pool from its unbought discards', () => {
     // Pools smaller than one row force a reshuffle on the very first refresh.
-    const tiny = (ids: string[], color: CardDef['color']): CardDef[] =>
-      ids.map((id) => ({
-        id,
-        name: id,
-        color,
-        rarity: 'common',
-        cost: 3,
-        legalSlots: color === 'colorless' ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : [1, 2],
-        active: [{ kind: 'gainMoney', amount: 1 }],
-        echo: [],
-      }));
     const s0 = createGame(
       {
         seats: [
@@ -73,28 +69,60 @@ describe('shop deal', () => {
       },
       mulberry32(3),
     );
-    // Setup drained both decks completely into the rows.
+    // Setup drained the 3-card red deck into the 4-slot row (one hole).
     expect(s0.players[0]!.colorDeck).toHaveLength(0);
-    expect(s0.players[0]!.colorlessDeck).toHaveLength(0);
     let s = playTurn(s0, [1, 2], 'individual'); // p0
     s = playTurn(s, [1, 2], 'individual'); // p1; wrap refreshes p0 from reshuffled discards
     const p0 = s.players[0]!;
-    expect(p0.shop.every((c) => c !== null)).toBe(true);
-    expect(new Set(p0.shop.map((c) => c!.id))).toEqual(new Set(['r1', 'r2', 'r3', 'c1', 'c2']));
+    expect(p0.shop.filter((c) => c !== null)).toHaveLength(3);
+    expect(new Set(p0.shop.filter((c) => c !== null).map((c) => c!.id))).toEqual(
+      new Set(['r1', 'r2', 'r3']),
+    );
+  });
+});
+
+describe('the shared market', () => {
+  it('is static: identical across turns while nobody buys', () => {
+    const s0 = newPoolGame(2, 11);
+    const before = s0.market.map((c) => c!.id);
+    let s = playTurn(s0, [1, 2], 'individual');
+    s = playTurn(s, [1, 2], 'individual');
+    s = playTurn(s, [1, 2], 'individual');
+    expect(s.market.map((c) => c!.id)).toEqual(before);
   });
 
-  it('deals null holes when a pool is truly short (cards bought out of circulation)', () => {
-    const s0 = newPoolGame(2, 11);
-    // Empty p0's colorless circulation except one card.
-    const p0 = s0.players[0]!;
-    p0.colorlessDeck = [];
-    p0.colorlessDiscard = [];
-    p0.shop[3] = structuredClone(COLORLESS_CARDS[0]!);
-    p0.shop[4] = null;
-    let s = playTurn(s0, [1, 2], 'individual');
-    s = playTurn(s, [1, 2], 'individual'); // back to p0: refresh with 1 colorless in circulation
-    expect(s.players[0]!.shop[3]).not.toBeNull();
-    expect(s.players[0]!.shop[4]).toBeNull();
+  it('BUY_MARKET pays, installs, retires, and refills the slot for everyone else', () => {
+    const s0 = toBuyPhase(newPoolGame(2, 11));
+    s0.players[0]!.money = 20;
+    const card = s0.market[1]!;
+    const deckBefore = s0.marketDeck.length;
+    const s = applyAction(s0, { type: 'BUY_MARKET', marketIndex: 1, targetSlot: 7 }, deadRng());
+    const p = s.players[0]!;
+    expect(p.money).toBe(20 - card.cost);
+    expect(p.board[6]!.id).toBe(card.id);
+    expect(p.echoStack.some((e) => e.slot === 7 && e.def.id === 'starter-7')).toBe(true);
+    expect(s.market[1]?.id).not.toBe(card.id); // gone for everyone, slot refilled
+    expect(s.marketDeck.length).toBe(deckBefore - 1);
+    expect(s.phase).toBe('end'); // the market buy was the turn's one purchase
+  });
+
+  it('sells out to null once the shared deck is empty', () => {
+    const s0 = toBuyPhase(newPoolGame(2, 11));
+    s0.players[0]!.money = 99;
+    s0.marketDeck = [];
+    const s = applyAction(s0, { type: 'BUY_MARKET', marketIndex: 0, targetSlot: 1 }, deadRng());
+    expect(s.market[0]).toBeNull();
+  });
+
+  it('green discounts apply to market buys too', () => {
+    const s0 = toBuyPhase(newPoolGame(2, 11));
+    const card = s0.market[0]!;
+    s0.players[0]!.money = card.cost - 3;
+    s0.players[0]!.buyDiscount = 3;
+    expect(legalActions(s0).some((a) => a.type === 'BUY_MARKET')).toBe(true);
+    const s = applyAction(s0, { type: 'BUY_MARKET', marketIndex: 0, targetSlot: 1 }, deadRng());
+    expect(s.players[0]!.money).toBe(0);
+    expect(s.players[0]!.buyDiscount).toBe(0);
   });
 });
 
@@ -116,25 +144,25 @@ describe('buy, install, retire', () => {
     expect(() => applyAction(s, buy, deadRng())).toThrow(/illegal action/);
   });
 
-  it('colorless cards install into any chosen slot, and that choice sticks on retire', () => {
+  it('market artifacts install into any chosen slot, and that choice sticks on retire', () => {
     const s0 = toBuyPhase(newPoolGame(2, 11));
-    const sprite = structuredClone(COLORLESS_CARDS[0]!); // coin-sprite, cost 3
-    s0.players[0]!.shop = [sprite, null, null, null, null];
+    s0.players[0]!.money = 40;
+    const first = s0.market[0]!;
     const slots = legalActions(s0)
-      .filter((a) => a.type === 'BUY')
-      .map((a) => (a.type === 'BUY' ? a.targetSlot : 0));
-    expect(slots).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]); // player picks the slot
-    let s = applyAction(s0, { type: 'BUY', shopIndex: 0, targetSlot: 9 }, deadRng());
-    expect(s.players[0]!.board[8]!.id).toBe('coin-sprite');
+      .filter((a) => a.type === 'BUY_MARKET' && a.marketIndex === 0)
+      .map((a) => (a.type === 'BUY_MARKET' ? a.targetSlot : 0));
+    expect(slots).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]); // buyer picks the slot
+    let s = applyAction(s0, { type: 'BUY_MARKET', marketIndex: 0, targetSlot: 9 }, deadRng());
+    expect(s.players[0]!.board[8]!.id).toBe(first.id);
 
     // Displace it later: it retires keeping slot 9.
     s = applyAction(s, { type: 'END_TURN' }, mulberry32(1));
     s = playTurn(s, [1, 2], 'individual'); // p1's turn passes
     s = toBuyPhase(s);
-    s.players[0]!.shop = [structuredClone(COLORLESS_CARDS[1]!), null, null, null, null];
-    s = applyAction(s, { type: 'BUY', shopIndex: 0, targetSlot: 9 }, deadRng());
+    s.players[0]!.money = 40;
+    s = applyAction(s, { type: 'BUY_MARKET', marketIndex: 0, targetSlot: 9 }, deadRng());
     expect(s.players[0]!.echoStack).toContainEqual(
-      expect.objectContaining({ slot: 9, def: expect.objectContaining({ id: 'coin-sprite' }) }),
+      expect.objectContaining({ slot: 9, def: expect.objectContaining({ id: first.id }) }),
     );
   });
 
@@ -158,10 +186,10 @@ describe('buy, install, retire', () => {
   });
 
   it('a retired purchase echoes on opponent turns', () => {
-    // p0 buys coin-sprite into slot 3, displacing starter-3 (echo: 1 money, slot 3).
+    // p0 buys a market artifact into slot 3, displacing starter-3 (echo: 1 money, slot 3).
     let s = toBuyPhase(newPoolGame(2, 11));
-    s.players[0]!.shop = [structuredClone(COLORLESS_CARDS[0]!), null, null, null, null];
-    s = applyAction(s, { type: 'BUY', shopIndex: 0, targetSlot: 3 }, deadRng());
+    s.players[0]!.money = 40;
+    s = applyAction(s, { type: 'BUY_MARKET', marketIndex: 0, targetSlot: 3 }, deadRng());
     s = applyAction(s, { type: 'END_TURN' }, mulberry32(2));
     const moneyBefore = s.players[0]!.money;
     // p1 rolls a 3: p0 chooses to hear the split, so the retired starter echoes.

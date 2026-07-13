@@ -1,4 +1,4 @@
-import { dealRow, shuffle } from './shop';
+import { dealMarket, dealRow, shuffle } from './shop';
 import { DEFAULT_TUNABLES, HP_BY_PLAYER_COUNT } from './tunables';
 import type { CardDef, GameState, PlayerState, Rng, SeatColor, Tunables } from './types';
 
@@ -37,11 +37,7 @@ export function createGame(config: GameConfig, rng?: Rng): GameState {
 
   const players: PlayerState[] = config.seats.map((seat) => {
     const colorDeck = config.pools ? structuredClone(config.pools[seat.color]) : [];
-    const colorlessDeck = config.pools ? structuredClone(config.pools.colorless) : [];
-    if (rng) {
-      shuffle(colorDeck, rng);
-      shuffle(colorlessDeck, rng);
-    }
+    if (rng) shuffle(colorDeck, rng);
     return {
       name: seat.name,
       color: seat.color,
@@ -53,13 +49,15 @@ export function createGame(config: GameConfig, rng?: Rng): GameState {
       board: structuredClone(config.starterBoard),
       echoStack: [],
       eliminated: false,
-      shop: config.pools ? Array<CardDef | null>(5).fill(null) : [],
+      shop: config.pools ? Array<CardDef | null>(1).fill(null) : [],
       colorDeck,
       colorDiscard: [],
-      colorlessDeck,
-      colorlessDiscard: [],
     };
   });
+
+  // ONE shared colorless market deck for the whole table.
+  const marketDeck = config.pools ? structuredClone(config.pools.colorless) : [];
+  if (rng) shuffle(marketDeck, rng);
 
   const state: GameState = {
     tunables,
@@ -70,6 +68,8 @@ export function createGame(config: GameConfig, rng?: Rng): GameState {
     dice: null,
     lastAllocation: null,
     pendingEffects: null,
+    market: [],
+    marketDeck,
     echoPending: [],
     echoNumbers: players.map(() => null),
     winner: null,
@@ -77,6 +77,7 @@ export function createGame(config: GameConfig, rng?: Rng): GameState {
   };
   if (config.pools && rng) {
     for (let seat = 0; seat < players.length; seat++) dealRow(state, seat, rng);
+    dealMarket(state);
   }
   return state;
 }

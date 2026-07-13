@@ -1,4 +1,4 @@
-import { SHOP_COLOR_CARDS, SHOP_COLORLESS_CARDS } from './tunables';
+import { MARKET_SIZE, SHOP_COLOR_CARDS } from './tunables';
 import type { CardDef, GameState, Rng } from './types';
 
 export function shuffle<T>(arr: T[], rng: Rng): void {
@@ -20,20 +20,28 @@ function draw(deck: CardDef[], discard: CardDef[], rng: Rng): CardDef | null {
   return deck.pop() ?? null;
 }
 
-/** Discard the row's remnants and deal a fresh 3 color + 2 colorless.
+/** Discard the row's remnants and deal a fresh own-color row.
  *  Runs at the owner's turn start and on the refreshShop effect.
  *  No-op for games created without pools (shop === []). */
 export function dealRow(state: GameState, seat: number, rng: Rng): void {
   const p = state.players[seat];
   if (!p || p.shop.length === 0) return;
   for (const card of p.shop) {
-    if (!card) continue;
-    (card.color === 'colorless' ? p.colorlessDiscard : p.colorDiscard).push(card);
+    if (card) p.colorDiscard.push(card);
   }
   const row: (CardDef | null)[] = [];
   for (let i = 0; i < SHOP_COLOR_CARDS; i++) row.push(draw(p.colorDeck, p.colorDiscard, rng));
-  for (let i = 0; i < SHOP_COLORLESS_CARDS; i++) {
-    row.push(draw(p.colorlessDeck, p.colorlessDiscard, rng));
-  }
   p.shop = row;
+}
+
+/** Deal the shared market's initial display from its (already shuffled) deck. */
+export function dealMarket(state: GameState): void {
+  const row: (CardDef | null)[] = [];
+  for (let i = 0; i < MARKET_SIZE; i++) row.push(state.marketDeck.pop() ?? null);
+  state.market = row;
+}
+
+/** A bought market slot refills immediately; the market itself never rotates. */
+export function refillMarketSlot(state: GameState, index: number): void {
+  state.market[index] = state.marketDeck.pop() ?? null;
 }

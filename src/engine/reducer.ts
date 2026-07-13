@@ -1,7 +1,7 @@
 import { applyEffect, conditionHolds, damagePlayer } from './effects';
 import { rollDie } from './rng';
-import { dealRow } from './shop';
-import type { Action, AllocationMode, GameState, QueuedEffect, Rng } from './types';
+import { dealRow, refillMarketSlot } from './shop';
+import type { Action, AllocationMode, CardDef, GameState, QueuedEffect, Rng } from './types';
 
 /** Everything the UI and bot may do right now. They consume this and
  *  applyAction only; neither ever computes rules on its own. */
@@ -52,6 +52,12 @@ export function legalActions(state: GameState): Action[] {
         if (!card || Math.max(0, card.cost - me.buyDiscount) > me.money) return;
         for (const targetSlot of card.legalSlots) {
           actions.push({ type: 'BUY', shopIndex, targetSlot });
+        }
+      });
+      state.market.forEach((card, marketIndex) => {
+        if (!card || Math.max(0, card.cost - me.buyDiscount) > me.money) return;
+        for (const targetSlot of card.legalSlots) {
+          actions.push({ type: 'BUY_MARKET', marketIndex, targetSlot });
         }
       });
       return actions;
@@ -128,13 +134,14 @@ function perform(next: GameState, action: Action, rng: Rng): void {
     case 'BUY': {
       const me = next.players[next.current]!;
       const card = me.shop[action.shopIndex]!;
-      me.money -= Math.max(0, card.cost - me.buyDiscount);
-      me.buyDiscount = 0; // the discount rode this buy
-      const displaced = me.board[action.targetSlot - 1]!;
-      me.echoStack.push({ def: displaced, slot: action.targetSlot });
-      me.board[action.targetSlot - 1] = card;
       me.shop[action.shopIndex] = null;
-      next.phase = 'end'; // max 1 buy per turn
+      installCard(next, card, action.targetSlot);
+      break;
+    }
+    case 'BUY_MARKET': {
+      const card = next.market[action.marketIndex]!;
+      refillMarketSlot(next, action.marketIndex); // first come, first served
+      installCard(next, card, action.targetSlot);
       break;
     }
     case 'SKIP_BUY':
@@ -144,6 +151,17 @@ function perform(next: GameState, action: Action, rng: Rng): void {
       endTurn(next, rng);
       break;
   }
+}
+
+/** Pays for and installs a purchased card; the displaced card retires. */
+function installCard(state: GameState, card: CardDef, targetSlot: number): void {
+  const me = state.players[state.current]!;
+  me.money -= Math.max(0, card.cost - me.buyDiscount);
+  me.buyDiscount = 0; // the discount rode this buy
+  const displaced = me.board[targetSlot - 1]!;
+  me.echoStack.push({ def: displaced, slot: targetSlot });
+  me.board[targetSlot - 1] = card;
+  state.phase = 'end'; // max 1 buy per turn, shop and market combined
 }
 
 function assertLegal(state: GameState, action: Action): void {
@@ -188,6 +206,19 @@ function assertLegal(state: GameState, action: Action): void {
       const me = state.players[state.current]!;
       const card = me.shop[action.shopIndex];
       if (!card) throw new Error(`nothing at shop index ${action.shopIndex}`);
+      if (Math.max(0, card.cost - me.buyDiscount) > me.money) {
+        throw new Error(`cannot afford ${card.id}`);
+      }
+      if (!card.legalSlots.includes(action.targetSlot)) {
+        throw new Error(`slot ${action.targetSlot} is not legal for ${card.id}`);
+      }
+      return;
+    }
+    case 'BUY_MARKET': {
+      if (state.phase !== 'buy') return fail();
+      const me = state.players[state.current]!;
+      const card = state.market[action.marketIndex];
+      if (!card) throw new Error(`nothing at market index ${action.marketIndex}`);
       if (Math.max(0, card.cost - me.buyDiscount) > me.money) {
         throw new Error(`cannot afford ${card.id}`);
       }

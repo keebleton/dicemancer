@@ -61,15 +61,8 @@ describe('card pools', () => {
   });
 
   it('respects the cost bands per rarity', () => {
-    const all = [
-      ...RED_CARDS,
-      ...BLUE_CARDS,
-      ...BLACK_CARDS,
-      ...GREEN_CARDS,
-      ...YELLOW_CARDS,
-      ...COLORLESS_CARDS,
-    ];
-    for (const c of all) {
+    const colored = [...RED_CARDS, ...BLUE_CARDS, ...BLACK_CARDS, ...GREEN_CARDS, ...YELLOW_CARDS];
+    for (const c of colored) {
       if (c.rarity === 'common') {
         expect(c.cost, c.id).toBeGreaterThanOrEqual(3);
         expect(c.cost, c.id).toBeLessThanOrEqual(5);
@@ -77,6 +70,11 @@ describe('card pools', () => {
         expect(c.cost, c.id).toBeGreaterThanOrEqual(7);
         expect(c.cost, c.id).toBeLessThanOrEqual(10);
       }
+    }
+    // Colorless are shared-market artifacts: premium band regardless of rarity.
+    for (const c of COLORLESS_CARDS) {
+      expect(c.cost, c.id).toBeGreaterThanOrEqual(7);
+      expect(c.cost, c.id).toBeLessThanOrEqual(14);
     }
   });
 

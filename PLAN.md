@@ -102,12 +102,13 @@ interface CardDef {
 ### Content targets (Phase 5)
 ~15 cards per color (≈10 common / 5 rare, respecting each color's slot pattern and at least 3 cards per color in the 7–12 range) + ~10 colorless. Generate following the guidelines above; flag anything that breaks a design pillar rather than silently bending it.
 
-## 5. Shop
+## 5. Shop + the Market (market split added 2026-07-13)
 
-- Each player has their own shop row of **5 cards: 3 from their color pool + 2 colorless**, dealt from shuffled pools.
+- Each player has their own shop row of **4 own-color cards**, dealt from their shuffled pool.
 - Entire row refreshes at the start of that player's turn (aggressive rotation is intentional — forces adaptability).
-- Max 1 purchase per turn. Money persists between turns.
-- Empty pool: reshuffle that pool's unbought discards.
+- **THE MARKET**: one shared display of **4 colorless artifacts** dealt from a single shared deck. Static — it never rotates; a bought slot refills from the deck immediately. All players compete over it, first come first served. Colorless cards are premium-priced (8–14) and stronger than color cards to match.
+- Max 1 purchase per turn across shop AND market. Money persists between turns.
+- Empty color pool: reshuffle that pool's unbought discards. Empty market deck: sold-out slots stay empty.
 
 ## 6. Architecture (this is the part that matters most)
 

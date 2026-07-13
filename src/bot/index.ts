@@ -243,8 +243,8 @@ function bestBuy(state: GameState, actions: Action[]): Action {
   let best: Action | null = null;
   let bestScore = 0; // a buy must beat "keep the money"
   for (const a of actions) {
-    if (a.type !== 'BUY') continue;
-    const card = me.shop[a.shopIndex]!;
+    if (a.type !== 'BUY' && a.type !== 'BUY_MARKET') continue;
+    const card = a.type === 'BUY' ? me.shop[a.shopIndex]! : state.market[a.marketIndex]!;
     const prob = triggerProb(a.targetSlot);
     const gain =
       (scoreEffects(state, card.active, seat)

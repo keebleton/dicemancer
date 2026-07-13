@@ -76,6 +76,11 @@ export function describeTransition(prev: GameState, action: Action, next: GameSt
       lines.push(`${who} buys ${card?.name ?? '?'} into slot ${action.targetSlot}`);
       break;
     }
+    case 'BUY_MARKET': {
+      const card = prev.market[action.marketIndex];
+      lines.push(`${who} buys ${card?.name ?? '?'} from the MARKET into slot ${action.targetSlot}`);
+      break;
+    }
     case 'SKIP_BUY':
       lines.push(`${who} skips the shop`);
       break;

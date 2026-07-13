@@ -117,7 +117,7 @@ export function playForDispatch(
   pulses: StatPulse[],
 ): void {
   if (action.type === 'ROLL') sfx.roll();
-  else if (action.type === 'BUY') sfx.buy();
+  else if (action.type === 'BUY' || action.type === 'BUY_MARKET') sfx.buy();
   else if (action.type === 'SPEND_TOKEN' || action.type === 'SKIP_BUY') sfx.click();
   else if (
     action.type === 'ALLOCATE' ||

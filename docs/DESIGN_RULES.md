@@ -44,7 +44,7 @@ If a design needs a new primitive: STOP, flag it in your summary with the propos
 - BLACK "Gravebound": legal slots from {1,6} and sums {2,12} (the doubles-only sums). rolledDoubles payoffs and echoStackAtLeast (graveyard) scaling — black WANTS to retire cards. Echo flavor: points from the grave. Win lean: snowballing echo engine + doubles jackpots.
 - GREEN "Wildgrove": legal slots from {1,3,5} and sums {3,5,9} (all odd). bothDiceOdd payoffs and shop economy (discount, refreshShop). Note: bothDiceOdd can only pay on green's INDIVIDUAL slots (odd sums need mixed dice) — that tension is intentional. Echo flavor: money trickle. Win lean: value engine.
 - YELLOW "Gildmint": legal slots from {2,4} and sums {6,8}. Raw coin generation plus trade() conversions flipping money into points or HP. Echo flavor: money trickle. Win lean: outspend, then convert.
-- COLORLESS: any slot (player picks at purchase). Money + generic utility only. No damage, no tokens.
+- COLORLESS: shared-MARKET artifacts (2026-07-13), not in personal shops. Premium band cost 8–14 regardless of rarity, noticeably stronger than color cards. Any slot (buyer picks at purchase). Money + generic utility only. No damage, no tokens.
 
 ## Output contract for content
 - Cards live in src/content/cards.ts as CardDef data. Valid TypeScript. Unique ids (kebab-case name).

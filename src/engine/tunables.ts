@@ -17,7 +17,9 @@ export const DEFAULT_TUNABLES: Tunables = {
  *  scaling PLAN section 8 anticipated. Explicit startingHp overrides win. */
 export const HP_BY_PLAYER_COUNT: Record<number, number> = { 2: 22, 3: 18, 4: 16 };
 
-/** Shop row: 3 from the seat's color pool + 2 colorless.
- *  Buys per turn is 1, hardcoded in the phase machine (BUY -> end). */
-export const SHOP_COLOR_CARDS = 3;
-export const SHOP_COLORLESS_CARDS = 2;
+/** Personal shop row: own-color cards only (colorless moved to the shared
+ *  market, 2026-07-13). Buys per turn is 1 across shop AND market, hardcoded
+ *  in the phase machine (any buy -> end). */
+export const SHOP_COLOR_CARDS = 4;
+/** The shared colorless market: static display, refills from its deck on purchase. */
+export const MARKET_SIZE = 4;

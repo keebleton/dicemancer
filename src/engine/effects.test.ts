@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COLORLESS_CARDS, RED_CARDS } from '../content/cards';
+import { RED_CARDS } from '../content/cards';
 import { applyAction, legalActions } from './reducer';
 import { mulberry32 } from './rng';
 import { deadRng, diceRng, newGame, newPoolGame, testCard } from './test-helpers';
@@ -22,20 +22,19 @@ describe('remaining primitives', () => {
     expect(s.players[0]!.hp).toBe(25);
   });
 
-  it('refreshShop redeals the owner row without losing cards', () => {
+  it('refreshShop redeals the owner row without losing cards or touching the market', () => {
     const s0 = newPoolGame(2, 5);
     const before = s0.players[0]!.shop.map((c) => c?.id);
+    const marketBefore = s0.market.map((c) => c?.id);
     const s = fireSlot1(s0, [{ kind: 'refreshShop' }]);
     const p = s.players[0]!;
     expect(p.shop.every((c) => c !== null)).toBe(true); // pools easily cover a redeal
     // Conservation: every pool card stays in circulation, wherever it sits.
-    const colorCount = p.colorDeck.length + p.colorDiscard.length
-      + p.shop.filter((c) => c && c.color !== 'colorless').length;
-    const colorlessCount = p.colorlessDeck.length + p.colorlessDiscard.length
-      + p.shop.filter((c) => c && c.color === 'colorless').length;
+    const colorCount =
+      p.colorDeck.length + p.colorDiscard.length + p.shop.filter((c) => c !== null).length;
     expect(colorCount).toBe(RED_CARDS.length);
-    expect(colorlessCount).toBe(COLORLESS_CARDS.length);
-    expect(before).toHaveLength(5); // sanity: there was a row to replace
+    expect(s.market.map((c) => c?.id)).toEqual(marketBefore); // the market is static
+    expect(before).toHaveLength(4); // sanity: there was a row to replace
   });
 });
 

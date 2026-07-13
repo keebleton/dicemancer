@@ -17,12 +17,12 @@ export function Game() {
   const log = useGame((s) => s.log);
   const pulses = useGame((s) => s.pulses);
   const [preview, setPreview] = useState<AllocationMode | null>(null);
-  const [buyIndex, setBuyIndex] = useState<number | null>(null);
+  const [buySel, setBuySel] = useState<{ src: 'shop' | 'market'; i: number } | null>(null);
   const [muted, setMutedState] = useState(isMuted());
 
   useEffect(() => {
     setPreview(null);
-    setBuyIndex(null);
+    setBuySel(null);
   }, [game.current, game.phase]);
 
   // Whoever must decide next (roller, or an echo chooser) auto-plays if a bot.
@@ -43,11 +43,16 @@ export function Game() {
   const actions = legalActions(game);
   const me = game.players[game.current]!;
   const previewSlots = preview && game.dice ? previewNumbers(game.dice, preview) : [];
-  const buys = actions.filter((a): a is Action & { type: 'BUY' } => a.type === 'BUY');
+  const shopBuys = actions.filter((a): a is Action & { type: 'BUY' } => a.type === 'BUY');
+  const marketBuys = actions.filter(
+    (a): a is Action & { type: 'BUY_MARKET' } => a.type === 'BUY_MARKET',
+  );
   const buySlots =
-    buyIndex === null
+    buySel === null
       ? []
-      : buys.filter((a) => a.shopIndex === buyIndex).map((a) => a.targetSlot);
+      : buySel.src === 'shop'
+        ? shopBuys.filter((a) => a.shopIndex === buySel.i).map((a) => a.targetSlot)
+        : marketBuys.filter((a) => a.marketIndex === buySel.i).map((a) => a.targetSlot);
   const firedSlots =
     game.lastAllocation && game.phase !== 'roll' && game.phase !== 'allocate'
       ? game.lastAllocation.numbers
@@ -99,23 +104,76 @@ export function Game() {
         botActing={botTurn}
       />
 
+      {game.winner === null && game.market.length > 0 && (
+        <section className="panel marketpanel">
+          <b>The Market</b>{' '}
+          <span className="dimtext">
+            shared artifacts, first come first served ({game.marketDeck.length} left in the deck)
+          </span>
+          <div>
+            {game.market.map((card, i) => {
+              const buyable = humanRoller && marketBuys.some((a) => a.marketIndex === i);
+              const sel = buySel?.src === 'market' && buySel.i === i;
+              return card ? (
+                <div
+                  key={i}
+                  className={
+                    'shopcard market' + (sel ? ' selected' : '') + (buyable ? '' : ' dead')
+                  }
+                  onClick={() => {
+                    if (buyable) setBuySel(sel ? null : { src: 'market', i });
+                  }}
+                >
+                  <b>
+                    {card.icon && (
+                      <img
+                        className="cicon"
+                        src={iconUrl(card.icon)}
+                        alt=""
+                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                      />
+                    )}{' '}
+                    {card.name}
+                  </b>{' '}
+                  ({card.cost})<br />
+                  <span className={card.color}>{card.color}</span> | slots any
+                  <div className="fxline">
+                    <span className="rowlab">roll</span>
+                    <EffectIcons effects={card.active} context="active" />
+                  </div>
+                  <div className="fxline dim">
+                    <span className="rowlab">echo</span>
+                    <EffectIcons effects={card.echo} context="echo" />
+                  </div>
+                </div>
+              ) : (
+                <div key={i} className="shopcard dead">
+                  (sold out)
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {game.winner === null && me.shop.length > 0 && (
         <section className="panel">
           <b>{me.name}{"'"}s shop</b> (money: {me.money})
           <div>
             {me.shop.map((card, i) => {
-              const buyable = humanRoller && buys.some((a) => a.shopIndex === i);
+              const buyable = humanRoller && shopBuys.some((a) => a.shopIndex === i);
+              const sel = buySel?.src === 'shop' && buySel.i === i;
               return card ? (
                 <div
                   key={i}
                   className={
                     'shopcard' +
                     (card.rarity === 'rare' ? ' rare' : '') +
-                    (buyIndex === i ? ' selected' : '') +
+                    (sel ? ' selected' : '') +
                     (buyable ? '' : ' dead')
                   }
                   onClick={() => {
-                    if (buyable) setBuyIndex(buyIndex === i ? null : i);
+                    if (buyable) setBuySel(sel ? null : { src: 'shop', i });
                   }}
                 >
                   <b>
@@ -148,10 +206,10 @@ export function Game() {
               );
             })}
           </div>
-          {buyIndex !== null && (
+          {buySel !== null && (
             <div className="hint">
               click a glowing board slot to install{' '}
-              <button onClick={() => setBuyIndex(null)}>cancel</button>
+              <button onClick={() => setBuySel(null)}>cancel</button>
             </div>
           )}
         </section>
@@ -168,9 +226,13 @@ export function Game() {
           fired={seat === game.current ? firedSlots : []}
           buyable={seat === game.current ? buySlots : []}
           onSlotClick={(slot) => {
-            if (buyIndex !== null && buySlots.includes(slot)) {
-              dispatch({ type: 'BUY', shopIndex: buyIndex, targetSlot: slot });
-              setBuyIndex(null);
+            if (buySel !== null && buySlots.includes(slot)) {
+              dispatch(
+                buySel.src === 'shop'
+                  ? { type: 'BUY', shopIndex: buySel.i, targetSlot: slot }
+                  : { type: 'BUY_MARKET', marketIndex: buySel.i, targetSlot: slot },
+              );
+              setBuySel(null);
             }
           }}
         />
