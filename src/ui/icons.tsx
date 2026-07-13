@@ -297,8 +297,8 @@ export function IconLegend() {
       <span className="fxchip glyph">{'±'} nudge</span>
       <span className="fxchip glyph">{'⟳'} new shop</span>
       <span className="dimtext">
-        card face = what fires when its number is rolled | purple tab = retired cards echoing
-        there, paying out on other players' turns | hover anything for full text
+        roll = fires when its number lands | dim echo row = what that card echoes once retired |
+        purple tab = retired cards echoing there now, paying on other players' turns
       </span>
     </div>
   );

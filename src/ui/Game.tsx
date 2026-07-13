@@ -334,7 +334,12 @@ function PlayerPanel(props: {
                   <span className="slotnum">{slot}</span> {card.name}
                 </div>
                 <div className="fxline">
+                  <span className="rowlab">roll</span>
                   <EffectIcons effects={card.active} context="active" />
+                </div>
+                <div className="fxline dim">
+                  <span className="rowlab">echo</span>
+                  <EffectIcons effects={card.echo} context="echo" />
                 </div>
               </div>
             </div>
