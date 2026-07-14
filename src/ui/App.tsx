@@ -119,13 +119,26 @@ function AccountBox() {
     );
   }
 
+  // Signed in but the profile row is still on its way (or failed to load).
+  if (!acc.profile) {
+    return (
+      <section className="netbox">
+        <div className="netrow">
+          <span className="dimtext">loading account...</span>
+          <button onClick={() => acc.signOut()}>sign out</button>
+        </div>
+        {acc.error && <div className="err">{acc.error}</div>}
+      </section>
+    );
+  }
+
   return (
     <section className="netbox">
       <div className="netrow">
-        <img className="avatar" src={iconUrl(acc.profile!.avatar_icon)} alt="" onError={iconError} />
-        <b>{acc.profile!.username}</b>
+        <img className="avatar" src={iconUrl(acc.profile.avatar_icon)} alt="" onError={iconError} />
+        <b>{acc.profile.username}</b>
         <span className="dimtext">
-          {acc.profile!.games_won} wins / {acc.profile!.games_played} games
+          {acc.profile.games_won} wins / {acc.profile.games_played} games
         </span>
         <button onClick={openEditor}>edit</button>
         <button onClick={() => acc.signOut()}>sign out</button>

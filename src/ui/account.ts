@@ -63,7 +63,9 @@ export const useAccount = create<AccountStore>()((set, get) => ({
     supa.auth.onAuthStateChange((_event, session) => {
       const user = session?.user ?? null;
       set({ userId: user?.id ?? null, email: user?.email ?? null });
-      if (user) void loadProfile(user.id);
+      // Deferred on purpose: supabase-js deadlocks on client calls made
+      // synchronously inside this callback.
+      if (user) setTimeout(() => void loadProfile(user.id), 0);
       else set({ profile: null, needsProfile: false });
     });
     void get().refreshCommunity();
