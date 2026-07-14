@@ -17,6 +17,9 @@ function pooledGame(playerCount: number, rng: Rng): GameState {
       })),
       starterBoard: starterBoard(),
       pools: pools(),
+      // Random play needs the failsafe to terminate; the shipping default is
+      // uncapped (roundCap 0) since 2026-07-14.
+      tunables: { roundCap: 25 },
     },
     rng,
   );
@@ -44,7 +47,7 @@ function assertInvariants(s: GameState): void {
     expect(p.hp).toBeLessThanOrEqual(s.tunables.startingHp);
     expect(p.board).toHaveLength(12);
   }
-  expect(s.round).toBeLessThanOrEqual(s.tunables.roundCap);
+  if (s.tunables.roundCap > 0) expect(s.round).toBeLessThanOrEqual(s.tunables.roundCap);
   expect(s.players.some((p) => !p.eliminated)).toBe(true);
 }
 

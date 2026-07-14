@@ -135,7 +135,7 @@ function run(
       });
     }
 
-    if (s.winner === null) throw new Error(`game ${g} did not finish`);
+    if (s.winner === null) continue; // uncapped stall: excluded from stats
     for (const c of colors) t.colorGames[c] += 1;
     t.colorWins[s.players[s.winner]!.color] += 1;
     for (const p of purchases) {

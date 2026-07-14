@@ -132,7 +132,8 @@ export function Game() {
         <div className="topbar">
           <h1>Dicemancer</h1>
           <span className="chip">
-            round {game.round}/{game.tunables.roundCap}
+            round {game.round}
+            {game.tunables.roundCap > 0 ? `/${game.tunables.roundCap}` : ''}
           </span>
           <span className={`chip turn ${me.color}`}>{me.name}{"'"}s turn</span>
           {mode !== 'offline' && roomCode && <span className="chip">room {roomCode}</span>}

@@ -161,7 +161,9 @@ export const useGame = create<GameStore>()((set, get) => {
       set({
         game,
         seatKinds,
-        log: [`game started: ${playerCount} players, round cap ${roundCap}`],
+        log: [
+          `game started: ${playerCount} players${roundCap > 0 ? `, round cap ${roundCap}` : ''}`,
+        ],
       });
     },
     dispatch: (action) => {

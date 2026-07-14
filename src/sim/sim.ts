@@ -29,6 +29,9 @@ export interface SimReport {
   colorGames: Record<SeatColor, number>;
   reasons: Record<WinReason, number>;
   avgRounds: number;
+  maxRounds: number;
+  /** Games that hit the 50k-step guard without a winner (uncapped stalls). */
+  unfinished: number;
   cards: CardRow[];
 }
 
@@ -53,6 +56,9 @@ export function simulate(
   const colorGames: Record<SeatColor, number> = { red: 0, blue: 0, black: 0, green: 0, yellow: 0 };
   const reasons: Record<WinReason, number> = { points: 0, ko: 0, failsafe: 0 };
   let totalRounds = 0;
+  let maxRounds = 0;
+  let unfinished = 0;
+  let finished = 0;
   const stats = new Map<string, { offered: number; bought: number; wonWith: number }>();
   const stat = (id: string) => {
     let s = stats.get(id);
@@ -97,12 +103,19 @@ export function simulate(
       s = applyActionInPlace(s, action, rng);
     }
 
-    if (s.winner === null) throw new Error(`game ${g} did not finish`);
+    if (s.winner === null) {
+      // Uncapped game hit the step guard: a genuine stall. Count it, keep it
+      // out of the balance stats.
+      unfinished += 1;
+      continue;
+    }
+    finished += 1;
     seatWins[s.winner] = (seatWins[s.winner] ?? 0) + 1;
     for (const color of colors) colorGames[color] += 1;
     colorWins[s.players[s.winner]!.color] += 1;
     reasons[s.winReason!] += 1;
     totalRounds += s.round;
+    maxRounds = Math.max(maxRounds, s.round);
     for (const p of purchases) {
       const row = stat(p.id);
       row.bought += 1;
@@ -126,7 +139,9 @@ export function simulate(
     colorWins,
     colorGames,
     reasons,
-    avgRounds: totalRounds / options.games,
+    avgRounds: totalRounds / Math.max(1, finished),
+    maxRounds,
+    unfinished,
     cards,
   };
 }
@@ -150,7 +165,10 @@ export function formatReport(r: SimReport): string {
   lines.push(
     `win reasons:    points ${pct(r.reasons.points, games)}  ko ${pct(r.reasons.ko, games)}  failsafe ${pct(r.reasons.failsafe, games)}`,
   );
-  lines.push(`avg length:     ${r.avgRounds.toFixed(1)} rounds`);
+  lines.push(`avg length:     ${r.avgRounds.toFixed(1)} rounds (longest ${r.maxRounds})`);
+  if (r.unfinished > 0) {
+    lines.push(`UNFINISHED:     ${r.unfinished} game(s) hit the step guard without a winner`);
+  }
   lines.push('');
   lines.push(
     'card'.padEnd(22) + 'offered'.padStart(8) + 'bought'.padStart(8) + 'pick%'.padStart(8)

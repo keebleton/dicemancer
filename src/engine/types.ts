@@ -112,6 +112,8 @@ export interface Tunables {
   startingHp: number;
   pointsToWin: number;
   startingMoney: number;
+  /** Failsafe round limit; 0 = no cap (2026-07-14, Jake: caps are
+   *  anticlimactic). Games then end only by points or KO. */
   roundCap: number;
   playerMin: number;
   playerMax: number;

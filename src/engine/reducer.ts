@@ -459,7 +459,7 @@ function endTurn(state: GameState, rng: Rng): void {
   const nextSeat = nextLiving(state, state.current);
   const wrapped = nextSeat <= state.current;
 
-  if (wrapped && state.round >= state.tunables.roundCap) {
+  if (wrapped && state.tunables.roundCap > 0 && state.round >= state.tunables.roundCap) {
     // Failsafe: highest points among the living, HP then seat break ties.
     const ranked = state.players
       .map((p, seat) => ({ p, seat }))

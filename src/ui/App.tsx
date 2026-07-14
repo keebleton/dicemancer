@@ -156,7 +156,6 @@ function Setup({ onLab }: { onLab: () => void }) {
   const joinRoom = useGame((s) => s.joinRoom);
   const netNotice = useGame((s) => s.netNotice);
   const [count, setCount] = useState(2);
-  const [cap, setCap] = useState(25);
   const [kinds, setKinds] = useState<SeatKind[]>(['human', 'bot', 'bot', 'bot']);
   const [colors, setColors] = useState<SeatColor[]>(['red', 'blue', 'green', 'yellow']);
   const [packs, setPacks] = useState(() => loadPacks());
@@ -268,16 +267,6 @@ function Setup({ onLab }: { onLab: () => void }) {
           ))}
         </div>
       ))}
-      <div>
-        round cap:{' '}
-        <input
-          type="number"
-          min={1}
-          max={99}
-          value={cap}
-          onChange={(e) => setCap(Number(e.target.value) || 25)}
-        />
-      </div>
       {packs.length > 0 && (
         <div>
           card packs:{' '}
@@ -293,7 +282,7 @@ function Setup({ onLab }: { onLab: () => void }) {
           ))}
         </div>
       )}
-      <button className="primary" onClick={() => start(count, cap, undefined, kinds, colors)}>
+      <button className="primary" onClick={() => start(count, 0, undefined, kinds, colors)}>
         Start game
       </button>
       <button onClick={onLab}>Card Lab</button>
@@ -309,7 +298,6 @@ function OnlineLobby() {
   const startOnline = useGame((s) => s.startOnline);
   const leaveOnline = useGame((s) => s.leaveOnline);
   const [bots, setBots] = useState(0);
-  const [cap, setCap] = useState(25);
   const [colors, setColors] = useState<SeatColor[]>(['red', 'blue', 'green', 'yellow']);
   const humans = Math.max(1, lobby.length);
   const maxBots = Math.max(0, 4 - humans);
@@ -360,20 +348,10 @@ function OnlineLobby() {
               </button>
             ))}
           </div>
-          <div>
-            round cap:{' '}
-            <input
-              type="number"
-              min={1}
-              max={99}
-              value={cap}
-              onChange={(e) => setCap(Number(e.target.value) || 25)}
-            />
-          </div>
           <button
             className="primary"
             disabled={total < 2}
-            onClick={() => startOnline(botCount, cap, colors)}
+            onClick={() => startOnline(botCount, 0, colors)}
           >
             {total < 2 ? 'waiting for players...' : `Start game (${total} players)`}
           </button>

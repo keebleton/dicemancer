@@ -6,7 +6,7 @@ export const DEFAULT_TUNABLES: Tunables = {
   pointsToWin: 30,
   // 5 -> 2 (Jake 2026-07-13): colorless artifacts came online too fast.
   startingMoney: 2,
-  roundCap: 25,
+  roundCap: 0, // uncapped by default since 2026-07-14; 0 = no round limit
   playerMin: 2,
   playerMax: 4,
   // ON since 2026-07-13 (Jake): slots 7-12 fire so rarely on the active side
