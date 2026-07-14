@@ -8,6 +8,7 @@ import { CardFace } from './CardFace';
 import { fxList } from './describe';
 import {
   builtinIds,
+  iconError,
   iconUrl,
   loadOverrides,
   loadPacks,
@@ -777,6 +778,7 @@ function IconPicker({ onPick, onClose }: { onPick: (n: string) => void; onClose:
               alt={n}
               title={n}
               loading="lazy"
+              onError={iconError}
               onClick={() => onPick(n)}
             />
           ))}

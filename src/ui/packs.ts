@@ -186,7 +186,27 @@ export function validateCard(card: CardDef): CardCheck {
 /** URL for a WoW icon. Icons referenced by shipped cards live in public/icons
  *  (synced by scripts/sync-icons.mjs, deployed with the site); in dev the
  *  server additionally serves the full local dump at the same path (see
- *  vite.config.ts) so the Lab picker's whole catalog renders. A missing file
- *  just 404s; callers hide the img onError. */
+ *  vite.config.ts). Anything not shipped falls back to the icon repo's free
+ *  CDN via iconError, so the deployed card builder and avatar picker can use
+ *  the whole 23k catalog without us hosting it. */
 export const iconUrl = (name: string): string =>
   `${import.meta.env.BASE_URL}icons/${encodeURIComponent(name)}`;
+
+export const iconCdnUrl = (name: string): string =>
+  `https://cdn.jsdelivr.net/gh/Gethe/wow-ui-textures/ICONS/${encodeURIComponent(name)}`;
+
+/** onError for icon imgs: retry once from the CDN, then hide. */
+export function iconError(e: { currentTarget: HTMLImageElement }): void {
+  const img = e.currentTarget;
+  if (!img.src.includes('cdn.jsdelivr.net')) {
+    img.src = iconCdnUrl(decodeURIComponent(img.src.split('/').pop() ?? ''));
+  } else {
+    img.style.display = 'none';
+  }
+}
+
+/** onLoad partner: un-hides an img a previous card's failure hid (React can
+ *  reuse the DOM node when the board re-renders with different cards). */
+export function iconLoaded(e: { currentTarget: HTMLImageElement }): void {
+  e.currentTarget.style.display = '';
+}

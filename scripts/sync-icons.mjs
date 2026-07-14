@@ -38,10 +38,16 @@ for (const name of referenced) {
   copied += 1;
 }
 
-const shipped = readdirSync(OUT_DIR)
+// The deployed manifest lists the WHOLE catalog: shipped icons resolve from
+// public/icons, the rest fall back to the icon repo's CDN (iconError in
+// packs.ts). This is what lets the website's card builder and avatar picker
+// browse all 23k icons without us hosting them.
+const catalog = readdirSync(ICONS_DIR)
   .filter((f) => f.toLowerCase().endsWith('.png'))
   .sort();
-writeFileSync(join(root, 'public', 'wow-icons.json'), JSON.stringify(shipped));
+writeFileSync(join(root, 'public', 'wow-icons.json'), JSON.stringify(catalog));
 
-console.log(`synced ${copied} icons (${shipped.length} shipped total) into public/icons`);
+console.log(
+  `synced ${copied} shipped icons into public/icons; manifest lists ${catalog.length}`,
+);
 if (missing.length) console.warn(`MISSING from the dump: ${missing.join(', ')}`);

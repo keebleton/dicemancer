@@ -3,7 +3,7 @@
 // and the Card Lab. Presentation only.
 import type { CardDef } from '../engine';
 import { EffectIcons } from './icons';
-import { iconUrl } from './packs';
+import { iconError, iconLoaded, iconUrl } from './packs';
 
 export const TINT: Record<string, string> = {
   red: '#8a3b34',
@@ -37,11 +37,7 @@ export function CardFace(props: {
     <div className="cface">
       <div className="cart" style={{ background: tint }}>
         {card.icon && (
-          <img
-            src={iconUrl(card.icon)}
-            alt=""
-            onError={(e) => (e.currentTarget.style.display = 'none')}
-          />
+          <img src={iconUrl(card.icon)} alt="" onError={iconError} onLoad={iconLoaded} />
         )}
         <span className="cbadge cslots">{slotBadge ?? slotLabel(card.legalSlots)}</span>
         {showCost && <span className="cbadge ccost">{card.cost}</span>}

@@ -5,7 +5,7 @@ import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
 import { CardFace, TINT } from './CardFace';
 import { fxList } from './describe';
 import { aggregateEchoEffects, Die, EffectIcons, IconLegend, StatChips } from './icons';
-import { iconUrl } from './packs';
+import { iconError, iconLoaded, iconUrl } from './packs';
 import { isMuted, setMuted } from './sfx';
 import { useGame } from './store';
 import type { StatPulse } from './store';
@@ -597,11 +597,7 @@ function OppMat(props: {
               title={tip}
             >
               {card.icon && (
-                <img
-                  src={iconUrl(card.icon)}
-                  alt=""
-                  onError={(e) => (e.currentTarget.style.display = 'none')}
-                />
+                <img src={iconUrl(card.icon)} alt="" onError={iconError} onLoad={iconLoaded} />
               )}
               <span className="mininum">{slot}</span>
               {echoesHere.length > 0 && <span className="miniecho">{echoesHere.length}</span>}
