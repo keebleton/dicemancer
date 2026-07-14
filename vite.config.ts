@@ -2,8 +2,9 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
 import react from '@vitejs/plugin-react';
-import { defineConfig, searchForWorkspaceRoot } from 'vite';
+import { searchForWorkspaceRoot } from 'vite';
 import type { Plugin } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 // WoW icon dump for the Card Lab (internal testing art). Lives OUTSIDE the
 // repo and OneDrive on purpose: 23k files. Dev-server only; missing folder
@@ -53,5 +54,10 @@ export default defineConfig({
   plugins: [react(), iconManifest()],
   server: {
     fs: { allow: [searchForWorkspaceRoot(process.cwd()), 'C:/DicemancerAssets'] },
+  },
+  test: {
+    // The full-game determinism tests take ~2s alone and can exceed vitest's
+    // 5s default when the suite runs on a loaded machine.
+    testTimeout: 20_000,
   },
 });
