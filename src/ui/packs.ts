@@ -183,7 +183,10 @@ export function validateCard(card: CardDef): CardCheck {
   return { errors, warnings };
 }
 
-/** Dev-server URL for a WoW icon file (see vite.config.ts). Missing folder or
- *  a production build just means the img 404s; callers hide it onError. */
+/** URL for a WoW icon. Icons referenced by shipped cards live in public/icons
+ *  (synced by scripts/sync-icons.mjs, deployed with the site); in dev the
+ *  server additionally serves the full local dump at the same path (see
+ *  vite.config.ts) so the Lab picker's whole catalog renders. A missing file
+ *  just 404s; callers hide the img onError. */
 export const iconUrl = (name: string): string =>
-  '/@fs/C:/DicemancerAssets/wow-ui-textures/ICONS/' + name;
+  `${import.meta.env.BASE_URL}icons/${encodeURIComponent(name)}`;

@@ -734,7 +734,7 @@ function IconPicker({ onPick, onClose }: { onPick: (n: string) => void; onClose:
 
   useEffect(() => {
     if (manifestCache !== null) return;
-    fetch('/wow-icons.json')
+    fetch(`${import.meta.env.BASE_URL}wow-icons.json`)
       .then((r) => (r.ok ? (r.json() as Promise<string[]>) : []))
       .then((list) => {
         manifestCache = list;

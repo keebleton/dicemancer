@@ -1,4 +1,5 @@
-import { readdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import process from 'node:process';
 import react from '@vitejs/plugin-react';
 import { defineConfig, searchForWorkspaceRoot } from 'vite';
@@ -13,15 +14,34 @@ function iconManifest(): Plugin {
   return {
     name: 'wow-icon-manifest',
     configureServer(server) {
-      server.middlewares.use('/wow-icons.json', (_req, res) => {
+      // Full catalog for the Lab picker (overrides the shipped-subset
+      // public/wow-icons.json while developing on a machine with the dump).
+      server.middlewares.use('/wow-icons.json', (_req, res, next) => {
         let names: string[] = [];
         try {
           names = readdirSync(ICONS_DIR).filter((f) => f.toLowerCase().endsWith('.png'));
         } catch {
-          // folder not on this machine; empty manifest
+          next(); // folder not on this machine; fall through to public/
+          return;
         }
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify(names));
+      });
+      // Serve any icon from the local dump at the shipped URL shape, so
+      // freshly picked Lab icons render before they are synced into public/.
+      server.middlewares.use('/icons', (req, res, next) => {
+        const name = decodeURIComponent((req.url ?? '').split('?')[0]!.replace(/^\//, ''));
+        if (!name || name.includes('..') || name.includes('/')) {
+          next();
+          return;
+        }
+        try {
+          const buf = readFileSync(join(ICONS_DIR, name));
+          res.setHeader('Content-Type', 'image/png');
+          res.end(buf);
+        } catch {
+          next(); // not in the dump; public/icons (or a 404) handles it
+        }
       });
     },
   };
