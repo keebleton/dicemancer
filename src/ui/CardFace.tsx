@@ -15,6 +15,15 @@ export const TINT: Record<string, string> = {
   starter: '#4a4f5e',
 };
 
+/** "any" for all 12, "7-12" for contiguous runs of 3+, else "4,6". */
+function slotLabel(slots: number[]): string {
+  if (slots.length >= 12) return 'any';
+  const s = [...slots].sort((a, b) => a - b);
+  const contiguous = s.every((v, i) => i === 0 || v === s[i - 1]! + 1);
+  if (contiguous && s.length >= 3) return `${s[0]}-${s[s.length - 1]}`;
+  return s.join(',');
+}
+
 export function CardFace(props: {
   card: CardDef;
   /** Board cells show the slot they occupy instead of the card's legal slots. */
@@ -34,9 +43,7 @@ export function CardFace(props: {
             onError={(e) => (e.currentTarget.style.display = 'none')}
           />
         )}
-        <span className="cbadge cslots">
-          {slotBadge ?? (card.legalSlots.length === 12 ? 'any' : card.legalSlots.join(','))}
-        </span>
+        <span className="cbadge cslots">{slotBadge ?? slotLabel(card.legalSlots)}</span>
         {showCost && <span className="cbadge ccost">{card.cost}</span>}
       </div>
       <div className="cstripe" style={{ background: tint }} />
