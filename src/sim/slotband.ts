@@ -54,7 +54,7 @@ function run(
   games: number,
   seed: number,
   activePools: ReturnType<typeof pools>,
-  tunables?: { highEchoHearsSum?: boolean; startingHp?: number },
+  tunables?: { highEchoHearsSum?: boolean; startingHp?: number; pointsToWin?: number },
 ): Tally {
   const t: Tally = {
     games,
@@ -305,8 +305,10 @@ const players = Number(process.argv[2] ?? 2);
 const games = Number(process.argv[3] ?? 2000);
 const variant = process.argv[4] ?? 'base';
 // The rule defaults ON in the engine now; 'nohiecho' turns it off for A/B.
-// Optional 4th arg: a startingHp override (e.g. `... 2 4000 base 26`).
+// Optional 4th/5th args: startingHp and pointsToWin overrides
+// (e.g. `... 2 4000 base 32 34`).
 const hpArg = Number(process.argv[5]);
+const ptwArg = Number(process.argv[6]);
 const echoRule = variant.includes('nohiecho')
   ? { highEchoHearsSum: false }
   : variant.includes('hiecho')
@@ -315,11 +317,12 @@ const echoRule = variant.includes('nohiecho')
 const tun = {
   ...(echoRule ?? {}),
   ...(Number.isFinite(hpArg) && hpArg > 0 ? { startingHp: hpArg } : {}),
+  ...(Number.isFinite(ptwArg) && ptwArg > 0 ? { pointsToWin: ptwArg } : {}),
 };
 const statVariant = variant.replace(/(no)?hiecho\+?/, '') || 'base';
 const t0 = Date.now();
 report(
-  `variant=${variant}${Number.isFinite(hpArg) && hpArg > 0 ? ` hp=${hpArg}` : ''}`,
+  `variant=${variant}${Number.isFinite(hpArg) && hpArg > 0 ? ` hp=${hpArg}` : ''}${Number.isFinite(ptwArg) && ptwArg > 0 ? ` ptw=${ptwArg}` : ''}`,
   players,
   run(players, games, 12345, variantPools(statVariant), Object.keys(tun).length ? tun : undefined),
 );

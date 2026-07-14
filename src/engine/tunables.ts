@@ -15,12 +15,11 @@ export const DEFAULT_TUNABLES: Tunables = {
 };
 
 /** HP by player count is THE damage-race lever; retuned whenever the economy
- *  moves. 2026-07-13 (starting money 5 -> 2, colorless high-band move, 25 new
- *  high cards): slower economies strengthened the 2p KO race (red hit 72% at
- *  HP 22) and weakened it at 4p (red 16% at HP 16). Re-simmed: 2p flattens at
- *  28 (red 49.8%), 3p stays fine at 18, 4p needs 14 (red exactly 25%).
- *  Explicit startingHp overrides win. */
-export const HP_BY_PLAYER_COUNT: Record<number, number> = { 2: 28, 3: 18, 4: 14 };
+ *  moves. 2026-07-14 (full-coverage expansion, 110 new cards): red's deeper
+ *  damage pool pushed the 2p race again; re-simmed with the Legion of Echoes
+ *  nerf and black threshold re-anchor, 2p lands at 31 (colors 47-53), 3p
+ *  stays 18, 4p stays 14. Explicit startingHp overrides win. */
+export const HP_BY_PLAYER_COUNT: Record<number, number> = { 2: 31, 3: 18, 4: 14 };
 
 /** Personal shop row: own-color cards only (colorless moved to the shared
  *  market, 2026-07-13). Buys per turn is 1 across shop AND market, hardcoded

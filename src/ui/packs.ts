@@ -132,6 +132,8 @@ export function builtinIds(): Set<string> {
   );
 }
 
+// Home slots per color: a LEAN, not a boundary (2026-07-14, Jake: every color
+// covers every slot; identity lives in the effects and where the power sits).
 const COLOR_SLOTS: Record<string, Set<number>> = {
   red: new Set([4, 5, 6, 9, 10, 11, 12]),
   blue: new Set([1, 2, 3, 4, 5, 7]),
@@ -171,8 +173,10 @@ export function validateCard(card: CardDef): CardCheck {
     warnings.push('design rules put rares at 7-10 cost');
   }
   const pattern = COLOR_SLOTS[card.color];
-  if (pattern && card.legalSlots.some((s) => !pattern.has(s))) {
-    warnings.push(`${card.color} normally stays on slots ${[...pattern].join(',')}`);
+  if (pattern && !card.legalSlots.some((s) => pattern.has(s))) {
+    warnings.push(
+      `${card.color}'s home slots are ${[...pattern].join(',')}; off-lean cards should run a little weaker`,
+    );
   }
   if (card.color === 'colorless') {
     const kinds = [...flatKinds(card.active), ...flatKinds(card.echo)];

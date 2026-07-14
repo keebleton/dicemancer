@@ -1,4 +1,4 @@
-﻿import type { CardDef } from '../engine/types';
+import type { CardDef } from '../engine/types';
 
 // The PLAN.md section 4 exemplar cards, verbatim. Placeholders, NOT balanced;
 // the pool grows to targets (~15/color + ~10 colorless) in Phase 5 and gets
@@ -285,6 +285,30 @@ export const RED_CARDS: CardDef[] = [
     ],
     echo: [{ kind: 'gainPoints', amount: 1 }],
   },
+  // --- 2026-07-14 full-coverage batch (Jake: every color on every slot).
+  // Red spreads onto 1-3 and 7-8 with SMALL burns; the big damage stays high.
+  { id: 'spark', name: 'Spark', icon: 'Ability_Mage_Flamecannon.PNG', color: 'red', rarity: 'common', cost: 3, legalSlots: [1], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'conditional', when: { sumAtLeast: 9 }, then: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'cinder-snap', name: 'Cinder Snap', icon: 'Ability_Essence_ReapingFlames.PNG', color: 'red', rarity: 'common', cost: 4, legalSlots: [1, 2], active: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'stoke-the-coals', name: 'Stoke the Coals', icon: 'INV_Pet_ScorchedStone.PNG', color: 'red', rarity: 'common', cost: 3, legalSlots: [2], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'conditional', when: { sumAtLeast: 8 }, then: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'first-flame', name: 'First Flame', icon: 'Ability_Racial_ForegedinFlames.PNG', color: 'red', rarity: 'common', cost: 4, legalSlots: [1, 3], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'conditional', when: { sumAtLeast: 8 }, then: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'tinderbox', name: 'Tinderbox', icon: 'Ability_Mage_WorldInFlames.PNG', color: 'red', rarity: 'common', cost: 4, legalSlots: [3], active: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'burning-hands', name: 'Burning Hands', icon: 'ABILITY_MAGE_MOLTENARMOR.PNG', color: 'red', rarity: 'common', cost: 5, legalSlots: [2, 3], active: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'seven-alarm-fire', name: 'Seven Alarm Fire', icon: 'Spell_Mage_InfernoBlast.PNG', color: 'red', rarity: 'common', cost: 4, legalSlots: [7], active: [{ kind: 'damage', amount: 2, target: 'chooseOpponent' }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'damage', amount: 1, target: 'roller' }] },
+  { id: 'lucky-match', name: 'Lucky Match', icon: 'Ability_Mage_GreaterPyroblast.PNG', color: 'red', rarity: 'common', cost: 5, legalSlots: [7], active: [{ kind: 'damage', amount: 2, target: 'chooseOpponent' }, { kind: 'gainPoints', amount: 1 }], echo: [{ kind: 'damage', amount: 1, target: 'roller' }] },
+  { id: 'slag-furnace', name: 'Slag Furnace', icon: 'Achievement_Boss_Forgemaster.PNG', color: 'red', rarity: 'common', cost: 4, legalSlots: [8], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'damage', amount: 1, target: 'chooseOpponent' }], echo: [{ kind: 'damage', amount: 2, target: 'roller' }] },
+  { id: 'blast-wave', name: 'Blast Wave', icon: 'Ability_Foundryraid_BlastWave.PNG', color: 'red', rarity: 'common', cost: 5, legalSlots: [8], active: [{ kind: 'damage', amount: 3, target: 'chooseOpponent' }, { kind: 'damage', amount: 1, target: 'roller' }], echo: [{ kind: 'damage', amount: 1, target: 'roller' }] },
+  { id: 'wildfire-front', name: 'Wildfire Front', icon: 'Spell_Fire_Ragnaros_MoltenInferno.PNG', color: 'red', rarity: 'rare', cost: 8, legalSlots: [7, 8], active: [{ kind: 'damage', amount: 3, target: 'chooseOpponent' }, { kind: 'gainPoints', amount: 1 }], echo: [{ kind: 'damage', amount: 2, target: 'roller' }] },
+  { id: 'molten-torrent', name: 'Molten Torrent', icon: 'Spell_BurningBladeShaman_Molten_Torrent.PNG', color: 'red', rarity: 'common', cost: 5, legalSlots: [9, 10], active: [{ kind: 'damage', amount: 3, target: 'chooseOpponent' }], echo: [{ kind: 'damage', amount: 1, target: 'roller' }] },
+  { id: 'lava-pool', name: 'Lava Pool', icon: 'Ability_Rhyolith_LavaPool.PNG', color: 'red', rarity: 'common', cost: 4, legalSlots: [4, 5], active: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'ember-tithe', name: 'Ember Tithe', icon: 'Ability_Warlock_MoltenCore.PNG', color: 'red', rarity: 'common', cost: 3, legalSlots: [5, 6], active: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'molten-corgi', name: 'Molten Corgi', icon: 'INV_moltenCorgi.PNG', color: 'red', rarity: 'common', cost: 3, legalSlots: [1], active: [{ kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  { id: 'grapeshot', name: 'Grapeshot', icon: 'Ability_IronMaidens_GrapeshotBlast.PNG', color: 'red', rarity: 'common', cost: 4, legalSlots: [2, 4], active: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }, { kind: 'conditional', when: { allocatedIndividually: true }, then: [{ kind: 'gainMoney', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'focused-blast', name: 'Focused Blast', icon: 'Ability_FelArakkoa_FocusedBlast.PNG', color: 'red', rarity: 'common', cost: 5, legalSlots: [3, 6], active: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'massive-blast', name: 'Massive Blast', icon: 'Ability_BossMannoroth_MassiveBlast.PNG', color: 'red', rarity: 'rare', cost: 8, legalSlots: [11], active: [{ kind: 'damage', amount: 4, target: 'chooseOpponent' }, { kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'damage', amount: 2, target: 'roller' }] },
+  { id: 'scorched-earth', name: 'Scorched Earth', icon: 'Ability_Mage_ScorchedEarth.PNG', color: 'red', rarity: 'rare', cost: 7, legalSlots: [7, 9], active: [{ kind: 'damage', amount: 2, target: 'chooseOpponent' }, { kind: 'gainPoints', amount: 2 }], echo: [{ kind: 'damage', amount: 2, target: 'roller' }] },
+  { id: 'forge-of-souls', name: 'Forge of Souls', icon: 'Achievement_Dungeon_Icecrown_ForgeofSouls.PNG', color: 'red', rarity: 'rare', cost: 9, legalSlots: [8, 10], active: [{ kind: 'damage', amount: 3, target: 'chooseOpponent' }, { kind: 'gainPoints', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'world-in-flames', name: 'World in Flames', icon: 'ABILITY_WARLOCK_INFERNO.PNG', color: 'red', rarity: 'rare', cost: 8, legalSlots: [12], active: [{ kind: 'damage', amount: 5, target: 'chooseOpponent' }, { kind: 'gainPoints', amount: 2 }], echo: [{ kind: 'damage', amount: 2, target: 'roller' }] },
+  { id: 'pilot-light', name: 'Pilot Light', icon: 'INV_Enchanting_70_Pet_Torch.PNG', color: 'red', rarity: 'common', cost: 3, legalSlots: [1, 6], active: [{ kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
 ];
 
 export const BLUE_CARDS: CardDef[] = [
@@ -572,6 +596,30 @@ export const BLUE_CARDS: CardDef[] = [
     ],
     echo: [{ kind: 'gainPoints', amount: 1 }],
   },
+  // --- 2026-07-14 full-coverage batch: blue flows onto 6 and 8-12 with
+  // steady money/points and the occasional token; the tricks stay low.
+  { id: 'cold-snap', name: 'Cold Snap', icon: 'ability_deathknight_pillaroffrost.PNG', color: 'blue', rarity: 'common', cost: 3, legalSlots: [6], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'frost-jaw', name: 'Frost Jaw', icon: 'Ability_Mage_FrostJaw.PNG', color: 'blue', rarity: 'common', cost: 4, legalSlots: [6], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'gainToken', token: 'reroll', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'ice-shard', name: 'Ice Shard', icon: 'Spell_Frost_IceShard.PNG', color: 'blue', rarity: 'common', cost: 5, legalSlots: [6, 8], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'gainPoints', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'water-jet', name: 'Water Jet', icon: 'Ability_Mage_WaterJet.PNG', color: 'blue', rarity: 'common', cost: 4, legalSlots: [8], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'gainToken', token: 'nudge', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'arcane-barrage', name: 'Arcane Barrage', icon: 'Ability_Mage_ArcaneBarrage.PNG', color: 'blue', rarity: 'common', cost: 5, legalSlots: [8, 9], active: [{ kind: 'gainPoints', amount: 1 }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'healing-tide', name: 'Healing Tide', icon: 'Ability_Shaman_HealingTide.PNG', color: 'blue', rarity: 'common', cost: 4, legalSlots: [9], active: [{ kind: 'heal', amount: 2 }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'heal', amount: 1 }] },
+  { id: 'deep-current', name: 'Deep Current', icon: 'Ability_Shaman_FortifyingWaters.PNG', color: 'blue', rarity: 'common', cost: 5, legalSlots: [9], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'gainPoints', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'mana-storm', name: 'Mana Storm', icon: 'Achievement_Dungeon_TheOtherSide_TheManaStorms.PNG', color: 'blue', rarity: 'common', cost: 4, legalSlots: [10], active: [{ kind: 'gainMoney', amount: 3 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  { id: 'frostfire', name: 'Frostfire', icon: 'Ability_Mage_FrostFireBolt.PNG', color: 'blue', rarity: 'rare', cost: 7, legalSlots: [10, 11], active: [{ kind: 'gainPoints', amount: 2 }, { kind: 'gainMoney', amount: 1 }, { kind: 'gainToken', token: 'reroll', amount: 1 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'ray-of-frost', name: 'Ray of Frost', icon: 'Ability_Mage_RayofFrost.PNG', color: 'blue', rarity: 'common', cost: 5, legalSlots: [11], active: [{ kind: 'gainPoints', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'throne-of-tides', name: 'Throne of the Tides', icon: 'Achievement_Dungeon_Throne of the Tides.PNG', color: 'blue', rarity: 'rare', cost: 8, legalSlots: [12], active: [{ kind: 'gainPoints', amount: 4 }], echo: [{ kind: 'gainPoints', amount: 2 }] },
+  { id: 'ozumat', name: 'Ozumat', icon: 'Achievement_Dungeon_Throne of the Tides_Ozumat.PNG', color: 'blue', rarity: 'rare', cost: 9, legalSlots: [12], active: [{ kind: 'gainMoney', amount: 4 }, { kind: 'gainPoints', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  { id: 'bubble', name: 'Bubble', icon: 'Creatureportrait_Bubble.PNG', color: 'blue', rarity: 'common', cost: 3, legalSlots: [1, 6], active: [{ kind: 'gainToken', token: 'nudge', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'water-shield', name: 'Water Shield', icon: 'Ability_Shaman_WaterShield.PNG', color: 'blue', rarity: 'common', cost: 4, legalSlots: [2, 6], active: [{ kind: 'heal', amount: 1 }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'heal', amount: 1 }] },
+  { id: 'mana-tree', name: 'Mana Tree', icon: 'Ability_Druid_ManaTree.PNG', color: 'blue', rarity: 'common', cost: 4, legalSlots: [3, 9], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'gainToken', token: 'reroll', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'chaotic-imprint', name: 'Chaotic Imprint', icon: 'Ability_DemonHunter_ChaoticImprint_Frost.PNG', color: 'blue', rarity: 'common', cost: 5, legalSlots: [4, 8], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'arcane-affinity', name: 'Arcane Affinity', icon: 'Ability_Racial_ArcaneAffinity.PNG', color: 'blue', rarity: 'common', cost: 5, legalSlots: [5, 7], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'gainToken', token: 'nudge', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'tidesage', name: 'Tidesage Council', icon: 'Achievement_Dungeon_TidesageCouncil.PNG', color: 'blue', rarity: 'rare', cost: 8, legalSlots: [7, 9], active: [{ kind: 'gainPoints', amount: 2 }, { kind: 'gainMoney', amount: 1 }, { kind: 'gainToken', token: 'reroll', amount: 1 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'force-sphere', name: 'Force Sphere', icon: 'Ability_Monk_ForceSphere_arcane.PNG', color: 'blue', rarity: 'rare', cost: 8, legalSlots: [10, 12], active: [{ kind: 'gainPoints', amount: 3 }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'water-strider', name: 'Water Strider', icon: 'Ability_Mount_WaterStriderMount.PNG', color: 'blue', rarity: 'common', cost: 4, legalSlots: [2, 8], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'gainToken', token: 'reroll', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'conjure-eleven', name: 'Conjure Eleven', icon: 'Ability_Mage_ConjureWater11.PNG', color: 'blue', rarity: 'common', cost: 4, legalSlots: [1, 11], active: [{ kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'mana-break', name: 'Mana Break', icon: 'Ability_DemonHunter_ManaBreak.PNG', color: 'blue', rarity: 'common', cost: 5, legalSlots: [6, 10], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
 ];
 
 // Colorless = MARKET ARTIFACTS (2026-07-13): a shared static shop all players
@@ -729,7 +777,7 @@ export const BLACK_CARDS: CardDef[] = [
     legalSlots: [1],
     active: [
       { kind: 'gainMoney', amount: 1 },
-      { kind: 'conditional', when: { echoStackAtLeast: 2 }, then: [{ kind: 'gainMoney', amount: 1 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 4 }, then: [{ kind: 'gainMoney', amount: 1 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
@@ -757,7 +805,7 @@ export const BLACK_CARDS: CardDef[] = [
     legalSlots: [6],
     active: [
       { kind: 'gainMoney', amount: 1 },
-      { kind: 'conditional', when: { echoStackAtLeast: 3 }, then: [{ kind: 'gainPoints', amount: 1 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainPoints', amount: 1 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
@@ -787,7 +835,7 @@ export const BLACK_CARDS: CardDef[] = [
     active: [
       { kind: 'gainMoney', amount: 1 },
       // tuning 2026-07-13: threshold 5 -> 4
-      { kind: 'conditional', when: { echoStackAtLeast: 4 }, then: [{ kind: 'gainPoints', amount: 1 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 6 }, then: [{ kind: 'gainPoints', amount: 1 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
@@ -836,7 +884,7 @@ export const BLACK_CARDS: CardDef[] = [
     legalSlots: [1, 6],
     active: [
       { kind: 'gainMoney', amount: 1 },
-      { kind: 'conditional', when: { echoStackAtLeast: 6 }, then: [{ kind: 'gainPoints', amount: 2 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 8 }, then: [{ kind: 'gainPoints', amount: 2 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
@@ -871,7 +919,7 @@ export const BLACK_CARDS: CardDef[] = [
     legalSlots: [12],
     active: [
       { kind: 'gainPoints', amount: 4 }, // tuning 2026-07-13: sum 12 is 1/36; jackpot or nothing
-      { kind: 'conditional', when: { echoStackAtLeast: 4 }, then: [{ kind: 'gainPoints', amount: 2 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 6 }, then: [{ kind: 'gainPoints', amount: 2 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
@@ -885,8 +933,8 @@ export const BLACK_CARDS: CardDef[] = [
     legalSlots: [1, 6],
     active: [
       { kind: 'gainMoney', amount: 1 },
-      { kind: 'conditional', when: { echoStackAtLeast: 3 }, then: [{ kind: 'gainPoints', amount: 1 }] },
-      { kind: 'conditional', when: { echoStackAtLeast: 6 }, then: [{ kind: 'gainPoints', amount: 1 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainPoints', amount: 1 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 8 }, then: [{ kind: 'gainPoints', amount: 1 }] },
     ],
     echo: [{ kind: 'gainPoints', amount: 1 }],
   },
@@ -945,9 +993,11 @@ export const BLACK_CARDS: CardDef[] = [
     rarity: 'rare',
     cost: 9,
     legalSlots: [6, 12],
+    // Nerfed 2026-07-14: the flat point-per-fire on slot 6 ran away in the
+    // full-coverage meta (67% buyer win rate). The legion must assemble first.
     active: [
-      { kind: 'gainPoints', amount: 1 },
-      { kind: 'conditional', when: { echoStackAtLeast: 6 }, then: [{ kind: 'gainPoints', amount: 3 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 4 }, then: [{ kind: 'gainPoints', amount: 1 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 8 }, then: [{ kind: 'gainPoints', amount: 2 }] },
     ],
     echo: [{ kind: 'gainPoints', amount: 1 }],
   },
@@ -962,7 +1012,7 @@ export const BLACK_CARDS: CardDef[] = [
     legalSlots: [12],
     active: [
       { kind: 'gainMoney', amount: 2 },
-      { kind: 'conditional', when: { echoStackAtLeast: 3 }, then: [{ kind: 'gainMoney', amount: 2 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainMoney', amount: 2 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 2 }],
   },
@@ -976,7 +1026,7 @@ export const BLACK_CARDS: CardDef[] = [
     legalSlots: [12],
     active: [
       { kind: 'gainPoints', amount: 2 },
-      { kind: 'conditional', when: { echoStackAtLeast: 2 }, then: [{ kind: 'gainPoints', amount: 1 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 4 }, then: [{ kind: 'gainPoints', amount: 1 }] },
     ],
     echo: [{ kind: 'gainPoints', amount: 1 }],
   },
@@ -1001,7 +1051,7 @@ export const BLACK_CARDS: CardDef[] = [
     legalSlots: [12],
     active: [
       { kind: 'gainPoints', amount: 4 },
-      { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainPoints', amount: 2 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 7 }, then: [{ kind: 'gainPoints', amount: 2 }] },
     ],
     echo: [{ kind: 'gainPoints', amount: 1 }],
   },
@@ -1016,10 +1066,34 @@ export const BLACK_CARDS: CardDef[] = [
     active: [
       { kind: 'gainMoney', amount: 2 },
       { kind: 'gainPoints', amount: 2 },
-      { kind: 'conditional', when: { echoStackAtLeast: 4 }, then: [{ kind: 'gainMoney', amount: 2 }] },
+      { kind: 'conditional', when: { echoStackAtLeast: 6 }, then: [{ kind: 'gainMoney', amount: 2 }] },
     ],
     echo: [{ kind: 'gainMoney', amount: 2 }],
   },
+  // --- 2026-07-14 full-coverage batch: black seeps into the mid-board with
+  // graveyard-counting payoffs; doubles tricks only where doubles can land.
+  { id: 'brittle-bones', name: 'Brittle Bones', icon: 'ability_deathknight_brittlebones.PNG', color: 'black', rarity: 'common', cost: 3, legalSlots: [3], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'bone-shield', name: 'Bone Shield', icon: 'ability_deathknight_boneshield.PNG', color: 'black', rarity: 'common', cost: 4, legalSlots: [3, 4], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainMoney', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'cursed-idol', name: 'Cursed Idol', icon: 'Ability_Creature_Cursed_02.PNG', color: 'black', rarity: 'common', cost: 4, legalSlots: [4], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainPoints', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'witchs-skull', name: "Witch's Skull", icon: 'INV_Archaeology_80_Witch_Skull.PNG', color: 'black', rarity: 'common', cost: 3, legalSlots: [5], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainMoney', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'laughing-skull', name: 'Laughing Skull', icon: 'INV_Helm_LaughingSkull_01.PNG', color: 'black', rarity: 'common', cost: 4, legalSlots: [5, 6], active: [{ kind: 'conditional', when: { rolledDoubles: true }, then: [{ kind: 'gainMoney', amount: 3 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'shadow-bolt', name: 'Shadow Bolt', icon: 'Spell_Shadow_ShadowBolt.PNG', color: 'black', rarity: 'common', cost: 4, legalSlots: [7], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainMoney', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'seventh-seal', name: 'Seventh Seal', icon: 'INV_Encrypted06.PNG', color: 'black', rarity: 'common', cost: 5, legalSlots: [7], active: [{ kind: 'gainPoints', amount: 1 }, { kind: 'conditional', when: { echoStackAtLeast: 6 }, then: [{ kind: 'gainPoints', amount: 1 }] }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'plague-barrel', name: 'Plague Barrel', icon: 'Ability_Vehicle_PlagueBarrel.PNG', color: 'black', rarity: 'common', cost: 4, legalSlots: [8], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  { id: 'wasting-plague', name: 'Wasting Plague', icon: 'Ability_Argus_WastingPlague.PNG', color: 'black', rarity: 'common', cost: 5, legalSlots: [8, 9], active: [{ kind: 'gainPoints', amount: 1 }, { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainMoney', amount: 2 }] }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'raven-omen', name: 'Raven Omen', icon: 'INV-Mount_Raven_54.PNG', color: 'black', rarity: 'common', cost: 4, legalSlots: [9], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainMoney', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'ravencrest', name: 'Ravencrest', icon: 'INV_Belt_Plate_LordRavencrest_B_01.PNG', color: 'black', rarity: 'rare', cost: 7, legalSlots: [10], active: [{ kind: 'gainPoints', amount: 2 }, { kind: 'conditional', when: { echoStackAtLeast: 6 }, then: [{ kind: 'gainPoints', amount: 1 }] }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'plaguefall', name: 'Plaguefall', icon: 'Achievement_Dungeon_PlagueFall.PNG', color: 'black', rarity: 'rare', cost: 8, legalSlots: [10, 11], active: [{ kind: 'gainPoints', amount: 2 }, { kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'curse-of-eleven', name: 'Curse of Eleven', icon: 'Ability_Creature_Cursed_05.PNG', color: 'black', rarity: 'common', cost: 5, legalSlots: [11], active: [{ kind: 'gainPoints', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'skull-dagger', name: 'Skull Dagger', icon: 'INV_Knife_1H_ArtifactSkullofEredar_D_01.PNG', color: 'black', rarity: 'common', cost: 5, legalSlots: [3, 7], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'conditional', when: { echoStackAtLeast: 6 }, then: [{ kind: 'gainPoints', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'chilled-to-the-bone', name: 'Chilled to the Bone', icon: 'Ability_Mage_ChilledToTheBone.PNG', color: 'black', rarity: 'common', cost: 4, legalSlots: [4, 8], active: [{ kind: 'conditional', when: { rolledDoubles: true }, then: [{ kind: 'gainMoney', amount: 3 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'cursed-hoard', name: 'Cursed Hoard', icon: 'Ability_Creature_Cursed_03.PNG', color: 'black', rarity: 'common', cost: 5, legalSlots: [5, 9], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainPoints', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'plague-doctor', name: 'Plague Doctor', icon: 'Achievement_Dungeon_PlagueFall_DoctorIckus.PNG', color: 'black', rarity: 'rare', cost: 7, legalSlots: [9, 10], active: [{ kind: 'gainPoints', amount: 2 }, { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainMoney', amount: 2 }] }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'venom-blade', name: 'Venom Blade', icon: 'Achievement_Dungeon_PlagueFall_DominaVenomBlade.PNG', color: 'black', rarity: 'rare', cost: 8, legalSlots: [7, 11], active: [{ kind: 'gainPoints', amount: 2 }, { kind: 'conditional', when: { echoStackAtLeast: 7 }, then: [{ kind: 'gainPoints', amount: 2 }] }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'eredar-relic', name: 'Eredar Relic', icon: 'INV_Knife_1H_ArtifactSkullofEredar_D_02.PNG', color: 'black', rarity: 'common', cost: 4, legalSlots: [3, 12], active: [{ kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'cursed-scroll', name: 'Cursed Scroll', icon: 'Ability_Creature_Cursed_01.PNG', color: 'black', rarity: 'common', cost: 5, legalSlots: [4, 10], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'bone-pile', name: 'Bone Pile', icon: 'INV_Bone_Skull_04.PNG', color: 'black', rarity: 'common', cost: 3, legalSlots: [5, 8], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainMoney', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'fire-raven', name: 'Fire Raven', icon: 'Ability_Mount_FireRavenGodMount.PNG', color: 'black', rarity: 'rare', cost: 9, legalSlots: [11, 12], active: [{ kind: 'gainPoints', amount: 3 }, { kind: 'conditional', when: { echoStackAtLeast: 6 }, then: [{ kind: 'gainPoints', amount: 2 }] }], echo: [{ kind: 'gainPoints', amount: 2 }] },
 ];
 
 // GREEN "Wildgrove": odd slots {1,3,5} + odd sums {3,5,9}. Odd-dice parity
@@ -1309,6 +1383,32 @@ export const GREEN_CARDS: CardDef[] = [
     ],
     echo: [{ kind: 'gainMoney', amount: 2 }],
   },
+  // --- 2026-07-14 full-coverage batch: green grows everywhere. Parity
+  // bonuses only sit where the dice can satisfy them: both-odd works on even
+  // sums (2 = 1+1, 8 = 3+5) and split odd faces, but NEVER on odd sums
+  // (7/9/11 always split odd+even) or 12 (only 6+6) - the cinder-crown lesson.
+  { id: 'herb-seed', name: 'Herb Seed', icon: 'Inv_Farm_HerbSeed.PNG', color: 'green', rarity: 'common', cost: 3, legalSlots: [2], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'conditional', when: { bothDiceOdd: true }, then: [{ kind: 'gainMoney', amount: 2 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'golden-seed', name: 'Golden Seed', icon: 'Inv_Farm_GoldenSeed.PNG', color: 'green', rarity: 'common', cost: 4, legalSlots: [2, 4], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'enchanted-seed', name: 'Enchanted Seed', icon: 'Inv_Farm_EnchantedSeed.PNG', color: 'green', rarity: 'common', cost: 4, legalSlots: [4], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'discount', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'stormvine', name: 'Stormvine', icon: 'INV_Misc_Herb_Stormvine.PNG', color: 'green', rarity: 'common', cost: 5, legalSlots: [4, 6], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'conditional', when: { bothDiceEven: true }, then: [{ kind: 'gainMoney', amount: 2 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'nightmare-vine', name: 'Nightmare Vine', icon: 'INV_Misc_Herb_Nightmarevine.PNG', color: 'green', rarity: 'common', cost: 4, legalSlots: [6], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'refreshShop' }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'goldthorn', name: 'Goldthorn', icon: 'INV_Misc_Herb_Goldthorn_Bramble.PNG', color: 'green', rarity: 'common', cost: 5, legalSlots: [6, 8], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'discount', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'lucky-bloom', name: 'Lucky Bloom', icon: 'INV_ Misc_Herb_Ardenweald.PNG', color: 'green', rarity: 'common', cost: 4, legalSlots: [7], active: [{ kind: 'gainMoney', amount: 3 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'wild-mushroom', name: 'Wild Mushroom', icon: 'Druid_Ability_Wildmushroom_a.PNG', color: 'green', rarity: 'common', cost: 5, legalSlots: [7], active: [{ kind: 'gainPoints', amount: 1 }, { kind: 'gainMoney', amount: 1 }, { kind: 'discount', amount: 1 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'spore-cloud', name: 'Spore Cloud', icon: 'Creature_SporeMushroom.PNG', color: 'green', rarity: 'common', cost: 4, legalSlots: [8], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'conditional', when: { bothDiceOdd: true }, then: [{ kind: 'gainMoney', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'needle-mushroom', name: 'Needle Mushroom', icon: 'Inv_Misc_DriedNeedleMushrooms.PNG', color: 'green', rarity: 'common', cost: 5, legalSlots: [8, 10], active: [{ kind: 'gainPoints', amount: 1 }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'icethorn', name: 'Icethorn', icon: 'INV_Misc_Herb_IceThorn.PNG', color: 'green', rarity: 'common', cost: 5, legalSlots: [10], active: [{ kind: 'gainPoints', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'everbloom-gold', name: 'Everbloom Gold', icon: 'Achievement_ChallengeMode_Everbloom_Gold.PNG', color: 'green', rarity: 'rare', cost: 8, legalSlots: [10, 11], active: [{ kind: 'gainPoints', amount: 2 }, { kind: 'gainMoney', amount: 2 }, { kind: 'discount', amount: 1 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'thorn-necklace', name: 'Thorn Necklace', icon: 'inv_misc_thornnecklace.PNG', color: 'green', rarity: 'common', cost: 5, legalSlots: [11], active: [{ kind: 'gainPoints', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'death-blossom', name: 'Death Blossom', icon: 'INV_ Misc_Herb_DeathBlossom.PNG', color: 'green', rarity: 'rare', cost: 7, legalSlots: [12], active: [{ kind: 'gainPoints', amount: 3 }, { kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'divine-harvest', name: 'Divine Harvest', icon: 'ABILITY_PALADIN_DIVINESTORM.PNG', color: 'green', rarity: 'rare', cost: 9, legalSlots: [12], active: [{ kind: 'gainPoints', amount: 4 }, { kind: 'discount', amount: 1 }], echo: [{ kind: 'gainPoints', amount: 2 }] },
+  { id: 'bramble-wall', name: 'Bramble Wall', icon: 'INV_Misc_Herb_Icethorn_Bramble.PNG', color: 'green', rarity: 'common', cost: 3, legalSlots: [2, 6], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'discount', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'kyparite-seed', name: 'Kyparite Seed', icon: 'Inv_Farm_KypariteSeed.PNG', color: 'green', rarity: 'common', cost: 4, legalSlots: [4, 8], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'tough-seed', name: 'Tough Seed', icon: 'Inv_Farm_LeatherSeed.PNG', color: 'green', rarity: 'common', cost: 4, legalSlots: [2, 10], active: [{ kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  { id: 'stranglethorn', name: 'Stranglethorn', icon: 'Achievement_Zone_Stranglethorn_01.PNG', color: 'green', rarity: 'rare', cost: 7, legalSlots: [7, 11], active: [{ kind: 'gainPoints', amount: 2 }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'nightmare-stem', name: 'Nightmare Stem', icon: 'INV_Misc_Herb_NightmareVine_Stem.PNG', color: 'green', rarity: 'common', cost: 4, legalSlots: [3, 7], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'discount', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'seasons-turn', name: "Season's Turn", icon: 'Achievement_ChallengeMode_Everbloom_Hourglass.PNG', color: 'green', rarity: 'rare', cost: 8, legalSlots: [6, 12], active: [{ kind: 'gainPoints', amount: 2 }, { kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'petal-fall', name: 'Petal Fall', icon: 'INV_ Misc_Herb_DeathBlossom_Leaf.PNG', color: 'green', rarity: 'common', cost: 3, legalSlots: [1, 8], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'conditional', when: { bothDiceOdd: true }, then: [{ kind: 'gainMoney', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
 ];
 
 // YELLOW "Gildmint": slots {2,4} + the unclaimed middle sums {6,8}. Raw coin
@@ -1575,6 +1675,30 @@ export const YELLOW_CARDS: CardDef[] = [
     active: [{ kind: 'gainMoney', amount: 5 }],
     echo: [{ kind: 'gainMoney', amount: 2 }],
   },
+  // --- 2026-07-14 full-coverage batch: yellow's coin engine reaches every
+  // slot; trades stay its signature and scale up with the slot's rarity.
+  { id: 'copper-penny', name: 'Copper Penny', icon: 'INV_Ring_Bastion_01_Gold.PNG', color: 'yellow', rarity: 'common', cost: 3, legalSlots: [1], active: [{ kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'pocket-lantern', name: 'Pocket Lantern', icon: 'INV_Misc_Lantern_01.PNG', color: 'yellow', rarity: 'common', cost: 4, legalSlots: [1, 3], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'trade', pay: 2, then: [{ kind: 'gainPoints', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'amulet-of-thrift', name: 'Amulet of Thrift', icon: 'INV_Jewelry_Amulet_01.PNG', color: 'yellow', rarity: 'common', cost: 3, legalSlots: [3], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'merchants-scales', name: "Merchant's Scales", icon: 'INV_MISC_DEEPSEASCALES.PNG', color: 'yellow', rarity: 'common', cost: 5, legalSlots: [3, 5], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'trade', pay: 3, then: [{ kind: 'gainPoints', amount: 2 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'silver-amulet', name: 'Silver Amulet', icon: 'INV_Jewelry_Amulet_02.PNG', color: 'yellow', rarity: 'common', cost: 4, legalSlots: [5], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'trade', pay: 2, then: [{ kind: 'heal', amount: 2 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'lucky-lantern', name: 'Lucky Lantern', icon: 'Inv_misc_trinket6oIH_lanternA1.PNG', color: 'yellow', rarity: 'common', cost: 5, legalSlots: [5, 7], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  { id: 'seven-lanterns', name: 'Seven Lanterns', icon: 'Inv_misc_trinket6oIH_lanternB1.PNG', color: 'yellow', rarity: 'common', cost: 4, legalSlots: [7], active: [{ kind: 'gainMoney', amount: 3 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'tricks-of-the-trade', name: 'Tricks of the Trade', icon: 'Ability_Rogue_TricksOftheTrade.PNG', color: 'yellow', rarity: 'rare', cost: 7, legalSlots: [7, 9], active: [{ kind: 'gainMoney', amount: 3 }, { kind: 'trade', pay: 2, then: [{ kind: 'gainPoints', amount: 2 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'gilded-ring', name: 'Gilded Ring', icon: 'INV_Ring_Bastion_02_Gold.PNG', color: 'yellow', rarity: 'common', cost: 4, legalSlots: [9], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'trade', pay: 2, then: [{ kind: 'gainPoints', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'dragon-scales', name: 'Dragon Scales', icon: 'INV_Artifact_DragonScales.PNG', color: 'yellow', rarity: 'common', cost: 5, legalSlots: [9, 10], active: [{ kind: 'gainMoney', amount: 3 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'jack-of-all-trades', name: 'Jack of All Trades', icon: 'Ability_Racial_JackofAllTrades.PNG', color: 'yellow', rarity: 'rare', cost: 7, legalSlots: [10], active: [{ kind: 'gainMoney', amount: 3 }, { kind: 'trade', pay: 3, then: [{ kind: 'gainPoints', amount: 3 }] }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  { id: 'wise-judgement', name: 'Wise Judgement', icon: 'Ability_Paladin_JudgementoftheWise.PNG', color: 'yellow', rarity: 'rare', cost: 8, legalSlots: [10, 11], active: [{ kind: 'gainPoints', amount: 2 }, { kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  { id: 'crown-of-heavens', name: 'Crown of Heavens', icon: 'Ability_Crown_of_the_Heavens_Icon.PNG', color: 'yellow', rarity: 'common', cost: 5, legalSlots: [11], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'gainPoints', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'signet-of-midnight', name: 'Signet of Midnight', icon: 'INV_Ring_Maldraxxus_01_Gold.PNG', color: 'yellow', rarity: 'rare', cost: 8, legalSlots: [11, 12], active: [{ kind: 'gainMoney', amount: 4 }, { kind: 'trade', pay: 3, then: [{ kind: 'gainPoints', amount: 3 }] }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  { id: 'enlightened-vault', name: 'Enlightened Vault', icon: 'Ability_Paladin_EnlightenedJudgements.PNG', color: 'yellow', rarity: 'rare', cost: 9, legalSlots: [12], active: [{ kind: 'gainMoney', amount: 3 }, { kind: 'gainPoints', amount: 3 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  { id: 'rose-gold-band', name: 'Rose Gold Band', icon: 'INV_Ring_Bastion_01_PinkGold.PNG', color: 'yellow', rarity: 'common', cost: 3, legalSlots: [1, 5], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'trade', pay: 1, then: [{ kind: 'heal', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'iron-amulet', name: 'Iron Amulet', icon: 'Archaeology_5_0_IronAmulet.PNG', color: 'yellow', rarity: 'common', cost: 4, legalSlots: [3, 9], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'lantern-festival', name: 'Lantern Festival', icon: 'Inv_misc_trinket6oIH_lanternA2.PNG', color: 'yellow', rarity: 'common', cost: 4, legalSlots: [1, 7], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'rare-hide', name: 'Rare Hide', icon: 'INV_Misc_MonsterScales_01.PNG', color: 'yellow', rarity: 'common', cost: 4, legalSlots: [5, 9], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'trade', pay: 2, then: [{ kind: 'gainPoints', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'final-judgement', name: 'Final Judgement', icon: 'Ability_Paladin_JudgementRed.PNG', color: 'yellow', rarity: 'rare', cost: 8, legalSlots: [7, 12], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'gainPoints', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  { id: 'amulet-of-plenty', name: 'Amulet of Plenty', icon: 'INV_Jewelry_Amulet_03.PNG', color: 'yellow', rarity: 'common', cost: 5, legalSlots: [3, 11], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
+  { id: 'dawn-lantern', name: 'Dawn Lantern', icon: 'Inv_misc_trinket6oIH_lanternA3.PNG', color: 'yellow', rarity: 'common', cost: 4, legalSlots: [1, 12], active: [{ kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
 ];
 
 export function pools() {

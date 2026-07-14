@@ -10,7 +10,9 @@ import {
 import { starterBoard } from './starters';
 import type { CardDef } from '../engine/types';
 
-// DESIGN_RULES.md constraints, locked in as tests.
+// DESIGN_RULES.md constraints, locked in as tests. The per-color slot sets
+// became LEANS on 2026-07-14 (Jake: full 1-12 coverage per color): identity
+// lives in the effects; a healthy share of each pool stays on its home slots.
 const SLOT_PATTERNS: [string, CardDef[], Set<number>][] = [
   ['red', RED_CARDS, new Set([4, 5, 6, 9, 10, 11, 12])],
   ['blue', BLUE_CARDS, new Set([1, 2, 3, 4, 5, 7])],
@@ -45,14 +47,23 @@ describe('card pools', () => {
     }
   });
 
-  it('respects color slot patterns', () => {
-    for (const [color, pool, slots] of SLOT_PATTERNS) {
+  it('every color covers every slot and keeps a real lean on its home slots', () => {
+    for (const [color, pool, lean] of SLOT_PATTERNS) {
       for (const c of pool) {
         expect(c.color).toBe(color);
         for (const s of c.legalSlots) {
-          expect(slots.has(s), `${c.id} slot ${s}`).toBe(true);
+          expect(s, `${c.id} slot ${s}`).toBeGreaterThanOrEqual(1);
+          expect(s, `${c.id} slot ${s}`).toBeLessThanOrEqual(12);
         }
       }
+      const covered = new Set(pool.flatMap((c) => c.legalSlots));
+      for (let s = 1; s <= 12; s++) {
+        expect(covered.has(s), `${color} has no card for slot ${s}`).toBe(true);
+      }
+      const onLean = pool.filter((c) => c.legalSlots.some((s) => lean.has(s)));
+      expect(onLean.length, `${color} lean share`).toBeGreaterThanOrEqual(
+        Math.floor(pool.length / 3),
+      );
     }
     // Colorless artifacts are either fully flexible or premium high-band only
     // (2026-07-13: the strongest pieces moved to 7-12).
