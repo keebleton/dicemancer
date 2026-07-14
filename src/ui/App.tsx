@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { SeatColor } from '../engine';
-import { useAccount } from './account';
+import { useAccount, validLogin } from './account';
 import { Game } from './Game';
 import { IconPicker } from './IconPicker';
 import { Lab } from './Lab';
@@ -39,39 +39,41 @@ function AccountBox() {
     setEditing(true);
   };
 
+  // First profile setup: default the display name to the sign-up username.
+  useEffect(() => {
+    if (acc.needsProfile && !uname && acc.pendingName) setUname(acc.pendingName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acc.needsProfile, acc.pendingName]);
+
   if (!acc.userId) {
+    const ok = validLogin(email) && pw.length >= 6;
     return (
       <section className="netbox">
         <b>Account</b>
         <div className="netrow">
           <input
-            placeholder="email"
+            placeholder="username"
+            maxLength={40}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
           <input
-            placeholder="password"
+            placeholder="password (6+ chars)"
             type="password"
             value={pw}
             onChange={(e) => setPw(e.target.value)}
           />
         </div>
         <div className="netrow">
-          <button
-            className="primary"
-            disabled={acc.busy || !email.includes('@') || pw.length < 6}
-            onClick={() => acc.signIn(email, pw)}
-          >
+          <button className="primary" disabled={acc.busy || !ok} onClick={() => acc.signIn(email, pw)}>
             Sign in
           </button>
-          <button
-            disabled={acc.busy || !email.includes('@') || pw.length < 6}
-            onClick={() => acc.signUp(email, pw)}
-          >
+          <button disabled={acc.busy || !ok} onClick={() => acc.signUp(email, pw)}>
             Create account
           </button>
           <span className="dimtext">optional: profiles, avatars, stats</span>
         </div>
+        <span className="dimtext">no email needed; do not forget your password</span>
         {acc.error && <div className="err">{acc.error}</div>}
         {acc.notice && <div className="dimtext">{acc.notice}</div>}
       </section>

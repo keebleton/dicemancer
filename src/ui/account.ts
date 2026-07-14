@@ -8,10 +8,28 @@ import type { MatchPlayer, Profile } from '../supa/client';
 import { toCommunityPack } from './packs';
 import type { CardPack } from './packs';
 
+/** Friends sign in with a USERNAME; Supabase auth wants an email, so plain
+ *  usernames map to a synthetic address nobody ever sees. Anything typed with
+ *  an @ is treated as a real email (Jake's original account). */
+export function loginEmail(nameOrEmail: string): string {
+  const raw = nameOrEmail.trim();
+  if (raw.includes('@')) return raw.toLowerCase();
+  return `${raw.toLowerCase().replace(/[^a-z0-9_-]/g, '')}@players.dicemancer`;
+}
+
+/** 2-24 chars, letters/digits/dash/underscore, or a real email. */
+export function validLogin(nameOrEmail: string): boolean {
+  const raw = nameOrEmail.trim();
+  if (raw.includes('@')) return /^\S+@\S+\.\S+$/.test(raw);
+  return /^[A-Za-z0-9_-]{2,24}$/.test(raw);
+}
+
 interface AccountStore {
   userId: string | null;
   email: string | null;
   profile: Profile | null;
+  /** The username typed at sign-up; prefills the profile form. */
+  pendingName: string | null;
   /** Signed in but no profiles row yet: show the username+avatar form. */
   needsProfile: boolean;
   community: CardPack | null;
@@ -19,8 +37,8 @@ interface AccountStore {
   error: string | null;
   notice: string | null;
   init: () => void;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signIn: (nameOrEmail: string, password: string) => Promise<void>;
+  signUp: (nameOrEmail: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   saveProfile: (username: string, avatarIcon: string) => Promise<void>;
   refreshCommunity: () => Promise<void>;
@@ -32,6 +50,7 @@ export const useAccount = create<AccountStore>()((set, get) => ({
   userId: null,
   email: null,
   profile: null,
+  pendingName: null,
   needsProfile: false,
   community: null,
   busy: false,
@@ -50,21 +69,28 @@ export const useAccount = create<AccountStore>()((set, get) => ({
     void get().refreshCommunity();
   },
 
-  signIn: async (email, password) => {
+  signIn: async (nameOrEmail, password) => {
     set({ busy: true, error: null, notice: null });
-    const { error } = await supa.auth.signInWithPassword({ email, password });
+    const { error } = await supa.auth.signInWithPassword({
+      email: loginEmail(nameOrEmail),
+      password,
+    });
     set({ busy: false, error: error ? friendly(error.message) : null });
   },
 
-  signUp: async (email, password) => {
+  signUp: async (nameOrEmail, password) => {
     set({ busy: true, error: null, notice: null });
-    const { data, error } = await supa.auth.signUp({ email, password });
+    const { data, error } = await supa.auth.signUp({
+      email: loginEmail(nameOrEmail),
+      password,
+    });
     if (error) {
       set({ busy: false, error: friendly(error.message) });
       return;
     }
     set({
       busy: false,
+      pendingName: nameOrEmail.includes('@') ? null : nameOrEmail.trim(),
       // With email confirmation enabled there is no session yet.
       notice: data.session ? null : 'check your email for a confirmation link, then sign in',
     });
@@ -114,7 +140,10 @@ function friendly(msg: string): string {
   if (msg.includes('relation') && msg.includes('does not exist')) {
     return 'database not set up yet (run supabase/schema.sql in the SQL Editor)';
   }
-  if (msg.toLowerCase().includes('invalid login credentials')) return 'wrong email or password';
+  if (msg.toLowerCase().includes('invalid login credentials')) {
+    return 'wrong username or password';
+  }
+  if (msg.toLowerCase().includes('already registered')) return 'that username is taken';
   return msg;
 }
 
