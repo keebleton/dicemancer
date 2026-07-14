@@ -17,6 +17,9 @@ export function Game() {
   const reset = useGame((s) => s.reset);
   const log = useGame((s) => s.log);
   const pulses = useGame((s) => s.pulses);
+  const mode = useGame((s) => s.mode);
+  const mySeat = useGame((s) => s.mySeat);
+  const roomCode = useGame((s) => s.roomCode);
   const [preview, setPreview] = useState<AllocationMode | null>(null);
   const [buySel, setBuySel] = useState<{ src: 'shop' | 'market'; i: number } | null>(null);
   const [muted, setMutedState] = useState(isMuted());
@@ -37,15 +40,26 @@ export function Game() {
     setBuySel(null);
   }, [game.current, game.phase]);
 
-  // Whoever must decide next (roller, or an echo chooser) auto-plays if a bot.
+  // Online, the seat I sit in is the only one I control; offline hotseat
+  // controls every human seat.
+  const iControl = (seat: number) =>
+    mode === 'offline' ? seatKinds[seat] === 'human' : seat === mySeat;
+
+  // Whoever must decide next (roller, or an echo chooser) auto-plays if a
+  // bot. Bots only ever run where the rng lives: never on online clients.
   const acting = actingSeat(game);
-  const botTurn = game.winner === null && seatKinds[acting] === 'bot';
+  const botTurn = game.winner === null && mode !== 'client' && seatKinds[acting] === 'bot';
   useEffect(() => {
     if (!botTurn) return;
     const t = setTimeout(() => {
       const g = useGame.getState().game;
       const kinds = useGame.getState().seatKinds;
-      if (g && g.winner === null && kinds[actingSeat(g)] === 'bot') {
+      if (
+        g
+        && g.winner === null
+        && useGame.getState().mode !== 'client'
+        && kinds[actingSeat(g)] === 'bot'
+      ) {
         useGame.getState().dispatch(chooseAction(g));
       }
     }, 300);
@@ -69,13 +83,25 @@ export function Game() {
     game.lastAllocation && game.phase !== 'roll' && game.phase !== 'allocate'
       ? game.lastAllocation.numbers
       : [];
-  const humanRoller = seatKinds[game.current] === 'human';
+  const humanRoller = iControl(game.current);
+  // Who the stage is waiting on (null = it is waiting on me, show buttons).
+  const waitLabel =
+    game.winner !== null || iControl(acting)
+      ? null
+      : seatKinds[acting] === 'bot'
+        ? 'thinking...'
+        : `waiting for ${game.players[acting]!.name}...`;
 
-  // Seating: you sit at the bottom. In hotseat the table rotates so the
-  // current human is always the bottom seat; during bot turns you stay put.
+  // Seating: you sit at the bottom. Online that is simply my seat; in hotseat
+  // the table rotates so the current human is always the bottom seat.
   const n = game.players.length;
   const humanSeats = seatKinds.flatMap((k, i) => (k === 'human' ? [i] : []));
-  const perspective = humanRoller ? game.current : (humanSeats[0] ?? 0);
+  const perspective =
+    mode !== 'offline'
+      ? (mySeat ?? 0)
+      : seatKinds[game.current] === 'human'
+        ? game.current
+        : (humanSeats[0] ?? 0);
   const opp = Array.from({ length: n - 1 }, (_, k) => (perspective + k + 1) % n);
   let leftSeat: number | null = null;
   let topSeat: number | null = null;
@@ -109,6 +135,7 @@ export function Game() {
             round {game.round}/{game.tunables.roundCap}
           </span>
           <span className={`chip turn ${me.color}`}>{me.name}{"'"}s turn</span>
+          {mode !== 'offline' && roomCode && <span className="chip">room {roomCode}</span>}
           <button onClick={() => setShowLegend(!showLegend)}>
             {showLegend ? 'hide icon key' : 'icon key'}
           </button>
@@ -180,7 +207,7 @@ export function Game() {
               actions={actions}
               dispatch={dispatch}
               setPreview={setPreview}
-              botActing={botTurn}
+              waitLabel={waitLabel}
             />
 
             {game.winner === null && me.shop.length > 0 && (
@@ -286,9 +313,10 @@ function Stage(props: {
   actions: Action[];
   dispatch: (a: Action) => void;
   setPreview: (m: AllocationMode | null) => void;
-  botActing: boolean;
+  /** Non-null = someone else must act; show who instead of the buttons. */
+  waitLabel: string | null;
 }) {
-  const { game, actions, dispatch, setPreview, botActing } = props;
+  const { game, actions, dispatch, setPreview, waitLabel } = props;
   if (game.winner !== null) return null;
   const acting = actingSeat(game);
   const actor = game.players[acting]!;
@@ -316,9 +344,9 @@ function Stage(props: {
         <Die key={`b${dice?.[1] ?? 'x'}`} value={dice?.[1] ?? null} />
       </div>
 
-      {botActing && <div className="dimtext">thinking...</div>}
+      {waitLabel && <div className="dimtext">{waitLabel}</div>}
 
-      {!botActing && (
+      {!waitLabel && (
         <div className="stagebtns">
           {actions.some((a) => a.type === 'ROLL') && (
             <button className="primary" onClick={() => dispatch({ type: 'ROLL' })}>

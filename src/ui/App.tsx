@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { SeatColor } from '../engine';
 import { Game } from './Game';
 import { Lab } from './Lab';
@@ -10,28 +10,96 @@ const SEAT_COLORS: SeatColor[] = ['red', 'blue', 'black', 'green', 'yellow'];
 
 export function App() {
   const game = useGame((s) => s.game);
+  const mode = useGame((s) => s.mode);
   const [lab, setLab] = useState(false);
   if (game) return <Game />;
+  if (mode !== 'offline') return <OnlineLobby />;
   if (lab) return <Lab onClose={() => setLab(false)} />;
   return <Setup onLab={() => setLab(true)} />;
 }
 
+const savedName = () => localStorage.getItem('dicemancer_name') ?? '';
+const saveName = (n: string) => localStorage.setItem('dicemancer_name', n);
+
 function Setup({ onLab }: { onLab: () => void }) {
   const start = useGame((s) => s.start);
+  const hostRoom = useGame((s) => s.hostRoom);
+  const joinRoom = useGame((s) => s.joinRoom);
+  const netNotice = useGame((s) => s.netNotice);
   const [count, setCount] = useState(2);
   const [cap, setCap] = useState(25);
   const [kinds, setKinds] = useState<SeatKind[]>(['human', 'bot', 'bot', 'bot']);
   const [colors, setColors] = useState<SeatColor[]>(['red', 'blue', 'green', 'yellow']);
   const [packs, setPacks] = useState(() => loadPacks());
+  const [name, setName] = useState(savedName);
+  const [joinCode, setJoinCode] = useState('');
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
   const togglePack = (id: string) => {
     const next = packs.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p));
     setPacks(next);
     savePacks(next);
   };
+  const myName = () => name.trim() || 'Player';
+  const goHost = async () => {
+    saveName(myName());
+    setBusy('opening a room...');
+    setErr(null);
+    try {
+      await hostRoom(myName());
+    } catch (e) {
+      setErr(String(e instanceof Error ? e.message : e));
+      setBusy(null);
+    }
+  };
+  const goJoin = async () => {
+    saveName(myName());
+    setBusy(`joining ${joinCode.toUpperCase()}...`);
+    setErr(null);
+    try {
+      await joinRoom(joinCode.trim().toUpperCase(), myName());
+    } catch (e) {
+      setErr(String(e instanceof Error ? e.message : e));
+      setBusy(null);
+    }
+  };
   return (
     <main className="setup">
       <h1>Dicemancer</h1>
-      <p>Any mix of humans and bots. Multiple humans = hotseat, pass the mouse.</p>
+
+      <section className="netbox">
+        <b>Play online</b>
+        {netNotice && <div className="err">{netNotice}</div>}
+        <div className="netrow">
+          your name:{' '}
+          <input
+            value={name}
+            maxLength={16}
+            placeholder="Player"
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <div className="netrow">
+          <button className="primary" disabled={busy !== null} onClick={goHost}>
+            Host a room
+          </button>
+          <span className="dimtext"> or </span>
+          <input
+            value={joinCode}
+            maxLength={4}
+            placeholder="CODE"
+            className="codein"
+            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+          />
+          <button disabled={busy !== null || joinCode.trim().length !== 4} onClick={goJoin}>
+            Join
+          </button>
+        </div>
+        {busy && !err && <div className="dimtext">{busy}</div>}
+        {err && <div className="err">{err}</div>}
+      </section>
+
+      <p>Or play on this screen. Any mix of humans and bots; multiple humans = hotseat.</p>
       <div>
         players:{' '}
         {[2, 3, 4].map((n) => (
@@ -92,6 +160,89 @@ function Setup({ onLab }: { onLab: () => void }) {
         Start game
       </button>
       <button onClick={onLab}>Card Lab</button>
+    </main>
+  );
+}
+
+/** The pre-game room: host sees start controls, everyone sees the roster. */
+function OnlineLobby() {
+  const mode = useGame((s) => s.mode);
+  const roomCode = useGame((s) => s.roomCode);
+  const lobby = useGame((s) => s.lobby);
+  const startOnline = useGame((s) => s.startOnline);
+  const leaveOnline = useGame((s) => s.leaveOnline);
+  const [bots, setBots] = useState(0);
+  const [cap, setCap] = useState(25);
+  const [colors, setColors] = useState<SeatColor[]>(['red', 'blue', 'green', 'yellow']);
+  const humans = Math.max(1, lobby.length);
+  const maxBots = Math.max(0, 4 - humans);
+  const botCount = Math.min(bots, maxBots);
+  const total = humans + botCount;
+  useEffect(() => {
+    if (bots > maxBots) setBots(maxBots);
+  }, [bots, maxBots]);
+  const seatNames = [...lobby, ...Array.from({ length: botCount }, (_, b) => `Bot ${b + 1}`)];
+  return (
+    <main className="setup">
+      <h1>Dicemancer</h1>
+      <div className="roomcode">
+        room code: <b>{roomCode}</b>
+      </div>
+      {mode === 'host' ? (
+        <p>Friends open the game, type this code, and hit Join. Start when everyone is in.</p>
+      ) : (
+        <p>You are in. Waiting for the host to start the game.</p>
+      )}
+      <div>
+        {seatNames.map((n, i) => (
+          <div key={i} className="seatrow">
+            seat {i + 1}: <b>{n}</b>
+            {mode === 'host' && (
+              <>
+                {SEAT_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    className={'swatch sw-' + c + (colors[i] === c ? ' selected' : '')}
+                    title={c}
+                    aria-label={`seat ${i + 1} plays ${c}`}
+                    onClick={() => setColors(colors.map((old, j) => (j === i ? c : old)))}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+      {mode === 'host' && (
+        <>
+          <div>
+            bots:{' '}
+            {Array.from({ length: maxBots + 1 }, (_, n) => (
+              <button key={n} className={botCount === n ? 'selected' : ''} onClick={() => setBots(n)}>
+                {n}
+              </button>
+            ))}
+          </div>
+          <div>
+            round cap:{' '}
+            <input
+              type="number"
+              min={1}
+              max={99}
+              value={cap}
+              onChange={(e) => setCap(Number(e.target.value) || 25)}
+            />
+          </div>
+          <button
+            className="primary"
+            disabled={total < 2}
+            onClick={() => startOnline(botCount, cap, colors)}
+          >
+            {total < 2 ? 'waiting for players...' : `Start game (${total} players)`}
+          </button>
+        </>
+      )}
+      <button onClick={() => leaveOnline()}>Leave</button>
     </main>
   );
 }

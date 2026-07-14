@@ -215,6 +215,11 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 }
 
 .setup { max-width: 440px; margin: 60px auto; background: #2c3348; border: 1px solid #3a4258; border-radius: 12px; padding: 24px 28px; display: flex; flex-direction: column; gap: 12px; }
+.netbox { border: 1px solid #caa53d; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; background: #322f3e; }
+.netrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.codein { width: 74px; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; text-align: center; }
+.roomcode { font-size: 15px; }
+.roomcode b { font-size: 26px; letter-spacing: 6px; color: #f0b429; margin-left: 6px; }
 
 .cicon { width: 16px; height: 16px; border-radius: 3px; vertical-align: -3px; }
 .lab .labcols { display: flex; gap: 14px; align-items: flex-start; }
