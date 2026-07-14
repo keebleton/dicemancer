@@ -28,6 +28,8 @@ function iconManifest(): Plugin {
 }
 
 export default defineConfig({
+  // GitHub Pages serves project sites under /<repo>/; CI sets DEPLOY_BASE.
+  base: process.env.DEPLOY_BASE ?? '/',
   plugins: [react(), iconManifest()],
   server: {
     fs: { allow: [searchForWorkspaceRoot(process.cwd()), 'C:/DicemancerAssets'] },
