@@ -183,6 +183,27 @@ export function validateCard(card: CardDef): CardCheck {
   return { errors, warnings };
 }
 
+/** Approved community proposals become a pack every game loads. Invalid rows
+ *  are dropped (a proposal approved before a rules change may no longer
+ *  validate); ids get a community- prefix so they can never collide with
+ *  builtins or local pack cards. */
+export function toCommunityPack(raw: unknown[]): CardPack {
+  const cards: CardDef[] = [];
+  const seen = new Set<string>();
+  for (const r of raw) {
+    const c = r as CardDef;
+    if (!c || typeof c !== 'object' || typeof c.id !== 'string' || typeof c.name !== 'string') {
+      continue;
+    }
+    if (validateCard(c).errors.length > 0) continue;
+    const id = c.id.startsWith('community-') ? c.id : `community-${c.id}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    cards.push({ ...c, id });
+  }
+  return { id: 'community', name: 'Community', enabled: true, cards };
+}
+
 /** URL for a WoW icon. Icons referenced by shipped cards live in public/icons
  *  (synced by scripts/sync-icons.mjs, deployed with the site); in dev the
  *  server additionally serves the full local dump at the same path (see

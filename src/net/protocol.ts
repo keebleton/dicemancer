@@ -8,7 +8,7 @@ export type SeatKind = 'human' | 'bot';
 /** Everything that crosses the wire. Host is the only authority: clients send
  *  `intent`, the host answers with `sync` (full state; it is a few KB). */
 export type NetMsg =
-  | { type: 'hello'; name: string }
+  | { type: 'hello'; name: string; profileId: string | null }
   | { type: 'lobby'; players: string[] }
   | {
       type: 'begin';

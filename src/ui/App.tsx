@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { SeatColor } from '../engine';
+import { useAccount } from './account';
 import { Game } from './Game';
+import { IconPicker } from './IconPicker';
 import { Lab } from './Lab';
-import { loadPacks, savePacks } from './packs';
+import { iconError, iconUrl, loadPacks, savePacks } from './packs';
 import { useGame } from './store';
 import type { SeatKind } from './store';
 
@@ -12,10 +14,122 @@ export function App() {
   const game = useGame((s) => s.game);
   const mode = useGame((s) => s.mode);
   const [lab, setLab] = useState(false);
+  useEffect(() => {
+    useAccount.getState().init();
+  }, []);
   if (game) return <Game />;
   if (mode !== 'offline') return <OnlineLobby />;
   if (lab) return <Lab onClose={() => setLab(false)} />;
   return <Setup onLab={() => setLab(true)} />;
+}
+
+/** Sign in, profile (username + WoW-icon avatar), and lifetime stats. */
+function AccountBox() {
+  const acc = useAccount();
+  const [email, setEmail] = useState('');
+  const [pw, setPw] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [uname, setUname] = useState('');
+  const [avatar, setAvatar] = useState('INV_Misc_Dice_01.PNG');
+  const [picking, setPicking] = useState(false);
+
+  const openEditor = () => {
+    setUname(acc.profile?.username ?? '');
+    setAvatar(acc.profile?.avatar_icon ?? 'INV_Misc_Dice_01.PNG');
+    setEditing(true);
+  };
+
+  if (!acc.userId) {
+    return (
+      <section className="netbox">
+        <b>Account</b>
+        <div className="netrow">
+          <input
+            placeholder="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            placeholder="password"
+            type="password"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+          />
+        </div>
+        <div className="netrow">
+          <button
+            className="primary"
+            disabled={acc.busy || !email.includes('@') || pw.length < 6}
+            onClick={() => acc.signIn(email, pw)}
+          >
+            Sign in
+          </button>
+          <button
+            disabled={acc.busy || !email.includes('@') || pw.length < 6}
+            onClick={() => acc.signUp(email, pw)}
+          >
+            Create account
+          </button>
+          <span className="dimtext">optional: profiles, avatars, stats</span>
+        </div>
+        {acc.error && <div className="err">{acc.error}</div>}
+        {acc.notice && <div className="dimtext">{acc.notice}</div>}
+      </section>
+    );
+  }
+
+  if (acc.needsProfile || editing) {
+    return (
+      <section className="netbox">
+        <b>{acc.needsProfile ? 'Set up your profile' : 'Edit profile'}</b>
+        <div className="netrow">
+          <img className="avatar" src={iconUrl(avatar)} alt="" onError={iconError} />
+          <button onClick={() => setPicking(true)}>pick avatar</button>
+          <input
+            placeholder="username"
+            maxLength={24}
+            value={uname}
+            onChange={(e) => setUname(e.target.value)}
+          />
+          <button
+            className="primary"
+            disabled={acc.busy || uname.trim().length < 2}
+            onClick={async () => {
+              await acc.saveProfile(uname, avatar);
+              setEditing(false);
+            }}
+          >
+            Save
+          </button>
+          {!acc.needsProfile && <button onClick={() => setEditing(false)}>cancel</button>}
+        </div>
+        {acc.error && <div className="err">{acc.error}</div>}
+        {picking && (
+          <IconPicker
+            onPick={(n) => {
+              setAvatar(n);
+              setPicking(false);
+            }}
+            onClose={() => setPicking(false)}
+          />
+        )}
+      </section>
+    );
+  }
+
+  return (
+    <section className="netbox">
+      <div className="netrow">
+        <img className="avatar" src={iconUrl(acc.profile!.avatar_icon)} alt="" onError={iconError} />
+        <b>{acc.profile!.username}</b>
+        <span className="dimtext">
+          {acc.profile!.games_won} wins / {acc.profile!.games_played} games
+        </span>
+        <button onClick={openEditor}>edit</button>
+        <button onClick={() => acc.signOut()}>sign out</button>
+      </div>
+    </section>
+  );
 }
 
 const savedName = () => localStorage.getItem('dicemancer_name') ?? '';
@@ -63,9 +177,17 @@ function Setup({ onLab }: { onLab: () => void }) {
       setBusy(null);
     }
   };
+  const profile = useAccount((s) => s.profile);
+  useEffect(() => {
+    if (profile && !name.trim()) setName(profile.username);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
+
   return (
     <main className="setup">
       <h1>Dicemancer</h1>
+
+      <AccountBox />
 
       <section className="netbox">
         <b>Play online</b>

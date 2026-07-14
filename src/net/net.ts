@@ -27,6 +27,8 @@ interface Callbacks {
 interface ClientSlot {
   conn: DataConnection;
   name: string;
+  /** Supabase profile id, when the client is signed in. */
+  profileId: string | null;
   /** Assigned at begin(); -1 while in the lobby. */
   seat: number;
 }
@@ -85,7 +87,12 @@ class Net {
     conn.on('data', (raw) => {
       const msg = raw as NetMsg;
       if (msg.type === 'hello') {
-        this.clients.push({ conn, name: msg.name.trim() || 'Player', seat: -1 });
+        this.clients.push({
+          conn,
+          name: msg.name.trim() || 'Player',
+          profileId: msg.profileId ?? null,
+          seat: -1,
+        });
         this.emitLobby();
         return;
       }
@@ -108,7 +115,7 @@ class Net {
   }
 
   /** Join someone's room. Resolves once the host connection is open. */
-  join(code: string, name: string): Promise<void> {
+  join(code: string, name: string, profileId: string | null = null): Promise<void> {
     this.leave();
     this.mode = 'client';
     this.roomCode = code;
@@ -121,7 +128,7 @@ class Net {
         this.hostConn = conn;
         conn.on('open', () => {
           opened = true;
-          conn.send({ type: 'hello', name } satisfies NetMsg);
+          conn.send({ type: 'hello', name, profileId } satisfies NetMsg);
           resolve();
         });
         conn.on('data', (raw) => {
@@ -166,6 +173,11 @@ class Net {
 
   lobbyNames(): string[] {
     return [this.hostName, ...this.clients.map((c) => c.name)];
+  }
+
+  /** Client profile ids in join order (seat 1 onward; the host knows its own). */
+  clientProfiles(): (string | null)[] {
+    return this.clients.map((c) => c.profileId);
   }
 
   clientCount(): number {

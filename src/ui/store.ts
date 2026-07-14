@@ -4,9 +4,17 @@ import type { Action, GameState, Rng, SeatColor } from '../engine';
 import { net } from '../net/net';
 import type { NetMode } from '../net/net';
 import { buildSeats, isLegalIntent } from '../net/protocol';
+import { reportMatch, useAccount } from './account';
 import { describeTransition } from './describe';
 import { effectiveStarterBoard, loadPacks, mergedPools } from './packs';
+import type { CardPack } from './packs';
 import { playForDispatch } from './sfx';
+
+/** Local packs plus the community pack of approved proposals (when loaded). */
+function activePacks(): CardPack[] {
+  const community = useAccount.getState().community;
+  return community && community.cards.length > 0 ? [...loadPacks(), community] : loadPacks();
+}
 
 // The game's rng lives beside the store, not inside GameState (it is stateful
 // and non-serializable). Seeded once per game. Online, ONLY the host has one.
@@ -37,6 +45,8 @@ interface GameStore {
   lobby: string[];
   /** Why the last online session ended; shown on the setup screen. */
   netNotice: string | null;
+  /** Supabase profile id per seat (online games); null = bot or signed out. */
+  seatProfiles: (string | null)[];
   start: (
     playerCount: number,
     roundCap: number,
@@ -129,6 +139,7 @@ export const useGame = create<GameStore>()((set, get) => {
     roomCode: null,
     lobby: [],
     netNotice: null,
+    seatProfiles: [],
     start: (playerCount, roundCap, seed, kinds, colors) => {
       rng = mulberry32(seed ?? Date.now() >>> 0);
       const seatKinds: SeatKind[] =
@@ -142,7 +153,7 @@ export const useGame = create<GameStore>()((set, get) => {
             color: seatColors[i % seatColors.length] as SeatColor,
           })),
           starterBoard: effectiveStarterBoard(), // with any Card Lab edits applied
-          pools: mergedPools(loadPacks()), // Card Lab edits + enabled packs join the shop
+          pools: mergedPools(activePacks()), // Lab edits + packs + community cards
           tunables: { roundCap },
         },
         rng,
@@ -163,7 +174,13 @@ export const useGame = create<GameStore>()((set, get) => {
       if (!prev) return;
       const next = applyAction(prev, action, rng);
       set(ingest(get, prev, action, next));
-      if (mode === 'host') net.sync(action, next);
+      if (mode === 'host') {
+        net.sync(action, next);
+        // Game just ended: record the result for profile stats.
+        if (next.winner !== null && prev.winner === null) {
+          reportMatch(next, get().seatProfiles);
+        }
+      }
     },
     reset: () => {
       net.leave();
@@ -186,12 +203,17 @@ export const useGame = create<GameStore>()((set, get) => {
     },
     joinRoom: async (code, name) => {
       set({ netNotice: null });
-      await net.join(code, name);
+      await net.join(code, name, useAccount.getState().profile?.id ?? null);
       set({ mode: 'client', roomCode: code });
     },
     startOnline: (botCount, roundCap, colors) => {
       const names = net.lobbyNames();
       const seats = buildSeats(names[0] ?? 'Host', names.slice(1), botCount);
+      const seatProfiles: (string | null)[] = [
+        useAccount.getState().profile?.id ?? null,
+        ...net.clientProfiles(),
+        ...Array<string | null>(botCount).fill(null),
+      ];
       rng = mulberry32(Date.now() >>> 0);
       const game = createGame(
         {
@@ -200,7 +222,7 @@ export const useGame = create<GameStore>()((set, get) => {
             color: colors[i % colors.length] as SeatColor,
           })),
           starterBoard: effectiveStarterBoard(),
-          pools: mergedPools(loadPacks()), // the host's packs and edits rule the table
+          pools: mergedPools(activePacks()), // the host's packs + community cards rule the table
           tunables: { roundCap },
         },
         rng,
@@ -209,6 +231,7 @@ export const useGame = create<GameStore>()((set, get) => {
         game,
         seatKinds: seats.kinds,
         mySeat: 0,
+        seatProfiles,
         log: [`online game started: ${seats.names.join(', ')}`],
       });
       net.begin(game, seats.kinds);

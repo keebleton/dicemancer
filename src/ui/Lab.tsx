@@ -1,15 +1,17 @@
 ﻿// The Card Lab: design custom cards, save them into packs, sim-test them.
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { pools } from '../content/cards';
 import { starterBoard } from '../content/starters';
 import type { CardColor, CardDef, ConditionalWhen, Effect } from '../engine';
 import { simulate } from '../sim/sim';
+import { supa } from '../supa/client';
+import { useAccount } from './account';
 import { CardFace } from './CardFace';
 import { fxList } from './describe';
+import { IconPicker } from './IconPicker';
+import { Proposals } from './Proposals';
 import {
   builtinIds,
-  iconError,
-  iconUrl,
   loadOverrides,
   loadPacks,
   mergedPools,
@@ -58,6 +60,11 @@ export function Lab({ onClose }: { onClose: () => void }) {
   const [overrideId, setOverrideId] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<CardOverrides>(() => loadOverrides());
   const [browsing, setBrowsing] = useState(false);
+  /** Non-null while editing a community PROPOSAL: saves go to Supabase. */
+  const [proposalId, setProposalId] = useState<string | null>(null);
+  const [proposalsView, setProposalsView] = useState(false);
+  const [proposeMsg, setProposeMsg] = useState<string | null>(null);
+  const account = useAccount();
 
   const pack = packs.find((p) => p.id === packId) ?? null;
 
@@ -129,10 +136,34 @@ export function Lab({ onClose }: { onClose: () => void }) {
     saveOverrides(next);
   };
 
+  const proposeDraft = () => {
+    if (!draft || !account.userId || !account.profile) return;
+    if (validateCard(draft).errors.length > 0) return;
+    void supa
+      .from('proposed_cards')
+      .insert({ author: account.userId, author_name: account.profile.username, card: draft })
+      .then(({ error }) => {
+        setProposeMsg(error ? `propose failed: ${error.message}` : `"${draft.name}" sent for review`);
+      });
+  };
+
   const saveDraft = () => {
     if (!draft) return;
     const check = validateCard(draft);
     if (check.errors.length > 0) return;
+    if (proposalId) {
+      // Community proposal edit (admin review, or an author's own pending card).
+      void supa
+        .from('proposed_cards')
+        .update({ card: draft, updated_at: new Date().toISOString() })
+        .eq('id', proposalId)
+        .then(({ error }) => {
+          if (error) window.alert(`save failed: ${error.message}`);
+        });
+      setDraft(null);
+      setProposalId(null);
+      return;
+    }
     if (overrideId) {
       // Built-in edit: the id stays anchored to the original card.
       const next = { ...overrides, [overrideId]: { ...draft, id: overrideId } };
@@ -179,9 +210,11 @@ export function Lab({ onClose }: { onClose: () => void }) {
                 onClick={() => {
                   setPackId(p.id);
                   setBrowsing(false);
+                  setProposalsView(false);
                   setDraft(null);
                   setEditIndex(null);
                   setOverrideId(null);
+                  setProposalId(null);
                 }}
               >
                 {p.name} ({p.cards.length})
@@ -220,16 +253,40 @@ export function Lab({ onClose }: { onClose: () => void }) {
             className={browsing ? 'selected' : ''}
             onClick={() => {
               setBrowsing(true);
+              setProposalsView(false);
               setDraft(null);
               setEditIndex(null);
               setOverrideId(null);
+              setProposalId(null);
             }}
           >
             browse all cards ({CATALOG_COUNT})
           </button>
+          <h3 style={{ marginTop: 14 }}>Community</h3>
+          <button
+            className={proposalsView ? 'selected' : ''}
+            onClick={() => {
+              setProposalsView(true);
+              setBrowsing(false);
+              setDraft(null);
+              setEditIndex(null);
+              setOverrideId(null);
+              setProposalId(null);
+            }}
+          >
+            proposed cards
+          </button>
         </section>
 
         <section className="panel labmain">
+          {proposalsView && !draft && (
+            <Proposals
+              onEdit={(card, id) => {
+                setDraft(card);
+                setProposalId(id);
+              }}
+            />
+          )}
           {browsing && !draft && (
             <Catalog
               onCopy={copyFromCatalog}
@@ -239,10 +296,10 @@ export function Lab({ onClose }: { onClose: () => void }) {
               copyTarget={pack?.name ?? null}
             />
           )}
-          {!pack && !browsing && (
+          {!pack && !browsing && !proposalsView && (
             <p className="dimtext">Create or pick a pack, or browse the existing cards.</p>
           )}
-          {pack && !draft && !browsing && (
+          {pack && !draft && !browsing && !proposalsView && (
             <>
               <h3>{pack.name}</h3>
               {pack.cards.length === 0 && <p className="dimtext">No cards yet.</p>}
@@ -289,19 +346,38 @@ export function Lab({ onClose }: { onClose: () => void }) {
               </button>
             </>
           )}
-          {draft && (pack || overrideId) && (
-            <CardEditor
-              draft={draft}
-              setDraft={setDraft}
-              packs={packs}
-              editingBuiltin={overrideId !== null}
-              onSave={saveDraft}
-              onCancel={() => {
-                setDraft(null);
-                setEditIndex(null);
-                setOverrideId(null);
-              }}
-            />
+          {draft && (pack || overrideId || proposalId) && (
+            <>
+              <CardEditor
+                draft={draft}
+                setDraft={setDraft}
+                packs={packs}
+                editingBuiltin={overrideId !== null}
+                onSave={saveDraft}
+                onCancel={() => {
+                  setDraft(null);
+                  setEditIndex(null);
+                  setOverrideId(null);
+                  setProposalId(null);
+                }}
+              />
+              {proposalId && (
+                <p className="dimtext">editing a community proposal; Save writes it back</p>
+              )}
+              {!overrideId && !proposalId && account.profile && (
+                <div className="proposebar">
+                  <button
+                    disabled={validateCard(draft).errors.length > 0}
+                    onClick={proposeDraft}
+                  >
+                    Propose to the table
+                  </button>
+                  <span className="dimtext">
+                    {proposeMsg ?? 'sends this design to the proposed cards log for review'}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>
@@ -726,73 +802,6 @@ function WhenEditor({ when, onChange }: { when: ConditionalWhen; onChange: (w: C
   );
 }
 
-let manifestCache: string[] | null = null;
-
-function IconPicker({ onPick, onClose }: { onPick: (n: string) => void; onClose: () => void }) {
-  const [names, setNames] = useState<string[]>(manifestCache ?? []);
-  const [ready, setReady] = useState(manifestCache !== null);
-  const [q, setQ] = useState('');
-
-  useEffect(() => {
-    if (manifestCache !== null) return;
-    fetch(`${import.meta.env.BASE_URL}wow-icons.json`)
-      .then((r) => (r.ok ? (r.json() as Promise<string[]>) : []))
-      .then((list) => {
-        manifestCache = list;
-        setNames(list);
-        setReady(true);
-      })
-      .catch(() => setReady(true));
-  }, []);
-
-  const matches = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    const filtered = s ? names.filter((n) => n.toLowerCase().includes(s)) : names;
-    return filtered.slice(0, 120);
-  }, [q, names]);
-
-  return (
-    <div className="iconpick-overlay" onClick={onClose}>
-      <div className="iconpick" onClick={(e) => e.stopPropagation()}>
-        <div className="field">
-          <input
-            autoFocus
-            placeholder="search 23k icons... (sword, fire, coin, skull)"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <button onClick={onClose}>close</button>
-        </div>
-        {!ready && <p className="dimtext">loading icon list...</p>}
-        {ready && names.length === 0 && (
-          <p className="dimtext">
-            No icons found. The WoW icon folder is not on this machine (or you are not running the
-            dev server).
-          </p>
-        )}
-        <div className="icongrid">
-          {matches.map((n) => (
-            <img
-              key={n}
-              src={iconUrl(n)}
-              alt={n}
-              title={n}
-              loading="lazy"
-              onError={iconError}
-              onClick={() => onPick(n)}
-            />
-          ))}
-        </div>
-        {ready && names.length > 0 && (
-          <p className="dimtext">
-            showing {matches.length} of{' '}
-            {q ? names.filter((n) => n.toLowerCase().includes(q.toLowerCase())).length : names.length}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function SimTest({ card, packs }: { card: CardDef; packs: CardPack[] }) {
   const [busy, setBusy] = useState(false);

@@ -221,6 +221,18 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .roomcode { font-size: 15px; }
 .roomcode b { font-size: 26px; letter-spacing: 6px; color: #f0b429; margin-left: 6px; }
 
+.avatar { width: 38px; height: 38px; border-radius: 8px; border: 1px solid #4a5470; background: #1c2130; }
+.proposals { display: flex; flex-direction: column; gap: 10px; }
+.proposalrow { display: flex; gap: 12px; align-items: flex-start; border: 1px solid #3a4258; border-radius: 8px; padding: 8px; background: #262d40; }
+.proposalmeta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }
+.proposalactions { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.proposalactions input { max-width: 320px; }
+.statuschip { border-radius: 10px; padding: 1px 8px; font-size: 11px; font-weight: 700; margin-left: 6px; }
+.st-proposed { background: #423a1f; color: #ffe9a8; }
+.st-approved { background: #1f4229; color: #a8ffc4; }
+.st-rejected { background: #42221f; color: #ffb3a8; }
+.proposebar { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+
 .cicon { width: 16px; height: 16px; border-radius: 3px; vertical-align: -3px; }
 .lab .labcols { display: flex; gap: 14px; align-items: flex-start; }
 .labside { width: 260px; flex: none; }
