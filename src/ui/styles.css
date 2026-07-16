@@ -2,7 +2,11 @@
    under a warm hanging light, brass accents, parchment cards, serif display
    type. Juice: tumbling dice, breathing seat glow, golden sheen on rares,
    punchy fire/echo bursts. Everything stays static: no hover may shift
-   layout, only transform/shadow/opacity animate. */
+   layout, only transform/shadow/opacity animate.
+   Juice round 2 (2026-07-16): the travel/impact fx layer (Fx.tsx) -- coins
+   arc to the earning seat, damage numbers slam in with a shockwave, KOs
+   flash and quake the room -- plus the victory splash. All fixed-position,
+   so the static-table rule holds. */
 /* Self-hosted display faces (SIL OFL): Germania One for hero moments,
    Grenze for card names and readable accents. Vite fingerprints the files. */
 @font-face {
@@ -180,13 +184,15 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .choiceslot { display: inline-flex; gap: 4px; align-items: center; }
 
 .dicetray { display: flex; gap: 8px; margin: 8px 0; }
-/* Dice tumble in from above with an overshoot; the second lands a beat late. */
-.die { width: 40px; height: 40px; border-radius: 12px; filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.45)); animation: diceroll 0.55s cubic-bezier(0.2, 0.8, 0.3, 1.15); }
-.stagedice .die:nth-child(2) { animation-delay: 0.08s; animation-fill-mode: backwards; }
+/* Dice tumble in from above, squash on the landing, and settle with a
+   double bounce; the second die lands a beat late. */
+.die { width: 40px; height: 40px; border-radius: 12px; filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.45)); animation: diceroll 0.62s cubic-bezier(0.2, 0.8, 0.3, 1.15); }
+.stagedice .die:nth-child(2) { animation-delay: 0.1s; animation-fill-mode: backwards; }
 @keyframes diceroll {
-  0% { transform: translateY(-36px) rotate(-200deg) scale(0.5); opacity: 0; }
-  55% { transform: translateY(4px) rotate(10deg) scale(1.07); opacity: 1; }
-  76% { transform: translateY(-3px) rotate(-4deg) scale(1.02); }
+  0% { transform: translateY(-64px) rotate(-320deg) scale(0.4); opacity: 0; }
+  48% { transform: translateY(6px) rotate(12deg) scale(1.16, 0.86); opacity: 1; }
+  64% { transform: translateY(-7px) rotate(-6deg) scale(0.96, 1.06); }
+  80% { transform: translateY(2px) rotate(2deg) scale(1.04, 0.98); }
   100% { transform: translateY(0) rotate(0) scale(1); }
 }
 
@@ -306,6 +312,69 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
   100% { background-position: -130% 0; }
 }
 
+/* ---- Victory splash: rotating gold rays, confetti, the winner's name in
+   lights. "view the table" drops back to the slim banner for post-mortems. */
+.winoverlay { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; overflow: hidden; background: radial-gradient(ellipse at 50% 45%, rgba(22, 26, 44, 0.78), rgba(8, 10, 18, 0.92)); animation: overlayin 0.45s ease-out; }
+@keyframes overlayin { 0% { opacity: 0; } 100% { opacity: 1; } }
+.winrays { position: absolute; left: 50%; top: 45%; width: 1500px; height: 1500px; transform: translate(-50%, -50%); border-radius: 50%; background: repeating-conic-gradient(from 0deg, rgba(240, 180, 41, 0.13) 0deg 9deg, transparent 9deg 26deg); -webkit-mask-image: radial-gradient(circle, black 0%, transparent 62%); mask-image: radial-gradient(circle, black 0%, transparent 62%); animation: rayspin 30s linear infinite; }
+@keyframes rayspin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+.wincard { position: relative; text-align: center; animation: winrise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.12s backwards; }
+@keyframes winrise {
+  0% { opacity: 0; transform: translateY(26px) scale(0.85); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.winkicker { font-family: var(--display); font-size: 21px; letter-spacing: 9px; color: var(--gold); text-shadow: 0 0 20px rgba(240, 180, 41, 0.55), 0 2px 3px rgba(0, 0, 0, 0.7); }
+.winname { font-family: var(--display); font-size: 66px; line-height: 1.08; letter-spacing: 2px; text-shadow: 0 4px 26px rgba(0, 0, 0, 0.65), 0 0 34px rgba(240, 180, 41, 0.25); }
+.winhow { font-family: var(--serif); font-size: 21px; color: #d8dcea; margin: 4px 0 20px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6); }
+.confetti { position: absolute; top: -24px; width: 9px; height: 14px; border-radius: 2px; opacity: 0; animation-name: confetti; animation-timing-function: linear; animation-fill-mode: forwards; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+@keyframes confetti {
+  0% { opacity: 0; transform: translateY(0) rotate(0) skewX(0deg); }
+  8% { opacity: 1; }
+  50% { transform: translateY(52vh) rotate(340deg) skewX(14deg); }
+  100% { opacity: 0.85; transform: translateY(106vh) rotate(660deg) skewX(-10deg); }
+}
+
+/* ---- The travel/impact fx layer (spawned by Fx.tsx between DOM anchors). */
+.fxlayer { position: fixed; inset: 0; pointer-events: none; z-index: 65; }
+.fxfly { position: fixed; --tx: 0px; --ty: 0px; will-change: transform, opacity; animation: fxtravel 0.62s cubic-bezier(0.35, 0, 0.6, 1) forwards; opacity: 0; }
+/* Fake arc: the midpoint keyframes ride above the straight line. */
+@keyframes fxtravel {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  14% { opacity: 1; transform: translate(calc(-50% + var(--tx) * 0.14), calc(-50% + var(--ty) * 0.14 - 26px)) scale(1.18); }
+  55% { opacity: 1; transform: translate(calc(-50% + var(--tx) * 0.55), calc(-50% + var(--ty) * 0.55 - 38px)) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.72); }
+}
+.fxdmg { font-family: var(--display); font-size: 36px; color: #ff5f4e; text-shadow: 0 0 14px rgba(220, 38, 38, 0.7), 0 2px 3px rgba(0, 0, 0, 0.9); }
+.fxcoin { width: 15px; height: 15px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe9a8, #f0b429 55%, #a16207); box-shadow: 0 0 10px rgba(240, 180, 41, 0.8), inset 0 0 3px #a16207; animation-duration: 0.72s; }
+.fxpts { font-size: 27px; color: #c9a6ff; text-shadow: 0 0 14px rgba(167, 139, 218, 0.8), 0 2px 3px rgba(0, 0, 0, 0.8); animation-duration: 0.7s; }
+/* Impact shockwave at the victim's mat, timed to the number's arrival. */
+.fxring { position: fixed; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; border: 3px solid rgba(255, 95, 78, 0.9); box-shadow: 0 0 22px 8px rgba(220, 38, 38, 0.45); opacity: 0; animation: fxring 0.5s ease-out 0.44s both; }
+@keyframes fxring {
+  0% { opacity: 1; transform: scale(0.4); }
+  100% { opacity: 0; transform: scale(5.5); }
+}
+.fxheal { position: fixed; transform: translate(-50%, -50%); font-size: 25px; font-weight: 800; color: #4ade80; text-shadow: 0 0 14px rgba(74, 222, 128, 0.65), 0 2px 3px rgba(0, 0, 0, 0.8); opacity: 0; animation: fxhealup 1s ease-out forwards; }
+@keyframes fxhealup {
+  0% { opacity: 0; translate: 0 12px; }
+  16% { opacity: 1; translate: 0 0; }
+  100% { opacity: 0; translate: 0 -36px; }
+}
+/* Knockout: the room flashes red; Game.tsx shakes the table alongside. */
+.fxko { position: fixed; inset: 0; background: radial-gradient(ellipse at 50% 50%, rgba(220, 38, 38, 0.22) 30%, rgba(120, 10, 10, 0.5) 100%); animation: koflash 0.8s ease-out forwards; opacity: 0; }
+@keyframes koflash {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.table.quake { animation: quake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes quake {
+  10%, 90% { transform: translate(-2px, 1px); }
+  20%, 80% { transform: translate(4px, -2px); }
+  30%, 50%, 70% { transform: translate(-7px, 3px); }
+  40%, 60% { transform: translate(6px, -3px); }
+  100% { transform: none; }
+}
+
 .setup { max-width: 440px; margin: 60px auto; background: #2c3348; border: 1px solid #3a4258; border-radius: 12px; padding: 24px 28px; display: flex; flex-direction: column; gap: 12px; }
 .netbox { border: 1px solid #caa53d; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; background: #322f3e; }
 .netrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -400,4 +469,5 @@ input, select { background: #333b52; border: 1px solid #4a5470; color: #e8eaf2; 
 /* Motion hygiene: honor the OS-level reduced motion preference. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  .fxlayer, .confetti, .winrays { display: none; }
 }

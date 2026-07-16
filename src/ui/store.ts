@@ -99,11 +99,24 @@ export interface StatPulse {
 }
 let nextPulseId = 1;
 
+/** A table event for the travel/impact fx layer: coins arc from the dice
+ *  stage to the earning seat, damage numbers slam into the victim's mat,
+ *  a knockout shakes the room. Derived from state deltas exactly like
+ *  pulses, so it fires identically offline, online, and on bot turns. */
+export interface FxEvent {
+  id: number;
+  kind: 'damage' | 'heal' | 'coins' | 'points' | 'ko';
+  seat: number;
+  amount: number;
+}
+let nextFxId = 1;
+
 interface GameStore {
   game: GameState | null;
   seatKinds: SeatKind[];
   log: string[];
   pulses: StatPulse[];
+  fx: FxEvent[];
   // --- online session ---
   mode: NetMode;
   /** My seat in an online game; null offline (hotseat controls every human). */
@@ -156,28 +169,48 @@ interface GameStore {
   replaceWithBot: (seat: number) => void;
 }
 
-/** Pulses + sfx + log for one transition; shared by local and remote paths. */
+/** Pulses + fx + sfx + log for one transition; shared by local and remote paths. */
 function ingest(
   get: () => GameStore,
   prev: GameState,
   action: Action,
   next: GameState,
-): Pick<GameStore, 'game' | 'pulses' | 'log'> {
+): Pick<GameStore, 'game' | 'pulses' | 'fx' | 'log'> {
   const fresh: StatPulse[] = [];
+  const freshFx: FxEvent[] = [];
   next.players.forEach((p, seat) => {
     const q = prev.players[seat]!;
-    if (p.hp !== q.hp) fresh.push({ id: nextPulseId++, seat, stat: 'hp', delta: p.hp - q.hp });
+    if (p.hp !== q.hp) {
+      fresh.push({ id: nextPulseId++, seat, stat: 'hp', delta: p.hp - q.hp });
+      freshFx.push({
+        id: nextFxId++,
+        kind: p.hp < q.hp ? 'damage' : 'heal',
+        seat,
+        amount: Math.abs(p.hp - q.hp),
+      });
+    }
     if (p.money !== q.money) {
       fresh.push({ id: nextPulseId++, seat, stat: 'money', delta: p.money - q.money });
+      // Only gains travel; losses just float red at the mat.
+      if (p.money > q.money) {
+        freshFx.push({ id: nextFxId++, kind: 'coins', seat, amount: p.money - q.money });
+      }
     }
     if (p.points !== q.points) {
       fresh.push({ id: nextPulseId++, seat, stat: 'points', delta: p.points - q.points });
+      if (p.points > q.points) {
+        freshFx.push({ id: nextFxId++, kind: 'points', seat, amount: p.points - q.points });
+      }
+    }
+    if (p.eliminated && !q.eliminated) {
+      freshFx.push({ id: nextFxId++, kind: 'ko', seat, amount: 0 });
     }
   });
   playForDispatch(action, prev, next, fresh);
   return {
     game: next,
     pulses: [...get().pulses, ...fresh].slice(-24),
+    fx: [...get().fx, ...freshFx].slice(-14),
     log: [...get().log, ...describeTransition(prev, action, next)].slice(-120),
   };
 }
@@ -258,6 +291,7 @@ export const useGame = create<GameStore>()((set, get) => {
         mySeat: seat,
         mode: 'client',
         pulses: [],
+        fx: [],
         connectedSeats: state.players.map(() => true),
         log: [`joined ${state.players.length}-player online game as ${state.players[seat]!.name}`],
       });
@@ -302,6 +336,7 @@ export const useGame = create<GameStore>()((set, get) => {
         roomCode: null,
         lobby: [],
         pulses: [],
+        fx: [],
         log: [],
         netNotice: reason,
       });
@@ -313,6 +348,7 @@ export const useGame = create<GameStore>()((set, get) => {
     seatKinds: [],
     log: [],
     pulses: [],
+        fx: [],
     mode: 'offline',
     mySeat: null,
     roomCode: null,
@@ -386,6 +422,7 @@ export const useGame = create<GameStore>()((set, get) => {
         game: null,
         log: [],
         pulses: [],
+        fx: [],
         mode: 'offline',
         mySeat: null,
         roomCode: null,
@@ -506,3 +543,8 @@ export const useGame = create<GameStore>()((set, get) => {
     },
   };
 });
+
+// Dev-only console handle so fx/animation paths can be poked in a harness.
+if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+  (globalThis as { __game?: typeof useGame }).__game = useGame;
+}

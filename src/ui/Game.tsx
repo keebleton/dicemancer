@@ -1,15 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { chooseAction } from '../bot';
 import { RELIC_BY_ID, actingSeat, legalActions, previewNumbers } from '../engine';
-import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
+import type { Action, AllocationMode, GameState, PlayerState, WinReason } from '../engine';
 import { CardFace, TINT } from './CardFace';
 import { fxList } from './describe';
+import { FxLayer } from './Fx';
 import { HowToPlay } from './HowToPlay';
 import { aggregateEchoEffects, Die, EffectIcons, IconLegend, StatChips } from './icons';
 import { iconError, iconLoaded, iconUrl } from './packs';
 import { isMuted, setMuted } from './sfx';
 import { useGame } from './store';
 import type { StatPulse } from './store';
+
+const WIN_HOW: Record<WinReason, string> = {
+  points: 'wins on points',
+  ko: 'wins by knockout',
+  failsafe: 'wins at the round cap',
+  card: 'wins by destiny',
+};
+const CONFETTI = ['#f0b429', '#ff8272', '#7ab5ff', '#7fd97f', '#c0a9f0'];
 
 export function Game() {
   const game = useGame((s) => s.game)!;
@@ -25,7 +34,26 @@ export function Game() {
   const replaceWithBot = useGame((s) => s.replaceWithBot);
   const bubbles = useGame((s) => s.bubbles);
   const sendChat = useGame((s) => s.sendChat);
+  const fx = useGame((s) => s.fx);
   const [chatDraft, setChatDraft] = useState('');
+  const [winHidden, setWinHidden] = useState(false);
+  // A knockout rattles the whole table for half a second. Pre-mount history
+  // is recorded, not replayed (same rule as the fx layer).
+  const [quake, setQuake] = useState(false);
+  const quakeSeen = useRef<number | null>(null);
+  useEffect(() => {
+    let ko = 0;
+    for (const e of fx) if (e.kind === 'ko') ko = e.id;
+    if (quakeSeen.current === null || ko <= quakeSeen.current) {
+      quakeSeen.current = ko;
+      return;
+    }
+    quakeSeen.current = ko;
+    setQuake(true);
+    const t = setTimeout(() => setQuake(false), 700);
+    return () => clearTimeout(t);
+  }, [fx]);
+  useEffect(() => setWinHidden(false), [game.winner]);
   const [preview, setPreview] = useState<AllocationMode | null>(null);
   const [buySel, setBuySel] = useState<{ src: 'shop' | 'market' | 'relic'; i: number } | null>(
     null,
@@ -184,14 +212,44 @@ export function Game() {
         </div>
       )}
 
-      {game.winner !== null && (
+      {game.winner !== null && !winHidden && (
+        <div className="winoverlay">
+          <div className="winrays" />
+          {Array.from({ length: 26 }, (_, i) => (
+            <span
+              key={i}
+              className="confetti"
+              style={{
+                left: `${(i * 39) % 100}%`,
+                animationDelay: `${(i % 9) * 0.14}s`,
+                animationDuration: `${2.4 + (i % 5) * 0.35}s`,
+                background: CONFETTI[i % CONFETTI.length],
+              }}
+            />
+          ))}
+          <div className="wincard">
+            <div className="winkicker">Victory</div>
+            <div className={'winname ' + game.players[game.winner]!.color}>
+              {game.players[game.winner]!.name}
+            </div>
+            <div className="winhow">{WIN_HOW[game.winReason ?? 'points']}</div>
+            <div>
+              <button className="primary" onClick={reset}>
+                new game
+              </button>
+              <button onClick={() => setWinHidden(true)}>view the table</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {game.winner !== null && winHidden && (
         <div className="winner">
-          {game.players[game.winner]!.name} wins by {game.winReason}!{' '}
+          {game.players[game.winner]!.name} {WIN_HOW[game.winReason ?? 'points']}!{' '}
           <button onClick={reset}>new game</button>
         </div>
       )}
 
-      <div className="table">
+      <div className={'table' + (quake ? ' quake' : '')}>
         {topSeat !== null && <div className="topzone">{oppMat(topSeat)}</div>}
 
         <div className="midrow">
@@ -316,6 +374,7 @@ export function Game() {
           p={game.players[perspective]!}
           seat={perspective}
           game={game}
+          fxAnchor
           bubble={bubbles[perspective]}
           pulses={pulses.filter((x) => x.seat === perspective)}
           highlight={perspective === game.current ? previewSlots : []}
@@ -367,6 +426,8 @@ export function Game() {
           </div>
         </section>
       </div>
+
+      <FxLayer fx={fx} />
 
       {help && <HowToPlay onClose={() => setHelp(false)} />}
 
@@ -424,7 +485,7 @@ function Stage(props: {
         <span className={actor.color}>{actor.name}</span>
         {"'"}s turn
       </div>
-      <div className="stagedice">
+      <div className="stagedice" data-fxstage>
         <Die key={`a${dice?.[0] ?? 'x'}`} value={dice?.[0] ?? null} />
         <Die key={`b${dice?.[1] ?? 'x'}`} value={dice?.[1] ?? null} />
       </div>
@@ -567,6 +628,9 @@ function SelfMat(props: {
   buyable: number[];
   onSlotClick: (slot: number) => void;
   bubble?: { id: number; text: string; big: boolean };
+  /** Set on the table instance only: the fx layer flies coins/damage here.
+   *  The inspect-overlay copy must NOT anchor or fx would land on it. */
+  fxAnchor?: boolean;
 }) {
   const { p, seat, game, highlight, fired, buyable, onSlotClick, bubble } = props;
   const isTurn = seat === game.current;
@@ -575,6 +639,7 @@ function SelfMat(props: {
   return (
     <section
       className={'panel selfmat' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}
+      data-fxseat={props.fxAnchor ? seat : undefined}
     >
       {bubble && (
         <div key={bubble.id} className={'chatbubble' + (bubble.big ? ' big' : '')}>
@@ -700,6 +765,7 @@ function OppMat(props: {
   return (
     <section
       className={'panel oppmat' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}
+      data-fxseat={seat}
       onClick={props.onInspect}
     >
       {bubble && (
