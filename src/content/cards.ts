@@ -1,4 +1,4 @@
-import type { CardDef } from '../engine/types';
+import type { CardDef, Effect } from '../engine/types';
 
 // The PLAN.md section 4 exemplar cards, verbatim. Placeholders, NOT balanced;
 // the pool grows to targets (~15/color + ~10 colorless) in Phase 5 and gets
@@ -1734,13 +1734,37 @@ export const YELLOW_CARDS: CardDef[] = [
   { id: 'loan-shark', name: 'Loan Shark', icon: 'INV_Misc_Landshark.PNG', color: 'yellow', rarity: 'common', cost: 4, legalSlots: [2, 4], active: [{ kind: 'steal', amount: 1, target: 'chooseOpponent' }], echo: [{ kind: 'gainMoney', amount: 1 }] },
 ];
 
+/** High-slot point buff (Jake, 2026-07-16): every card living entirely in
+ *  slots 9-12 pays +1 on its roll-line point payout (first gainPoints found,
+ *  nested payoffs included). High numbers are rare; landing them should feel
+ *  like it. Applied as one rule instead of 40 literal edits so it is easy to
+ *  tune or revert; card faces, sims, and the engine all see the buffed values. */
+function buffHighPointCard(card: CardDef): CardDef {
+  if (Math.min(...card.legalSlots) < 9) return card;
+  let bumped = false;
+  const bump = (list: Effect[]): Effect[] =>
+    list.map((e) => {
+      if (bumped) return e;
+      if (e.kind === 'gainPoints') {
+        bumped = true;
+        return { ...e, amount: e.amount + 1 };
+      }
+      if (e.kind === 'conditional' || e.kind === 'trade' || e.kind === 'charge') {
+        return { ...e, then: bump(e.then) };
+      }
+      return e;
+    });
+  const active = bump(card.active);
+  return bumped ? { ...card, active } : card;
+}
+
 export function pools() {
   return {
-    red: RED_CARDS,
-    blue: BLUE_CARDS,
-    black: BLACK_CARDS,
-    green: GREEN_CARDS,
-    yellow: YELLOW_CARDS,
-    colorless: COLORLESS_CARDS,
+    red: RED_CARDS.map(buffHighPointCard),
+    blue: BLUE_CARDS.map(buffHighPointCard),
+    black: BLACK_CARDS.map(buffHighPointCard),
+    green: GREEN_CARDS.map(buffHighPointCard),
+    yellow: YELLOW_CARDS.map(buffHighPointCard),
+    colorless: COLORLESS_CARDS.map(buffHighPointCard),
   };
 }
