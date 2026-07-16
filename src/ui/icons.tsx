@@ -51,17 +51,9 @@ function Sword() {
   );
 }
 
-/** Card-zone markers (Yu-Gi-Oh style: the symbol carries the meaning, no
- *  "roll"/"echo" words). Die = fires when its slot is rolled; sound waves =
- *  the echo it leaves once retired. */
-export function ZoneDie() {
-  return (
-    <svg className="zglyph" viewBox="0 0 12 12" aria-hidden="true">
-      <rect x="1" y="1" width="10" height="10" rx="2.8" fill="#2b2a26" />
-      <circle cx="6" cy="6" r="1.7" fill="#f7f4ec" />
-    </svg>
-  );
-}
+/** The echo marker (Yu-Gi-Oh style: the symbol carries the meaning, no word
+ *  label). Sound waves = what the card echoes once retired; the card's top
+ *  effects need no marker, they are simply what the slot does when rolled. */
 export function ZoneEcho() {
   return (
     <svg className="zglyph" viewBox="0 0 12 12" aria-hidden="true">
@@ -416,17 +408,14 @@ export function IconLegend() {
         <Cross /> heal
       </span>
       <span className="fxchip">
-        <ZoneDie /> when rolled
-      </span>
-      <span className="fxchip">
         <ZoneEcho /> echo once retired
       </span>
       <span className="fxchip glyph">{'↻'} reroll</span>
       <span className="fxchip glyph">{'±'} nudge</span>
       <span className="fxchip glyph">{'⟳'} new shop</span>
       <span className="dimtext">
-        die row = fires when its number lands | wave row = what the card echoes once retired |
-        purple tab = retired cards echoing there now, paying on other players' turns
+        top effects fire when the card's number lands | the wave strip is what it echoes once
+        retired | purple tab = retired cards echoing there now, paying on other players' turns
       </span>
     </div>
   );
