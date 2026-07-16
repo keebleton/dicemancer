@@ -314,7 +314,6 @@ function Setup({ onLab }: { onLab: () => void }) {
         {err && <div className="err">{err}</div>}
       </section>
 
-      <p>Or play on this screen. Any mix of humans and bots; multiple humans = hotseat.</p>
       <div>
         players:{' '}
         {[2, 3, 4].map((n) => (
