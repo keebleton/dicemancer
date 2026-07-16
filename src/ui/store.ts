@@ -119,6 +119,10 @@ interface GameStore {
   connectedSeats: boolean[];
   /** Bot strength per seat (only meaningful where seatKinds is 'bot'). */
   botLevels: BotLevel[];
+  /** Latest chat bubble per seat; a new id restarts the fade animation. */
+  bubbles: Record<number, { id: number; text: string; big: boolean }>;
+  /** Say something at the table (online games only). */
+  sendChat: (text: string, big?: boolean) => void;
   start: (
     playerCount: number,
     roundCap: number,
@@ -206,6 +210,29 @@ export const useGame = create<GameStore>()((set, get) => {
     });
   };
 
+  // Table talk. The host is the hub: it validates (rate limit + length),
+  // stamps the seat from the connection, relays to everyone, and shows it
+  // locally. Sanitized here so a modified client cannot spoof or flood.
+  let nextBubbleId = 1;
+  const lastChatAt: Record<number, number> = {};
+  const deliverChat = (seat: number, text: string, big: boolean) => {
+    const s = get();
+    const name = s.game?.players[seat]?.name ?? `seat ${seat + 1}`;
+    set({
+      bubbles: { ...s.bubbles, [seat]: { id: nextBubbleId++, text, big } },
+      log: [...s.log, `${name}: ${text}`].slice(-120),
+    });
+  };
+  const hostRelayChat = (seat: number, rawText: string, big: boolean) => {
+    const now = Date.now();
+    if (now - (lastChatAt[seat] ?? 0) < 600) return; // flood gate
+    const text = rawText.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 140);
+    if (!text) return;
+    lastChatAt[seat] = now;
+    net.chat(seat, text, big);
+    deliverChat(seat, text, big);
+  };
+
   const pushMeta = () => {
     const s = get();
     if (s.mode !== 'host' || !s.game) return;
@@ -265,6 +292,8 @@ export const useGame = create<GameStore>()((set, get) => {
       pushMeta();
     },
     onMeta: (connected, seatKinds) => set({ connectedSeats: connected, seatKinds }),
+    onChatSend: (seat, text, big) => hostRelayChat(seat, text, big),
+    onChat: (seat, text, big) => deliverChat(seat, text, big),
     onDrop: (reason) => {
       set({
         game: null,
@@ -292,6 +321,16 @@ export const useGame = create<GameStore>()((set, get) => {
     seatProfiles: [],
     connectedSeats: [],
     botLevels: [],
+    bubbles: {},
+    sendChat: (text, big = false) => {
+      const s = get();
+      if (!s.game || s.mode === 'offline') return;
+      if (s.mode === 'client') {
+        net.sendChat(text, big);
+        return;
+      }
+      hostRelayChat(s.mySeat ?? 0, text, big); // the host talks through the same gate
+    },
     start: (playerCount, roundCap, seed, kinds, colors, levels) => {
       rng = mulberry32(seed ?? Date.now() >>> 0);
       const seatKinds: SeatKind[] =

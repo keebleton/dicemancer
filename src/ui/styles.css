@@ -358,6 +358,21 @@ input, select { background: #333b52; border: 1px solid #4a5470; color: #e8eaf2; 
 .openrooms { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .botlevels { display: inline-flex; margin-left: 4px; }
 .botlevels button { padding: 2px 7px; font-size: 11px; }
+
+/* Table talk: input + emotes in the log strip, speech bubbles over mats. */
+.loghead { display: flex; align-items: center; gap: 10px; }
+.chatbar { display: flex; align-items: center; gap: 3px; flex: 1; min-width: 0; }
+.chatbar input { flex: 1; min-width: 60px; max-width: 340px; padding: 3px 8px; font-size: 12px; }
+.emotebtn { padding: 2px 7px; font-size: 11px; }
+.chatbubble { position: absolute; top: -12px; right: 14px; z-index: 30; background: linear-gradient(180deg, #fdfaf1, #efe9da); color: #2b2a26; border: 1px solid #b7ae99; border-radius: 12px 12px 12px 3px; padding: 4px 12px; font-size: 13px; max-width: 260px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45); pointer-events: none; animation: bubblelife 5s ease forwards; }
+.chatbubble.big { font-family: var(--display); font-size: 19px; padding: 6px 16px; border-color: #caa53d; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 12px rgba(240, 180, 41, 0.35); }
+@keyframes bubblelife {
+  0% { opacity: 0; transform: translateY(6px) scale(0.85); }
+  6% { opacity: 1; transform: translateY(0) scale(1.04); }
+  10% { transform: translateY(0) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
 .matchlist { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; max-height: 60vh; overflow-y: auto; }
 .matchrow { display: flex; flex-direction: column; gap: 2px; border: 1px solid #3a4258; border-radius: 8px; padding: 6px 10px; background: #262d40; font-size: 12.5px; }
 .matchdate { font-size: 11px; }

@@ -20,6 +20,10 @@ export type NetMsg =
   | { type: 'intent'; action: Action }
   /** Host -> clients: per-seat connection truth + current seat kinds. */
   | { type: 'meta'; connected: boolean[]; seatKinds: SeatKind[] }
+  /** Client -> host: table talk. The host stamps the seat (never trusted). */
+  | { type: 'chatSend'; text: string; big?: boolean }
+  /** Host -> everyone: a seat said something. big = emote styling. */
+  | { type: 'chat'; seat: number; text: string; big?: boolean }
   | { type: 'bye'; reason: string };
 
 /** Peer ids on the public broker are global; prefix + code keeps rooms ours. */

@@ -33,6 +33,10 @@ interface Callbacks {
   onReattach: (seat: number) => void;
   /** Client only: presence + seat kinds pushed by the host. */
   onMeta: (connected: boolean[], seatKinds: SeatKind[]) => void;
+  /** Host only: a client wants to say something (host validates + relays). */
+  onChatSend: (seat: number, text: string, big: boolean) => void;
+  /** Client only: relayed table talk. */
+  onChat: (seat: number, text: string, big: boolean) => void;
   /** The session died for THIS peer (host gone, fatal error). */
   onDrop: (reason: string) => void;
 }
@@ -149,6 +153,12 @@ class Net {
         const slot = this.clients.find((c) => c.conn === conn);
         if (slot && slot.seat >= 0) this.cb?.onIntent(slot.seat, msg.action);
       }
+      if (msg.type === 'chatSend') {
+        const slot = this.clients.find((c) => c.conn === conn);
+        if (slot && slot.seat >= 0) {
+          this.cb?.onChatSend(slot.seat, String(msg.text ?? ''), msg.big === true);
+        }
+      }
     });
     // Abrupt losses (closed tab, dead wifi) never send a close frame; they
     // only show up as ICE state changes. Handle both paths once.
@@ -197,6 +207,7 @@ class Net {
           else if (msg.type === 'begin') this.cb?.onBegin(msg.state, msg.seat, msg.seatKinds);
           else if (msg.type === 'sync') this.cb?.onSync(msg.action, msg.state);
           else if (msg.type === 'meta') this.cb?.onMeta(msg.connected, msg.seatKinds);
+          else if (msg.type === 'chat') this.cb?.onChat(msg.seat, msg.text, msg.big === true);
           else if (msg.type === 'bye') this.drop(msg.reason);
         });
         let downHandled = false;
@@ -249,6 +260,16 @@ class Net {
   /** Client: ask the host to play this action. */
   sendIntent(action: Action) {
     this.hostConn?.send({ type: 'intent', action } satisfies NetMsg);
+  }
+
+  /** Client: table talk, relayed by the host. */
+  sendChat(text: string, big: boolean) {
+    this.hostConn?.send({ type: 'chatSend', text, big } satisfies NetMsg);
+  }
+
+  /** Host: push a validated chat line to every client. */
+  chat(seat: number, text: string, big: boolean) {
+    this.broadcast({ type: 'chat', seat, text, big });
   }
 
   lobbyNames(): string[] {

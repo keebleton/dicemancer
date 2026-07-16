@@ -23,6 +23,9 @@ export function Game() {
   const roomCode = useGame((s) => s.roomCode);
   const connectedSeats = useGame((s) => s.connectedSeats);
   const replaceWithBot = useGame((s) => s.replaceWithBot);
+  const bubbles = useGame((s) => s.bubbles);
+  const sendChat = useGame((s) => s.sendChat);
+  const [chatDraft, setChatDraft] = useState('');
   const [preview, setPreview] = useState<AllocationMode | null>(null);
   const [buySel, setBuySel] = useState<{ src: 'shop' | 'market' | 'relic'; i: number } | null>(
     null,
@@ -142,6 +145,7 @@ export function Game() {
       onInspect={() => setInspect(seat)}
       disconnected={mode !== 'offline' && seatKinds[seat] === 'human' && !(connectedSeats[seat] ?? true)}
       onReplaceBot={mode === 'host' ? () => replaceWithBot(seat) : undefined}
+      bubble={bubbles[seat]}
     />
   );
 
@@ -312,6 +316,7 @@ export function Game() {
           p={game.players[perspective]!}
           seat={perspective}
           game={game}
+          bubble={bubbles[perspective]}
           pulses={pulses.filter((x) => x.seat === perspective)}
           highlight={perspective === game.current ? previewSlots : []}
           fired={perspective === game.current ? firedSlots : []}
@@ -331,7 +336,30 @@ export function Game() {
         />
 
         <section className="panel logpanel">
-          <h3>Log</h3>
+          <div className="loghead">
+            <h3>Log</h3>
+            {mode !== 'offline' && (
+              <div className="chatbar">
+                <input
+                  placeholder="say something..."
+                  maxLength={140}
+                  value={chatDraft}
+                  onChange={(e) => setChatDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && chatDraft.trim()) {
+                      sendChat(chatDraft.trim());
+                      setChatDraft('');
+                    }
+                  }}
+                />
+                {['Nice!', 'Ouch!', 'Wow!', 'Hmm...', 'GG'].map((emote) => (
+                  <button key={emote} className="emotebtn" onClick={() => sendChat(emote, true)}>
+                    {emote}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="log">
             {[...log].reverse().map((line, i) => (
               <div key={log.length - i}>{line}</div>
@@ -538,8 +566,9 @@ function SelfMat(props: {
   fired: number[];
   buyable: number[];
   onSlotClick: (slot: number) => void;
+  bubble?: { id: number; text: string; big: boolean };
 }) {
-  const { p, seat, game, highlight, fired, buyable, onSlotClick } = props;
+  const { p, seat, game, highlight, fired, buyable, onSlotClick, bubble } = props;
   const isTurn = seat === game.current;
   // Echo tabs flash on the numbers this seat chose to hear this turn.
   const paidSlots = game.echoNumbers[seat] ?? [];
@@ -547,6 +576,11 @@ function SelfMat(props: {
     <section
       className={'panel selfmat' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}
     >
+      {bubble && (
+        <div key={bubble.id} className={'chatbubble' + (bubble.big ? ' big' : '')}>
+          {bubble.text}
+        </div>
+      )}
       <div className="mathead selfhead">
         <h3>
           <span className={p.color}>{p.name}</span>
@@ -658,8 +692,9 @@ function OppMat(props: {
   disconnected?: boolean;
   /** Host-only: hand this seat to a bot (shown while disconnected). */
   onReplaceBot?: () => void;
+  bubble?: { id: number; text: string; big: boolean };
 }) {
-  const { p, seat, game, fired, disconnected } = props;
+  const { p, seat, game, fired, disconnected, bubble } = props;
   const isTurn = seat === game.current;
   const paidSlots = game.echoNumbers[seat] ?? [];
   return (
@@ -667,6 +702,11 @@ function OppMat(props: {
       className={'panel oppmat' + (isTurn ? ' active' : '') + (p.eliminated ? ' out' : '')}
       onClick={props.onInspect}
     >
+      {bubble && (
+        <div key={bubble.id} className={'chatbubble' + (bubble.big ? ' big' : '')}>
+          {bubble.text}
+        </div>
+      )}
       <div className="mathead">
         <h3>
           <span className={p.color}>{p.name}</span> {isTurn ? '(rolling)' : ''}
