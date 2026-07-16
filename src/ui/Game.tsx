@@ -20,6 +20,19 @@ const WIN_HOW: Record<WinReason, string> = {
 };
 const CONFETTI = ['#f0b429', '#ff8272', '#7ab5ff', '#7fd97f', '#c0a9f0'];
 
+/** Dual-color decks show both colors as dots next to the name. */
+function DeckDots({ p }: { p: PlayerState }) {
+  const colors = p.colors ?? [p.color];
+  if (colors.length < 2) return null;
+  return (
+    <span className="deckdots" title={`deck: ${colors.join(' + ')}`}>
+      {colors.map((c) => (
+        <span key={c} className={'colordot sw-' + c} />
+      ))}
+    </span>
+  );
+}
+
 export function Game() {
   const game = useGame((s) => s.game)!;
   const seatKinds = useGame((s) => s.seatKinds);
@@ -781,6 +794,7 @@ function SelfMat(props: {
       <div className="mathead selfhead">
         <h3>
           <span className={p.color}>{p.name}</span>
+          <DeckDots p={p} />
           {p.eliminated ? ' - ELIMINATED' : ''}
         </h3>
         <StatChips
@@ -907,7 +921,8 @@ function OppMat(props: {
       )}
       <div className="mathead">
         <h3>
-          <span className={p.color}>{p.name}</span> {isTurn ? '(rolling)' : ''}
+          <span className={p.color}>{p.name}</span>
+          <DeckDots p={p} /> {isTurn ? '(rolling)' : ''}
           {p.eliminated ? ' - ELIMINATED' : ''}
           {disconnected && <span className="offlinetag">offline</span>}
         </h3>

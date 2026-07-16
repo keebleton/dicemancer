@@ -141,7 +141,8 @@ interface GameStore {
     roundCap: number,
     seed?: number,
     kinds?: SeatKind[],
-    colors?: SeatColor[],
+    /** 1-2 deck colors per seat (the deck builder); [0] is the identity. */
+    decks?: SeatColor[][],
     levels?: BotLevel[],
   ) => void;
   /** The ONLY writer: every state change goes through the engine's applyAction.
@@ -157,7 +158,7 @@ interface GameStore {
   startOnline: (
     botCount: number,
     roundCap: number,
-    colors: SeatColor[],
+    decks: SeatColor[][],
     botLevel?: BotLevel,
   ) => void;
   leaveOnline: (notice?: string | null) => void;
@@ -428,18 +429,23 @@ export const useGame = create<GameStore>()((set, get) => {
       }
       hostRelayChat(s.mySeat ?? 0, text, big); // the host talks through the same gate
     },
-    start: (playerCount, roundCap, seed, kinds, colors, levels) => {
+    start: (playerCount, roundCap, seed, kinds, decks, levels) => {
       rng = mulberry32(seed ?? Date.now() >>> 0);
       const seatKinds: SeatKind[] =
         kinds?.slice(0, playerCount) ?? Array<SeatKind>(playerCount).fill('human');
-      const seatColors: SeatColor[] =
-        colors?.slice(0, playerCount) ?? (['red', 'blue', 'green', 'yellow'] as SeatColor[]);
+      const seatDecks: SeatColor[][] =
+        decks?.slice(0, playerCount) ??
+        (['red', 'blue', 'green', 'yellow'] as SeatColor[]).map((c) => [c]);
       const game = createGame(
         {
-          seats: Array.from({ length: playerCount }, (_, i) => ({
-            name: seatKinds[i] === 'bot' ? `Bot ${i + 1}` : `Player ${i + 1}`,
-            color: seatColors[i % seatColors.length] as SeatColor,
-          })),
+          seats: Array.from({ length: playerCount }, (_, i) => {
+            const deck = seatDecks[i % seatDecks.length]!;
+            return {
+              name: seatKinds[i] === 'bot' ? `Bot ${i + 1}` : `Player ${i + 1}`,
+              color: deck[0] ?? 'red',
+              color2: deck[1],
+            };
+          }),
           starterBoard: effectiveStarterBoard(), // with any Card Lab edits applied
           pools: mergedPools(activePacks()), // Lab edits + packs + community cards
           tunables: { roundCap },
@@ -521,7 +527,7 @@ export const useGame = create<GameStore>()((set, get) => {
       // The host answers with begin(seat -1); until then the lobby screen
       // shows the connecting state.
     },
-    startOnline: (botCount, roundCap, colors, botLevel = 'normal') => {
+    startOnline: (botCount, roundCap, decks, botLevel = 'normal') => {
       const names = net.lobbyNames();
       const seats = buildSeats(names[0] ?? 'Host', names.slice(1), botCount);
       const seatProfiles: (string | null)[] = [
@@ -532,10 +538,10 @@ export const useGame = create<GameStore>()((set, get) => {
       rng = mulberry32(Date.now() >>> 0);
       const game = createGame(
         {
-          seats: seats.names.map((n, i) => ({
-            name: n,
-            color: colors[i % colors.length] as SeatColor,
-          })),
+          seats: seats.names.map((n, i) => {
+            const deck = decks[i % decks.length] ?? ['red'];
+            return { name: n, color: deck[0] ?? 'red', color2: deck[1] };
+          }),
           starterBoard: effectiveStarterBoard(),
           pools: mergedPools(activePacks()), // the host's packs + community cards rule the table
           tunables: { roundCap },

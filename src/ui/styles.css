@@ -458,6 +458,12 @@ button.big { font-family: var(--display); font-weight: 700; font-size: 18px; let
 .friendspanel { width: 460px; }
 .invitebox { border-color: #2dd4a7; }
 .presdot { width: 9px; height: 9px; border-radius: 50%; background: #4a5470; flex: none; }
+/* Deck builder: a two-color deck wears both colors beside the name, and the
+   preview overlay lays the merged pool out as a scrollable grid. */
+.deckdots { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: 1px; }
+.colordot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, 0.55); display: inline-block; }
+.deckgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; max-height: 68vh; overflow-y: auto; padding-right: 4px; }
+.deckgrid .howtocard { width: auto; }
 .presdot.on { background: #2dd4a7; box-shadow: 0 0 7px rgba(45, 212, 167, 0.8); }
 .leaderlist { display: flex; flex-direction: column; gap: 6px; }
 .leadrank { font-family: var(--display); font-weight: 700; font-size: 16px; min-width: 26px; text-align: center; color: #8a8f9e; }

@@ -77,7 +77,11 @@ export interface EchoEntry {
 
 export interface PlayerState {
   name: string;
+  /** Primary color: team tint, chat color, and the display identity. */
   color: SeatColor;
+  /** Deck colors (1 or 2): the personal shop deals from these pools merged.
+   *  colors[0] === color. */
+  colors: SeatColor[];
   hp: number;
   money: number;
   points: number;

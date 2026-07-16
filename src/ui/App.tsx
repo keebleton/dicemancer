@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { BotLevel } from '../bot';
 import type { SeatColor } from '../engine';
 import { useAccount, validLogin } from './account';
+import { CardFace } from './CardFace';
 import { acceptFriend, addFriend, fetchFriends, removeFriend } from './friends';
 import type { FriendEntry } from './friends';
 import { Game } from './Game';
@@ -10,7 +11,7 @@ import { sendInvite, watchInvites } from './invites';
 import type { Invite } from './invites';
 import { IconPicker } from './IconPicker';
 import { Lab } from './Lab';
-import { iconError, iconUrl, loadPacks, savePacks } from './packs';
+import { iconError, iconUrl, loadPacks, mergedPools, savePacks } from './packs';
 import { HowToPlay } from './HowToPlay';
 import { Leaderboard } from './Leaderboard';
 import { MatchHistory } from './MatchHistory';
@@ -370,6 +371,38 @@ function InviteFriendsRow({ code }: { code: string }) {
   );
 }
 
+/** The deck builder's preview: every card a 1-2 color deck can offer. */
+function DeckPreview({ colors, onClose }: { colors: SeatColor[]; onClose: () => void }) {
+  const community = useAccount((s) => s.community);
+  const packs = community && community.cards.length > 0 ? [...loadPacks(), community] : loadPacks();
+  const pools = mergedPools(packs);
+  const cards = colors
+    .flatMap((c) => pools[c] ?? [])
+    .sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name));
+  const title = colors.map((c) => c[0]!.toUpperCase() + c.slice(1)).join(' + ');
+  return (
+    <div className="inspect-overlay" onClick={onClose}>
+      <div className="inspect howto" onClick={(e) => e.stopPropagation()}>
+        <section className="panel">
+          <div className="howtohead">
+            <h3>
+              {title} <span className="dimtext">{cards.length} cards</span>
+            </h3>
+            <button onClick={onClose}>close</button>
+          </div>
+          <div className="deckgrid">
+            {cards.map((c) => (
+              <div key={c.id} className="howtocard">
+                <CardFace card={c} showCost />
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 const savedName = () => localStorage.getItem('dicemancer_name') ?? '';
 const saveName = (n: string) => localStorage.setItem('dicemancer_name', n);
 
@@ -382,7 +415,17 @@ function Setup({ onLab }: { onLab: () => void }) {
   const [count, setCount] = useState(2);
   const [kinds, setKinds] = useState<SeatKind[]>(['human', 'bot', 'bot', 'bot']);
   const [levels, setLevels] = useState<BotLevel[]>(['normal', 'normal', 'normal', 'normal']);
-  const [colors, setColors] = useState<SeatColor[]>(['red', 'blue', 'green', 'yellow']);
+  // The deck builder: each seat plays 1 or 2 colors merged into one deck.
+  const [decks, setDecks] = useState<SeatColor[][]>([['red'], ['blue'], ['green'], ['yellow']]);
+  const [previewDeck, setPreviewDeck] = useState<SeatColor[] | null>(null);
+  const toggleDeckColor = (i: number, c: SeatColor) =>
+    setDecks(
+      decks.map((d, j) => {
+        if (j !== i) return d;
+        if (d.includes(c)) return d.length > 1 ? d.filter((x) => x !== c) : d;
+        return d.length < 2 ? [...d, c] : [d[0]!, c];
+      }),
+    );
   const [packs, setPacks] = useState(() => loadPacks());
   const [name, setName] = useState(savedName);
   const [joinCode, setJoinCode] = useState('');
@@ -539,12 +582,13 @@ function Setup({ onLab }: { onLab: () => void }) {
           {SEAT_COLORS.map((c) => (
             <button
               key={c}
-              className={'swatch sw-' + c + (colors[i] === c ? ' selected' : '')}
-              title={c}
+              className={'swatch sw-' + c + (decks[i]?.includes(c) ? ' selected' : '')}
+              title={`${c} (pick up to two)`}
               aria-label={`seat ${i + 1} plays ${c}`}
-              onClick={() => setColors(colors.map((old, j) => (j === i ? c : old)))}
+              onClick={() => toggleDeckColor(i, c)}
             />
           ))}
+          <button onClick={() => setPreviewDeck(decks[i] ?? ['red'])}>deck</button>
           {kinds[i] === 'bot' && (
             <span className="botlevels">
               {(['easy', 'normal', 'hard'] as const).map((lv) => (
@@ -578,7 +622,7 @@ function Setup({ onLab }: { onLab: () => void }) {
       )}
       <button
         className="primary big"
-        onClick={() => start(count, 0, undefined, kinds, colors, levels)}
+        onClick={() => start(count, 0, undefined, kinds, decks, levels)}
       >
         Start game
       </button>
@@ -595,6 +639,7 @@ function Setup({ onLab }: { onLab: () => void }) {
       {history && <MatchHistory onClose={() => setHistory(false)} />}
       {leaders && <Leaderboard onClose={() => setLeaders(false)} />}
       {showFriends && <FriendsOverlay onClose={() => setShowFriends(false)} />}
+      {previewDeck && <DeckPreview colors={previewDeck} onClose={() => setPreviewDeck(null)} />}
     </main>
   );
 }
@@ -660,7 +705,16 @@ function OnlineLobby() {
   const leaveOnline = useGame((s) => s.leaveOnline);
   const [bots, setBots] = useState(0);
   const [botLevel, setBotLevel] = useState<BotLevel>('normal');
-  const [colors, setColors] = useState<SeatColor[]>(['red', 'blue', 'green', 'yellow']);
+  const [decks, setDecks] = useState<SeatColor[][]>([['red'], ['blue'], ['green'], ['yellow']]);
+  const [previewDeck, setPreviewDeck] = useState<SeatColor[] | null>(null);
+  const toggleDeckColor = (i: number, c: SeatColor) =>
+    setDecks(
+      decks.map((d, j) => {
+        if (j !== i) return d;
+        if (d.includes(c)) return d.length > 1 ? d.filter((x) => x !== c) : d;
+        return d.length < 2 ? [...d, c] : [d[0]!, c];
+      }),
+    );
   const humans = Math.max(1, lobby.length);
   const maxBots = Math.max(0, 4 - humans);
   const botCount = Math.min(bots, maxBots);
@@ -686,12 +740,13 @@ function OnlineLobby() {
                 {SEAT_COLORS.map((c) => (
                   <button
                     key={c}
-                    className={'swatch sw-' + c + (colors[i] === c ? ' selected' : '')}
-                    title={c}
+                    className={'swatch sw-' + c + (decks[i]?.includes(c) ? ' selected' : '')}
+                    title={`${c} (pick up to two)`}
                     aria-label={`seat ${i + 1} plays ${c}`}
-                    onClick={() => setColors(colors.map((old, j) => (j === i ? c : old)))}
+                    onClick={() => toggleDeckColor(i, c)}
                   />
                 ))}
+                <button onClick={() => setPreviewDeck(decks[i] ?? ['red'])}>deck</button>
               </>
             )}
           </div>
@@ -724,13 +779,14 @@ function OnlineLobby() {
           <button
             className="primary"
             disabled={total < 2}
-            onClick={() => startOnline(botCount, 0, colors, botLevel)}
+            onClick={() => startOnline(botCount, 0, decks, botLevel)}
           >
             {total < 2 ? 'waiting for players...' : `Start game (${total} players)`}
           </button>
         </>
       )}
       <button onClick={() => leaveOnline()}>Leave</button>
+      {previewDeck && <DeckPreview colors={previewDeck} onClose={() => setPreviewDeck(null)} />}
     </main>
   );
 }

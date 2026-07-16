@@ -409,7 +409,8 @@ function bestBuy(state: GameState, actions: Action[], level: BotLevel = 'normal'
       gain += echoValue * triggerProb(a.targetSlot) * opponents * 3; // ~3-turn horizon
     }
     let s = gain / Math.max(1, card.cost - me.buyDiscount);
-    if (card.color === me.color) s += 0.05; // prefer own color
+    const myColors: string[] = me.colors ?? [me.color];
+    if (myColors.includes(card.color)) s += 0.05; // prefer own colors
     if (s > bestScore) {
       bestScore = s;
       best = a;

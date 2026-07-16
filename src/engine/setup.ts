@@ -6,6 +6,9 @@ import type { CardDef, GameState, PlayerState, Rng, SeatColor, Tunables } from '
 export interface SeatConfig {
   name: string;
   color: SeatColor;
+  /** Optional second deck color: the shop deals from both pools merged
+   *  (the deck-builder feature). Same as color = ignored. */
+  color2?: SeatColor;
 }
 
 export interface GameConfig {
@@ -37,11 +40,16 @@ export function createGame(config: GameConfig, rng?: Rng): GameState {
   if (config.pools && !rng) throw new Error('pools need an rng to shuffle');
 
   const players: PlayerState[] = config.seats.map((seat) => {
-    const colorDeck = config.pools ? structuredClone(config.pools[seat.color]) : [];
+    const colors: SeatColor[] =
+      seat.color2 && seat.color2 !== seat.color ? [seat.color, seat.color2] : [seat.color];
+    const colorDeck = config.pools
+      ? colors.flatMap((c) => structuredClone(config.pools![c]))
+      : [];
     if (rng) shuffle(colorDeck, rng);
     return {
       name: seat.name,
       color: seat.color,
+      colors,
       hp: tunables.startingHp,
       money: tunables.startingMoney,
       points: 0,
