@@ -121,6 +121,13 @@ main.game { max-width: 1560px; }
 .offlinetag { background: #42221f; color: #ffb3a8; border-radius: 8px; padding: 1px 7px; font-size: 10px; font-weight: 700; margin-left: 6px; letter-spacing: 0.5px; }
 .resumebox { border-color: #2dd4a7; }
 .howto { width: 720px; }
+/* Reading-a-card, shown not told: two demo faces + callouts side by side. */
+.howtocards { display: flex; gap: 14px; align-items: flex-start; margin: 6px 0 4px; flex-wrap: wrap; }
+.howtocard { width: 132px; flex: none; border: 1px solid #b7ae99; border-radius: 10px; overflow: hidden; background: linear-gradient(180deg, #fbf8f0, #f1ecdd); color: #2b2a26; font-size: 11px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 4px 10px rgba(0, 0, 0, 0.4); }
+.howtocard .cart { height: 56px; }
+.howtocard .cart img { width: 48px; height: 48px; }
+.howtonotes { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 8px; }
+.howto .legend { margin-top: 4px; }
 .howto h3 { font-family: var(--display); font-size: 22px; font-weight: 400; margin: 0; }
 .howto h4 { font-family: var(--serif); color: var(--gold); margin: 14px 0 4px; font-size: 15px; }
 .howto p { margin: 0; font-size: 13.5px; line-height: 1.55; color: #cfd4e2; }
@@ -184,8 +191,14 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .choicebtn { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 16px; background: linear-gradient(180deg, #fdfaf1, #efe9da); color: #2b2a26; border: 2px solid #caa53d; border-radius: 10px; box-shadow: inset 0 1px 0 #fff, 0 3px 8px rgba(0, 0, 0, 0.35); }
 .choicebtn:hover:not(:disabled) { background: linear-gradient(180deg, #fffdf7, #f6f1e3); transform: translateY(-2px); box-shadow: inset 0 1px 0 #fff, 0 6px 16px rgba(0, 0, 0, 0.4), 0 0 12px rgba(240, 180, 41, 0.35); filter: none; }
 .choicelabel { font-family: var(--display); font-weight: 400; font-size: 19px; letter-spacing: 0.6px; }
-.choicefx { display: inline-flex; gap: 10px; align-items: center; min-height: 14px; }
+.choicefx { display: inline-flex; gap: 12px; align-items: center; min-height: 17px; }
 .choiceslot { display: inline-flex; gap: 4px; align-items: center; }
+/* The breakdown row under the label reads at the same scale as the label. */
+.choicebtn .fxchip { font-size: 14px; }
+.choicebtn .fxi { width: 14px; height: 14px; }
+.choicebtn .slotnum { width: 19px; height: 19px; font-size: 13px; border-radius: 5px; }
+.choicebtn .condtag { font-size: 11px; }
+.choicebtn .fxif { font-size: 12px; }
 
 .dicetray { display: flex; gap: 8px; margin: 8px 0; }
 /* Dice tumble in from above with an overshoot; the second lands a beat late.

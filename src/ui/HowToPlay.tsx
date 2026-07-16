@@ -1,4 +1,41 @@
 // The rules, for a friend who just clicked the link. Presentation only.
+// Reading-a-card is taught visually: two real card faces with the icon key
+// beside them, instead of a paragraph describing chips.
+import type { CardDef } from '../engine';
+import { CardFace } from './CardFace';
+import { IconLegend } from './icons';
+
+/** Demo cards for the tutorial: one plain, one showing conditions + charge. */
+const DEMO_PLAIN: CardDef = {
+  id: 'howto-demo-1',
+  name: 'Ember Fox',
+  color: 'red',
+  rarity: 'common',
+  cost: 4,
+  legalSlots: [4, 5],
+  active: [
+    { kind: 'damage', amount: 2, target: 'chooseOpponent' },
+    { kind: 'gainMoney', amount: 1 },
+  ],
+  echo: [{ kind: 'damage', amount: 1, target: 'roller' }],
+  flavor: 'It bites first.',
+  icon: 'Ability_Mage_FireStarter.PNG',
+};
+const DEMO_SPICY: CardDef = {
+  id: 'howto-demo-2',
+  name: 'Meteor Vigil',
+  color: 'red',
+  rarity: 'rare',
+  cost: 8,
+  legalSlots: [9, 10],
+  active: [
+    { kind: 'conditional', when: { sumAtLeast: 9 }, then: [{ kind: 'gainPoints', amount: 2 }] },
+    { kind: 'charge', need: 3, then: [{ kind: 'damage', amount: 4, target: 'chooseOpponent' }] },
+  ],
+  echo: [{ kind: 'gainMoney', amount: 1 }],
+  icon: 'Spell_Mage_Meteor.PNG',
+};
+
 export function HowToPlay({ onClose }: { onClose: () => void }) {
   return (
     <div className="inspect-overlay" onClick={onClose}>
@@ -12,60 +49,70 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
           <h4>The goal</h4>
           <p>
             First to <b>30 points</b> wins. Or knock everyone else to 0 HP. Or charge up a card
-            that says it wins the game. Games have no turn limit.
+            that says it wins the game.
           </p>
 
           <h4>Your turn</h4>
           <p>
-            You have a board of 12 numbered slots, each holding a card. Roll two dice, then choose:
-            <b> split</b> them (two slots from 1 to 6 fire, small and steady) or take the
-            <b> sum</b> (one slot from 2 to 12 fires, rarer numbers hit harder). Fired cards pay
-            their <b>roll</b> line: coins, points, damage, tokens, trades. Then you may buy ONE
-            card from your shop or the shared Market and install it into a legal slot.
+            Your board is 12 numbered slots, each holding a card. Roll two dice, then choose:
+            <b> split</b> (both dice fire their slots, 1 to 6) or <b>sum</b> (one slot from 2 to
+            12, rarer numbers hit harder). Fired cards pay out. Then you may buy ONE card from
+            your shop or the shared Market and install it into a legal slot.
           </p>
 
           <h4>Echoes (the sneaky part)</h4>
           <p>
-            When a new card covers an old one, the old card retires into your <b>echo stack</b>,
-            remembering its slot. From then on it pays its <b>echo</b> line on OTHER players
-            {"'"} rolls: when someone rolls, you choose how YOUR echoes hear it, the two dice or
-            the sum. Echoes in slots 7 to 12 always hear the sum, no choice needed. Echo damage
-            always hits whoever rolled. Burying good echoes is a real strategy.
+            A new card covering an old one retires it into your <b>echo stack</b>. From the grave
+            it pays its echo line on OTHER players{"'"} rolls; you choose whether your echoes
+            hear the two dice or the sum (slots 7 to 12 always hear the sum). Echo damage hits
+            whoever rolled. Burying good echoes is a real strategy.
           </p>
 
-          <h4>Shops, the Market, relics</h4>
+          <h4>Shops and relics</h4>
           <p>
-            Your personal shop shows cards of your color and rotates every turn; <b>freeze</b> it
-            to keep the current row. The shared <b>Market</b> holds premium colorless artifacts,
-            first come first served, slots 7 to 12 only. Below it sits the <b>Reliquary</b>:
-            three expensive relics that bend the rules permanently (fire a slot twice, buy
-            without limit, reroll dice at will...). Buying a relic does NOT use up your card
-            purchase, and you can own three.
+            Your shop shows your color and rotates every turn; <b>freeze</b> it to keep the row.
+            The <b>Market</b> holds premium colorless artifacts for slots 7 to 12, first come
+            first served. The <b>Reliquary</b> sells three rule-bending relics; a relic never
+            uses up your card purchase, and you can own up to three.
           </p>
 
           <h4>Reading a card</h4>
-          <p>
-            Top left: which slots it can live in. Top right: cost. <b>Roll</b> row: what it pays
-            when its slot fires on your turn. <b>Echo</b> row: what it pays from the grave.
-            Amber pips on a card are <b>charges</b> building toward a payoff. Dashed boxes are
-            conditions (if the sum is 8+, if you rolled doubles...). A gold trade chip means pay
-            coins to get the effect.
-          </p>
+          <div className="howtocards">
+            <div className="howtocard">
+              <CardFace card={DEMO_PLAIN} showCost />
+            </div>
+            <div className="howtocard">
+              <CardFace card={DEMO_SPICY} showCost />
+            </div>
+            <div className="howtonotes">
+              <p>
+                Top left: the slots it can live in. Top right: cost. The effects under the name
+                fire when its slot is rolled on your turn. The purple wave strip at the bottom is
+                its echo, paid from the grave once the card is retired.
+              </p>
+              <p>
+                Gold tags are conditions: <b>sum{'≥'}9</b> means only on a big roll,{' '}
+                <b>pay 2</b> means coins buy the effect, and an amber <b>3{'×'}</b> charges
+                up across turns, firing its payoff on the third hit.
+              </p>
+            </div>
+          </div>
+          <IconLegend />
 
           <h4>The five colors</h4>
           <p>
             <span className="red">Red</span> burns face damage. <span className="blue">Blue</span>{' '}
-            grinds steady money, points, and dice tokens. <span className="black">Black</span>{' '}
-            profits from its own graveyard. <span className="green">Green</span> works discounts
-            and shop tricks. <span className="yellow">Yellow</span> turns coins into anything,
-            including violence. Every color reaches every slot, but each is strongest at home.
+            grinds money, points, and dice tokens. <span className="black">Black</span> profits
+            from its own graveyard. <span className="green">Green</span> works discounts and shop
+            tricks. <span className="yellow">Yellow</span> turns coins into anything, including
+            violence. Every color reaches every slot, but each is strongest at home.
           </p>
 
           <h4>Quick tips</h4>
           <p>
-            Split beats sum most turns, but a loaded high slot changes the math. Coins hoarded
-            are coins wasted: spend on relics. Watch opponents{"'"} echo stacks before feeding
-            them a juicy number. And if someone is charging a Doomsday Device, stop them.
+            Split beats sum most turns, but a loaded high slot changes the math. Hoarded coins
+            are wasted coins: buy relics. Watch opponents{"'"} echo stacks before feeding them a
+            juicy number.
           </p>
         </section>
       </div>

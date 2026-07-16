@@ -106,6 +106,38 @@ export function Game() {
 
   const actions = legalActions(game);
   const me = game.players[game.current]!;
+
+  // Quiet keyboard shortcuts (no UI hints on purpose): SPACE rolls, 1 takes
+  // the split, 2 takes the sum (same left-to-right order as the buttons;
+  // echo hearings answer to the same keys). Chat and other inputs swallow
+  // keys before this sees them.
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (game.winner !== null || !iControl(actingSeat(game))) return;
+      if (e.code === 'Space') {
+        if (actions.some((a) => a.type === 'ROLL')) {
+          e.preventDefault();
+          dispatch({ type: 'ROLL' });
+        }
+        return;
+      }
+      if (e.key === '1' || e.key === '2') {
+        const wanted = e.key === '1' ? 'individual' : 'sum';
+        const pick =
+          actions.find((a) => a.type === 'ALLOCATE' && a.mode === wanted) ??
+          actions.find((a) => a.type === 'ECHO_CHOICE' && a.mode === wanted);
+        if (pick) {
+          e.preventDefault();
+          dispatch(pick);
+        }
+      }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  });
   const previewSlots = preview && game.dice ? previewNumbers(game.dice, preview) : [];
   const shopBuys = actions.filter((a): a is Action & { type: 'BUY' } => a.type === 'BUY');
   const marketBuys = actions.filter(

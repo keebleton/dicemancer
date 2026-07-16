@@ -51,6 +51,55 @@ const sampleBase = (() => {
 })();
 const samples = new Map<string, AudioBuffer | 'loading' | 'missing'>();
 
+/** Library files often ship several takes in one clip ("Whoosh x4"). Find
+ *  the FIRST take's sample bounds: leading silence dropped, cut at the
+ *  first sustained quiet gap (~0.12 s) after the sound starts. Returns null
+ *  when there is nothing to trim (silence, or a single continuous take).
+ *  Pure so the slicing math is unit-testable without an AudioContext. */
+export function takeBounds(data: Float32Array, sr: number): [number, number] | null {
+  const win = Math.max(1, Math.floor(sr * 0.01)); // 10 ms windows
+  let peak = 0;
+  for (let i = 0; i < data.length; i++) peak = Math.max(peak, Math.abs(data[i]!));
+  if (peak === 0) return null;
+  const quiet = peak * 0.04;
+  const loud: boolean[] = [];
+  for (let i = 0; i + win <= data.length; i += win) {
+    let m = 0;
+    for (let j = i; j < i + win; j++) m = Math.max(m, Math.abs(data[j]!));
+    loud.push(m > quiet);
+  }
+  const start = loud.indexOf(true);
+  if (start < 0) return null;
+  let end = loud.length;
+  let run = 0;
+  for (let i = start + 5; i < loud.length; i++) {
+    if (loud[i]) {
+      run = 0;
+    } else if (++run >= 12) {
+      end = i - run + 2;
+      break;
+    }
+  }
+  const s0 = Math.max(0, (start - 1) * win);
+  const s1 = Math.min(data.length, end * win);
+  if (s1 - s0 < sr * 0.05 || (s0 === 0 && s1 >= data.length)) return null;
+  return [s0, s1];
+}
+
+function firstTake(c: AudioContext, buf: AudioBuffer): AudioBuffer {
+  const bounds = takeBounds(buf.getChannelData(0), buf.sampleRate);
+  if (!bounds) return buf;
+  const [s0, s1] = bounds;
+  const out = c.createBuffer(buf.numberOfChannels, s1 - s0, buf.sampleRate);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const dst = out.getChannelData(ch);
+    dst.set(buf.getChannelData(ch).subarray(s0, s1));
+    const fade = Math.min(Math.floor(buf.sampleRate * 0.03), dst.length);
+    for (let i = 0; i < fade; i++) dst[dst.length - 1 - i]! *= i / fade;
+  }
+  return out;
+}
+
 function ensureSample(name: string): void {
   if (samples.has(name)) return;
   const c = ac();
@@ -64,7 +113,9 @@ function ensureSample(name: string): void {
         // Dev servers answer unknown paths with index.html (a 200); decode
         // rejects that, which correctly falls through to the next candidate.
         const buf = await c.decodeAudioData(await res.arrayBuffer());
-        samples.set(name, buf);
+        // 'win' is musical (quiet moments are part of the piece); one-shots
+        // self-trim to their first take.
+        samples.set(name, name === 'win' ? buf : firstTake(c, buf));
         return;
       } catch {
         // try the next extension
