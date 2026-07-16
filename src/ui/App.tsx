@@ -6,6 +6,8 @@ import { acceptFriend, addFriend, fetchFriends, removeFriend } from './friends';
 import type { FriendEntry } from './friends';
 import { Game } from './Game';
 import { Die } from './icons';
+import { sendInvite, watchInvites } from './invites';
+import type { Invite } from './invites';
 import { IconPicker } from './IconPicker';
 import { Lab } from './Lab';
 import { iconError, iconUrl, loadPacks, savePacks } from './packs';
@@ -320,6 +322,37 @@ function FriendsOverlay({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** Lobby row: one button per accepted friend, pinging them to come play. */
+function InviteFriendsRow({ code }: { code: string }) {
+  const profile = useAccount((s) => s.profile);
+  const [friends, setFriends] = useState<FriendEntry[]>([]);
+  const [sent, setSent] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    if (profile) void fetchFriends(profile.id).then(setFriends);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
+  if (!profile) return null;
+  const accepted = friends.filter((f) => f.status === 'accepted');
+  if (accepted.length === 0) return null;
+  return (
+    <div className="netrow">
+      <span className="seatlab">invite</span>
+      {accepted.map((f) => (
+        <button
+          key={f.id}
+          disabled={!!sent[f.profile.id]}
+          onClick={() => {
+            sendInvite(f.profile.id, profile.username, code);
+            setSent((s) => ({ ...s, [f.profile.id]: true }));
+          }}
+        >
+          {sent[f.profile.id] ? `invited ${f.profile.username}` : f.profile.username}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 const savedName = () => localStorage.getItem('dicemancer_name') ?? '';
 const saveName = (n: string) => localStorage.setItem('dicemancer_name', n);
 
@@ -341,6 +374,7 @@ function Setup({ onLab }: { onLab: () => void }) {
   const [help, setHelp] = useState(false);
   const [history, setHistory] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
+  const [invite, setInvite] = useState<Invite | null>(null);
   const togglePack = (id: string) => {
     const next = packs.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p));
     setPacks(next);
@@ -350,6 +384,11 @@ function Setup({ onLab }: { onLab: () => void }) {
   // Signed in = you play under your profile name; the field only exists for
   // guests.
   const myName = () => (profile?.username ?? name.trim()) || 'Player';
+  useEffect(() => {
+    if (!profile) return;
+    return watchInvites(profile.id, setInvite);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
   const goHost = async () => {
     saveName(myName());
     setBusy('opening a room...');
@@ -394,6 +433,26 @@ function Setup({ onLab }: { onLab: () => void }) {
           <Die value={6} />
         </span>
       </header>
+
+      {invite && (
+        <section className="netbox invitebox">
+          <div className="netrow">
+            <b>{invite.from}</b> invited you to their table
+            <button
+              className="primary"
+              disabled={busy !== null}
+              onClick={() => {
+                const code = invite.code;
+                setInvite(null);
+                void goJoin(code);
+              }}
+            >
+              Join
+            </button>
+            <button onClick={() => setInvite(null)}>dismiss</button>
+          </div>
+        </section>
+      )}
 
       <ResumeBox />
       <AccountBox />
@@ -596,11 +655,8 @@ function OnlineLobby() {
       <div className="roomcode">
         room code: <b>{roomCode}</b>
       </div>
-      {mode === 'host' ? (
-        <p>Friends open the game, type this code, and hit Join. Start when everyone is in.</p>
-      ) : (
-        <p>You are in. Waiting for the host to start the game.</p>
-      )}
+      {mode !== 'host' && <p>You are in. Waiting for the host to start the game.</p>}
+      {roomCode && <InviteFriendsRow code={roomCode} />}
       <div>
         {seatNames.map((n, i) => (
           <div key={i} className="seatrow">
