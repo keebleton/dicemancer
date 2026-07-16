@@ -107,10 +107,11 @@ export function Game() {
   const actions = legalActions(game);
   const me = game.players[game.current]!;
 
-  // Quiet keyboard shortcuts (no UI hints on purpose): SPACE rolls, 1 takes
-  // the split, 2 takes the sum (same left-to-right order as the buttons;
-  // echo hearings answer to the same keys). Chat and other inputs swallow
-  // keys before this sees them.
+  // Quiet keyboard shortcuts (no UI hints on purpose): SPACE advances the
+  // turn (roll, then skip buy, then end turn, whichever is up); 1 takes the
+  // split, 2 takes the sum (same left-to-right order as the buttons; echo
+  // hearings answer to the same keys). Chat and other inputs swallow keys
+  // before this sees them.
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -118,9 +119,12 @@ export function Game() {
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
       if (game.winner !== null || !iControl(actingSeat(game))) return;
       if (e.code === 'Space') {
-        if (actions.some((a) => a.type === 'ROLL')) {
+        const advance = (['ROLL', 'SKIP_BUY', 'END_TURN'] as const)
+          .map((type) => actions.find((a) => a.type === type))
+          .find(Boolean);
+        if (advance) {
           e.preventDefault();
-          dispatch({ type: 'ROLL' });
+          dispatch(advance);
         }
         return;
       }
