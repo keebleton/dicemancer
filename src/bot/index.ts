@@ -27,9 +27,14 @@ export function chooseAction(state: GameState, level: BotLevel = 'normal'): Acti
   if (level === 'easy') {
     const h = stateHash(state);
     if (h % 4 === 0) {
-      // A random legal action... but never a relic, and never a suicidal
-      // token burn loop (SPEND_TOKEN re-enters allocate forever).
-      const pool = actions.filter((a) => a.type !== 'BUY_RELIC' && a.type !== 'SPEND_TOKEN');
+      // A random legal action... but never a relic, and never an action that
+      // fails to advance the game: SPEND_TOKEN re-enters allocate forever, and
+      // FREEZE_SHOP toggles in place -- since the derp hash reads only
+      // round/seat/dice, none of which a toggle changes, picking it once
+      // meant picking it every time (a live-game hang, found by sim).
+      const pool = actions.filter(
+        (a) => a.type !== 'BUY_RELIC' && a.type !== 'SPEND_TOKEN' && a.type !== 'FREEZE_SHOP',
+      );
       return pool[(h >>> 3) % pool.length] ?? first;
     }
   }

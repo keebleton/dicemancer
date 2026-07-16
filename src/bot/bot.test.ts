@@ -51,6 +51,31 @@ describe('bot acceptance: seeded human + bot games', () => {
     const s = runHumanPlusBots(4, seed);
     expect(s.winner).not.toBeNull();
   });
+
+  // Regression: easy's derp hash reads only round/seat/dice, so a derp pick of
+  // FREEZE_SHOP (which changes none of those) repeated forever -- ~70% of
+  // easy-vs-normal sims hung at the step guard before the pool exclusion.
+  it.each(SEEDS)('easy vs normal 2p game reaches a winner (seed %i)', (seed) => {
+    const rng = mulberry32(seed ^ 0xea5e);
+    let s = pooledGame(2, rng);
+    for (let step = 0; step < 20_000; step++) {
+      const actions = legalActions(s);
+      if (actions.length === 0) break;
+      s = applyAction(s, chooseAction(s, actingSeat(s) === 0 ? 'easy' : 'normal'), rng);
+    }
+    expect(s.winner).not.toBeNull();
+  });
+
+  it.each(SEEDS)('hard vs normal 2p game reaches a winner (seed %i)', (seed) => {
+    const rng = mulberry32(seed ^ 0x4a4d);
+    let s = pooledGame(2, rng);
+    for (let step = 0; step < 20_000; step++) {
+      const actions = legalActions(s);
+      if (actions.length === 0) break;
+      s = applyAction(s, chooseAction(s, actingSeat(s) === 0 ? 'hard' : 'normal'), rng);
+    }
+    expect(s.winner).not.toBeNull();
+  });
 });
 
 describe('bot heuristics', () => {
