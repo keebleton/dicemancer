@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { chooseAction } from '../bot';
 import { RELIC_BY_ID, actingSeat, legalActions, previewNumbers } from '../engine';
-import type { Action, AllocationMode, GameState, PlayerState, WinReason } from '../engine';
+import type { Action, AllocationMode, CardDef, GameState, PlayerState, WinReason } from '../engine';
 import { CardFace, TINT } from './CardFace';
 import { fxList } from './describe';
 import { FxLayer } from './Fx';
@@ -63,6 +63,47 @@ export function Game() {
   const [help, setHelp] = useState(false);
   const [inspect, setInspect] = useState<number | null>(null);
 
+  // Hover peek: a big readable copy of whichever small card the mouse rests
+  // on (hover devices only; touch keeps click-to-inspect).
+  const [peek, setPeek] = useState<{ card: CardDef; x: number; y: number; flip: boolean } | null>(
+    null,
+  );
+  const peekTimer = useRef(0);
+  const peekEnter = (card: CardDef) => (e: React.MouseEvent) => {
+    if (!window.matchMedia('(hover: hover)').matches) return;
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    clearTimeout(peekTimer.current);
+    peekTimer.current = window.setTimeout(() => {
+      const flip = r.right + 260 > window.innerWidth;
+      setPeek({
+        card,
+        x: flip ? r.left - 10 : r.right + 10,
+        y: Math.max(140, Math.min(r.top + r.height / 2, window.innerHeight - 140)),
+        flip,
+      });
+    }, 130);
+  };
+  const peekClear = () => {
+    clearTimeout(peekTimer.current);
+    setPeek(null);
+  };
+
+  // Purchase flight: a ghost of the bought card flies from the shop into
+  // the slot it lands in (owner-side prediction, pure presentation).
+  const [flight, setFlight] = useState<{
+    id: number;
+    card: CardDef;
+    from: DOMRect;
+    to: DOMRect;
+  } | null>(null);
+  const flightId = useRef(1);
+  const launchFlight = (card: CardDef, to: DOMRect) => {
+    const src = document.querySelector('.shopcard.selected');
+    if (!src) return;
+    setFlight({ id: flightId.current++, card, from: src.getBoundingClientRect(), to });
+    window.setTimeout(() => setFlight((f) => (f && f.card === card ? null : f)), 600);
+  };
+
   useEffect(() => {
     if (inspect === null) return;
     const h = (e: KeyboardEvent) => {
@@ -75,6 +116,7 @@ export function Game() {
   useEffect(() => {
     setPreview(null);
     setBuySel(null);
+    setPeek(null);
   }, [game.current, game.phase]);
 
   // Online, the seat I sit in is the only one I control; offline hotseat
@@ -212,6 +254,8 @@ export function Game() {
       disconnected={mode !== 'offline' && seatKinds[seat] === 'human' && !(connectedSeats[seat] ?? true)}
       onReplaceBot={mode === 'host' ? () => replaceWithBot(seat) : undefined}
       bubble={bubbles[seat]}
+      onPeek={peekEnter}
+      onPeekEnd={peekClear}
     />
   );
 
@@ -251,23 +295,27 @@ export function Game() {
         </div>
       )}
 
-      {game.winner !== null && !winHidden && (
-        <div className="winoverlay">
+      {game.winner !== null && !winHidden && (() => {
+        // Online with a seat, losing reads as Defeat: cold rays, no confetti.
+        const defeat = mode !== 'offline' && mySeat !== null && mySeat >= 0 && game.winner !== mySeat;
+        return (
+        <div className={'winoverlay' + (defeat ? ' defeat' : '')}>
           <div className="winrays" />
-          {Array.from({ length: 26 }, (_, i) => (
-            <span
-              key={i}
-              className="confetti"
-              style={{
-                left: `${(i * 39) % 100}%`,
-                animationDelay: `${(i % 9) * 0.14}s`,
-                animationDuration: `${2.4 + (i % 5) * 0.35}s`,
-                background: CONFETTI[i % CONFETTI.length],
-              }}
-            />
-          ))}
+          {!defeat &&
+            Array.from({ length: 26 }, (_, i) => (
+              <span
+                key={i}
+                className="confetti"
+                style={{
+                  left: `${(i * 39) % 100}%`,
+                  animationDelay: `${(i % 9) * 0.14}s`,
+                  animationDuration: `${2.4 + (i % 5) * 0.35}s`,
+                  background: CONFETTI[i % CONFETTI.length],
+                }}
+              />
+            ))}
           <div className="wincard">
-            <div className="winkicker">Victory</div>
+            <div className="winkicker">{defeat ? 'Defeat' : 'Victory'}</div>
             <div className={'winname ' + game.players[game.winner]!.color}>
               {game.players[game.winner]!.name}
             </div>
@@ -280,7 +328,8 @@ export function Game() {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
       {game.winner !== null && winHidden && (
         <div className="winner">
           {game.players[game.winner]!.name} {WIN_HOW[game.winReason ?? 'points']}!{' '}
@@ -308,6 +357,8 @@ export function Game() {
                         className={
                           'shopcard market' + (sel ? ' selected' : '') + (buyable ? '' : ' dead')
                         }
+                        onMouseEnter={peekEnter(card)}
+                        onMouseLeave={peekClear}
                         onClick={() => {
                           if (buyable) setBuySel(sel ? null : { src: 'market', i });
                         }}
@@ -379,6 +430,8 @@ export function Game() {
                           (sel ? ' selected' : '') +
                           (buyable ? '' : ' dead')
                         }
+                        onMouseEnter={peekEnter(card)}
+                        onMouseLeave={peekClear}
                         onClick={() => {
                           if (buyable) setBuySel(sel ? null : { src: 'shop', i });
                         }}
@@ -419,8 +472,15 @@ export function Game() {
           highlight={perspective === game.current ? previewSlots : []}
           fired={perspective === game.current ? firedSlots : []}
           buyable={perspective === game.current ? buySlots : []}
-          onSlotClick={(slot) => {
+          onSlotClick={(slot, el) => {
             if (buySel !== null && buySlots.includes(slot)) {
+              const bought =
+                buySel.src === 'shop'
+                  ? me.shop[buySel.i]
+                  : buySel.src === 'market'
+                    ? game.market[buySel.i]
+                    : null;
+              if (bought && el) launchFlight(bought, el.getBoundingClientRect());
               dispatch(
                 buySel.src === 'shop'
                   ? { type: 'BUY', shopIndex: buySel.i, targetSlot: slot }
@@ -431,6 +491,8 @@ export function Game() {
               setBuySel(null);
             }
           }}
+          onPeek={peekEnter}
+          onPeekEnd={peekClear}
         />
 
         <section className="panel logpanel">
@@ -468,6 +530,33 @@ export function Game() {
 
       <FxLayer fx={fx} />
 
+      {peek && (
+        <div
+          className={'peekcard' + (peek.flip ? ' flip' : '')}
+          style={{ left: peek.x, top: peek.y }}
+        >
+          <CardFace card={peek.card} showCost />
+        </div>
+      )}
+
+      {flight && (
+        <div
+          key={flight.id}
+          className="ghostflight"
+          style={{
+            left: flight.from.left,
+            top: flight.from.top,
+            width: flight.from.width,
+            height: flight.from.height,
+            ['--fx' as string]: `${flight.to.left + flight.to.width / 2 - (flight.from.left + flight.from.width / 2)}px`,
+            ['--fy' as string]: `${flight.to.top + flight.to.height / 2 - (flight.from.top + flight.from.height / 2)}px`,
+            ['--fs' as string]: `${flight.to.width / flight.from.width}`,
+          }}
+        >
+          <CardFace card={flight.card} />
+        </div>
+      )}
+
       {help && <HowToPlay onClose={() => setHelp(false)} />}
 
       {inspect !== null && (
@@ -482,6 +571,8 @@ export function Game() {
               fired={inspect === game.current ? firedSlots : []}
               buyable={[]}
               onSlotClick={() => {}}
+              onPeek={peekEnter}
+              onPeekEnd={peekClear}
             />
             <div className="dimtext inspecthint">click outside or press Esc to close</div>
           </div>
@@ -665,11 +756,13 @@ function SelfMat(props: {
   highlight: number[];
   fired: number[];
   buyable: number[];
-  onSlotClick: (slot: number) => void;
+  onSlotClick: (slot: number, el?: HTMLElement) => void;
   bubble?: { id: number; text: string; big: boolean };
   /** Set on the table instance only: the fx layer flies coins/damage here.
    *  The inspect-overlay copy must NOT anchor or fx would land on it. */
   fxAnchor?: boolean;
+  onPeek?: (card: CardDef) => (e: React.MouseEvent) => void;
+  onPeekEnd?: () => void;
 }) {
   const { p, seat, game, highlight, fired, buyable, onSlotClick, bubble } = props;
   const isTurn = seat === game.current;
@@ -709,13 +802,6 @@ function SelfMat(props: {
             (highlight.includes(slot) ? ' preview' : '') +
             (fired.includes(slot) ? ' fired' : '') +
             (buyable.includes(slot) ? ' buyable' : '');
-          const tip =
-            `${card.name}\nwhen rolled: ${fxList(card.active)}\necho if retired: ${fxList(card.echo)}` +
-            (echoesHere.length > 0
-              ? `\nechoing now: ${echoesHere
-                  .map((e) => `${e.def.name} (${fxList(e.def.echo)})`)
-                  .join(', ')}`
-              : '');
           const live = echoesHere.length > 0;
           return (
             <div key={slot} className="slotwrap">
@@ -745,7 +831,12 @@ function SelfMat(props: {
                   </>
                 )}
               </div>
-              <div className={cls} onClick={() => onSlotClick(slot)} title={tip}>
+              <div
+                className={cls}
+                onClick={(e) => onSlotClick(slot, e.currentTarget)}
+                onMouseEnter={props.onPeek?.(card)}
+                onMouseLeave={props.onPeekEnd}
+              >
                 <CardFace card={card} slotBadge={slot} />
                 {(p.charges[i] ?? 0) > 0 && (
                   <span className="chargebadge" title={`${p.charges[i]} charge(s) built up`}>
@@ -797,6 +888,8 @@ function OppMat(props: {
   /** Host-only: hand this seat to a bot (shown while disconnected). */
   onReplaceBot?: () => void;
   bubble?: { id: number; text: string; big: boolean };
+  onPeek?: (card: CardDef) => (e: React.MouseEvent) => void;
+  onPeekEnd?: () => void;
 }) {
   const { p, seat, game, fired, disconnected, bubble } = props;
   const isTurn = seat === game.current;
@@ -843,13 +936,6 @@ function OppMat(props: {
         {p.board.map((card, i) => {
           const slot = i + 1;
           const echoesHere = p.echoStack.filter((e) => e.slot === slot);
-          const tip =
-            `slot ${slot}: ${card.name}\nwhen rolled: ${fxList(card.active)}\necho if retired: ${fxList(card.echo)}` +
-            (echoesHere.length > 0
-              ? `\nechoing now: ${echoesHere
-                  .map((e) => `${e.def.name} (${fxList(e.def.echo)})`)
-                  .join(', ')}`
-              : '');
           const cls =
             'mini' +
             (fired.includes(slot) ? ' fired' : '') +
@@ -859,7 +945,8 @@ function OppMat(props: {
               key={slot}
               className={cls}
               style={{ background: TINT[card.color] ?? '#555' }}
-              title={tip}
+              onMouseEnter={props.onPeek?.(card)}
+              onMouseLeave={props.onPeekEnd}
             >
               {card.icon && (
                 <img src={iconUrl(card.icon)} alt="" onError={iconError} onLoad={iconLoaded} />

@@ -35,7 +35,7 @@ export function CardFace(props: {
   const tint = TINT[card.color] ?? '#555';
   return (
     <div className="cface">
-      <div className="cart" style={{ background: tint }}>
+      <div className={'cart r-' + card.rarity} style={{ background: tint }}>
         {card.icon && (
           <img src={iconUrl(card.icon)} alt="" onError={iconError} onLoad={iconLoaded} />
         )}

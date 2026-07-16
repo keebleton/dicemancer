@@ -1,7 +1,29 @@
 // Tiny inline effect icons so a card parses at a glance. Presentation only.
+import { useEffect, useRef, useState } from 'react';
 import type { ConditionalWhen, Effect, TokenKind } from '../engine';
 import { fxText } from './describe';
 import type { StatPulse } from './store';
+
+/** A number that counts toward its target one step at a time instead of
+ *  snapping (~45ms per step, so even a big heal settles in under half a
+ *  second). Initial mounts show the real value immediately. */
+function useTicked(value: number): number {
+  const [shown, setShown] = useState(value);
+  const shownRef = useRef(value);
+  useEffect(() => {
+    if (shownRef.current === value) return;
+    let t = 0;
+    const step = () => {
+      const next = shownRef.current + Math.sign(value - shownRef.current);
+      shownRef.current = next;
+      setShown(next);
+      if (next !== value) t = window.setTimeout(step, 45);
+    };
+    t = window.setTimeout(step, 45);
+    return () => clearTimeout(t);
+  }, [value]);
+  return shown;
+}
 
 function condShort(when: ConditionalWhen): string {
   const parts: string[] = [];
@@ -182,21 +204,24 @@ export function StatChips(props: {
   pulses?: StatPulse[];
 }) {
   const pulses = props.pulses ?? [];
+  const hp = useTicked(props.hp);
+  const money = useTicked(props.money);
+  const points = useTicked(props.points);
   return (
     <div className="stats">
       <span className="stat" title="health">
         <Heart />
-        {props.hp}
+        {hp}
         <Floats pulses={pulses} stat="hp" />
       </span>
       <span className="stat" title="money">
         <Coin />
-        {props.money}
+        {money}
         <Floats pulses={pulses} stat="money" />
       </span>
       <span className="stat" title="points">
         <Star />
-        {props.points}
+        {points}
         <Floats pulses={pulses} stat="points" />
       </span>
       {props.reroll > 0 && (

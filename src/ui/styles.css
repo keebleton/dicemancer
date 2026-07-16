@@ -529,8 +529,58 @@ input, select { background: #333b52; border: 1px solid #4a5470; color: #e8eaf2; 
   .howto { width: 96vw; }
 }
 
+/* ---- Look and feel pass (2026-07-16, Jake's list) ---- */
+
+/* Hover peek: the big readable copy of a small card (Hearthstone style). */
+.peekcard { position: fixed; z-index: 90; width: 250px; transform: translate(0, -50%); pointer-events: none; border: 2px solid #caa53d; border-radius: 12px; overflow: hidden; background: linear-gradient(180deg, #fbf8f0, #f1ecdd); color: #2b2a26; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.65), 0 0 20px rgba(240, 180, 41, 0.25); animation: peekin 0.12s ease-out; }
+.peekcard.flip { transform: translate(-100%, -50%); }
+@keyframes peekin {
+  0% { opacity: 0; scale: 0.92; }
+  100% { opacity: 1; scale: 1; }
+}
+.peekcard .cart { height: 120px; }
+.peekcard .cart img { width: 104px; height: 104px; border-radius: 8px; }
+.peekcard .cbody { padding: 8px 12px 12px; }
+.peekcard .cname { font-size: 21px; white-space: normal; }
+.peekcard .fxchip { font-size: 15px; }
+.peekcard .fxi { width: 16px; height: 16px; }
+.peekcard .condtag { font-size: 12px; }
+.peekcard .fxif { font-size: 13px; }
+.peekcard .czone .zglyph { width: 14px; height: 14px; }
+.peekcard .cflavor { font-size: 13px; }
+.peekcard .cbadge { font-size: 13px; padding: 2px 9px; }
+.peekcard .slotnum { width: 20px; height: 20px; font-size: 13px; }
+
+/* Purchase flight: the bought card's ghost flies from shop to slot. */
+.ghostflight { position: fixed; z-index: 85; pointer-events: none; border: 1px solid #b7ae99; border-radius: 10px; overflow: hidden; background: linear-gradient(180deg, #fbf8f0, #f1ecdd); color: #2b2a26; font-size: 11px; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55); animation: ghostfly 0.42s cubic-bezier(0.35, 0, 0.55, 1) forwards; }
+@keyframes ghostfly {
+  0% { transform: none; opacity: 1; }
+  80% { opacity: 0.9; }
+  100% { transform: translate(var(--fx), var(--fy)) scale(var(--fs)); opacity: 0; }
+}
+
+/* Defeat: same splash, cold and quiet. */
+.winoverlay.defeat .winrays { background: repeating-conic-gradient(from 0deg, rgba(122, 150, 190, 0.09) 0deg 9deg, transparent 9deg 26deg); animation-duration: 46s; }
+.winoverlay.defeat .winkicker { color: #7a96be; text-shadow: 0 0 18px rgba(122, 150, 190, 0.45), 0 2px 3px rgba(0, 0, 0, 0.7); }
+
+/* Card art wears a frame by rarity: bronze for commons, gold for rares. */
+.cart img { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 3px #8a6d3b, inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 5px rgba(0, 0, 0, 0.4); }
+.cart.r-rare img { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 3px #d8a921, 0 0 10px rgba(240, 180, 41, 0.55), 0 2px 5px rgba(0, 0, 0, 0.4); }
+.cart.r-starter img { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 3px #5a6076, 0 2px 5px rgba(0, 0, 0, 0.4); }
+
+/* Board slots sit in recessed wells so the mat reads as a physical board. */
+.selfmat .slotwrap { background: rgba(10, 13, 22, 0.32); border-radius: 12px; padding: 4px 4px 5px; box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.45), inset 0 -1px 0 rgba(255, 255, 255, 0.05); }
+.selfmat .echotab { margin-left: 10px; }
+
+/* Themed scrollbars: the default grey bars clash with the felt. */
+* { scrollbar-width: thin; scrollbar-color: #4a5470 #1c2130; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: #1c2130; border-radius: 6px; }
+*::-webkit-scrollbar-thumb { background: #4a5470; border-radius: 6px; border: 2px solid #1c2130; }
+*::-webkit-scrollbar-thumb:hover { background: #5c688a; }
+
 /* Motion hygiene: honor the OS-level reduced motion preference. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-  .fxlayer, .confetti, .winrays { display: none; }
+  .fxlayer, .confetti, .winrays, .ghostflight { display: none; }
 }
