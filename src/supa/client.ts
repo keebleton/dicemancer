@@ -4,7 +4,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 export const SUPABASE_URL = 'https://ptzjajcxdjomtebsbxel.supabase.co';
-const PUBLISHABLE_KEY = 'sb_publishable_z-GODn-3iZdiUVcd0NlhKQ_Q7PWvePQ';
+export const PUBLISHABLE_KEY = 'sb_publishable_z-GODn-3iZdiUVcd0NlhKQ_Q7PWvePQ';
 
 export const supa = createClient(SUPABASE_URL, PUBLISHABLE_KEY);
 

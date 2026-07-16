@@ -7,7 +7,7 @@ import { buildSeats, isLegalIntent } from '../net/protocol';
 import type { BotLevel } from '../bot';
 import { reportMatch, useAccount } from './account';
 import { describeTransition } from './describe';
-import { publishRoom, unpublishRoom } from './rooms';
+import { publishRoom, unpublishRoom, unpublishRoomBeacon } from './rooms';
 import { effectiveStarterBoard, loadPacks, mergedPools } from './packs';
 import type { CardPack } from './packs';
 import { playForDispatch } from './sfx';
@@ -249,6 +249,35 @@ export const useGame = create<GameStore>()((set, get) => {
   // Live-game directory row refresh throttle (host side).
   let lastRoomRefresh = 0;
 
+  // Open-lobby heartbeat: re-stamp the directory row every minute so the
+  // list can treat anything older than a few minutes as a dead host.
+  let lobbyBeat = 0;
+  const stopLobbyBeat = () => {
+    clearInterval(lobbyBeat);
+    lobbyBeat = 0;
+  };
+  const startLobbyBeat = () => {
+    stopLobbyBeat();
+    lobbyBeat = window.setInterval(() => {
+      const s = get();
+      if (s.mode !== 'host' || s.game || !s.roomCode) {
+        stopLobbyBeat();
+        return;
+      }
+      const names = net.lobbyNames();
+      publishRoom(s.roomCode, names[0] ?? 'Host', names.length);
+    }, 60_000);
+  };
+
+  // A closing tab cannot finish a normal supabase request; a keepalive
+  // beacon delists the room so ghosts do not linger in the directory.
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', () => {
+      const s = get();
+      if (s.mode === 'host' && s.roomCode) unpublishRoomBeacon(s.roomCode);
+    });
+  }
+
   // Table talk. The host is the hub: it validates (rate limit + length),
   // stamps the seat from the connection, relays to everyone, and shows it
   // locally. Sanitized here so a modified client cannot spoof or flood.
@@ -360,6 +389,7 @@ export const useGame = create<GameStore>()((set, get) => {
     onChatSend: (seat, text, big) => hostRelayChat(seat, text, big),
     onChat: (seat, text, big) => deliverChat(seat, text, big),
     onDrop: (reason) => {
+      stopLobbyBeat();
       set({
         game: null,
         mode: 'offline',
@@ -455,6 +485,7 @@ export const useGame = create<GameStore>()((set, get) => {
     reset: () => {
       const s = get();
       if (s.mode === 'host' && s.roomCode) unpublishRoom(s.roomCode);
+      stopLobbyBeat();
       net.leave();
       clearSavedSession();
       set({
@@ -475,6 +506,7 @@ export const useGame = create<GameStore>()((set, get) => {
       const code = await net.host(name);
       set({ mode: 'host', roomCode: code, lobby: net.lobbyNames() });
       publishRoom(code, name, 1); // list it in the open-rooms directory
+      startLobbyBeat();
       return code;
     },
     joinRoom: async (code, name) => {
@@ -521,6 +553,7 @@ export const useGame = create<GameStore>()((set, get) => {
       });
       net.begin(game, seats.kinds);
       // The lobby leaves the open list and becomes a spectatable live game.
+      stopLobbyBeat();
       if (get().roomCode) {
         publishRoom(get().roomCode!, seats.names[0] ?? 'Host', seats.names.length, 'playing');
       }
@@ -529,6 +562,7 @@ export const useGame = create<GameStore>()((set, get) => {
     leaveOnline: (notice = null) => {
       const s = get();
       if (s.mode === 'host' && s.roomCode) unpublishRoom(s.roomCode);
+      stopLobbyBeat();
       net.leave();
       clearSavedSession();
       set({

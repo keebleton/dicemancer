@@ -1,7 +1,7 @@
 // The open-rooms directory + match history reads. Everything here is
 // fire-and-forget and fails silently: until supabase/schema2.sql is run (or
 // when offline) the features are simply inert.
-import { supa } from '../supa/client';
+import { PUBLISHABLE_KEY, SUPABASE_URL, supa } from '../supa/client';
 import type { MatchPlayer, Profile } from '../supa/client';
 
 export interface OpenRoom {
@@ -30,6 +30,21 @@ export function unpublishRoom(code: string): void {
   void supa.from('open_rooms').delete().eq('code', code).then(() => {});
 }
 
+/** Tab-close delist: plain keepalive fetch, because the supabase client's
+ *  request does not survive page teardown. Best effort; the heartbeat
+ *  cutoff catches whatever this misses (crashes, killed processes). */
+export function unpublishRoomBeacon(code: string): void {
+  try {
+    void fetch(`${SUPABASE_URL}/rest/v1/open_rooms?code=eq.${encodeURIComponent(code)}`, {
+      method: 'DELETE',
+      keepalive: true,
+      headers: { apikey: PUBLISHABLE_KEY, Authorization: `Bearer ${PUBLISHABLE_KEY}` },
+    });
+  } catch {
+    // page is going away; nothing to do
+  }
+}
+
 async function listByStatus(status: string, maxAgeMin: number): Promise<OpenRoom[]> {
   const cutoff = new Date(Date.now() - maxAgeMin * 60 * 1000).toISOString();
   const { data, error } = await supa
@@ -44,8 +59,9 @@ async function listByStatus(status: string, maxAgeMin: number): Promise<OpenRoom
   return ((data ?? []) as OpenRoom[]).filter((r) => (r.status ?? 'open') === status);
 }
 
-/** Joinable lobbies, freshest first; stale rows are filtered out. */
-export const listRooms = () => listByStatus('open', 30);
+/** Joinable lobbies, freshest first. Hosting clients re-stamp their row
+ *  every minute, so anything older than a few minutes is a dead host. */
+export const listRooms = () => listByStatus('open', 4);
 
 /** Live games to spectate; hosts refresh the row every couple of minutes,
  *  so a short window keeps crashed hosts from ghosting the list. */
