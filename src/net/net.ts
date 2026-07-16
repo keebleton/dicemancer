@@ -3,6 +3,13 @@
 // GameState and the rng); clients connect over WebRTC using a 4-letter room
 // code, brokered by the public PeerJS cloud (signaling only, game data is
 // peer to peer). No backend of ours anywhere.
+//
+// RESILIENCE (2026-07-15): a dropped client no longer folds the table. Their
+// seat is marked disconnected, the game waits (or the host swaps in a bot),
+// and a reconnecting player is matched back to their seat by profile id or
+// name and re-synced with a fresh 'begin'. The host can also reopen a room
+// under its old code after a refresh; the store re-seeds it from local
+// persistence.
 import Peer from 'peerjs';
 import type { DataConnection } from 'peerjs';
 import type { Action, GameState } from '../engine';
@@ -14,23 +21,29 @@ export type NetMode = 'offline' | 'host' | 'client';
 interface Callbacks {
   /** Lobby roster changed (both sides; host includes itself first). */
   onLobby: (players: string[]) => void;
-  /** Client only: the host started the game; here is your seat. */
+  /** Client only: the host started (or re-synced) the game; here is your seat. */
   onBegin: (state: GameState, seat: number, seatKinds: SeatKind[]) => void;
   /** Client only: the host applied an action. */
   onSync: (action: Action, state: GameState) => void;
   /** Host only: a client wants to act. seat = their seat once begun. */
   onIntent: (seat: number, action: Action) => void;
-  /** The session died (peer error, host gone, connection lost). */
+  /** Host only: a seat's connection state flipped mid-game. */
+  onPresence: (seat: number, connected: boolean) => void;
+  /** Host only: a dropped player is back on their seat; re-sync them. */
+  onReattach: (seat: number) => void;
+  /** Client only: presence + seat kinds pushed by the host. */
+  onMeta: (connected: boolean[], seatKinds: SeatKind[]) => void;
+  /** The session died for THIS peer (host gone, fatal error). */
   onDrop: (reason: string) => void;
 }
 
 interface ClientSlot {
-  conn: DataConnection;
+  conn: DataConnection | null;
   name: string;
-  /** Supabase profile id, when the client is signed in. */
   profileId: string | null;
   /** Assigned at begin(); -1 while in the lobby. */
   seat: number;
+  connected: boolean;
 }
 
 class Net {
@@ -40,6 +53,7 @@ class Net {
   private clients: ClientSlot[] = []; // host side, join order
   private hostConn: DataConnection | null = null; // client side
   private hostName = '';
+  private begun = false;
   private cb: Callbacks | null = null;
   private closing = false;
 
@@ -47,14 +61,15 @@ class Net {
     this.cb = cb;
   }
 
-  /** Open a room. Resolves with the code once the broker accepts the id. */
-  host(name: string): Promise<string> {
+  /** Open a room. Tries the preferred code first (host resume), then random
+   *  codes on broker collisions. Resolves with the code in use. */
+  host(name: string, preferredCode?: string): Promise<string> {
     this.leave();
     this.mode = 'host';
     this.hostName = name;
     return new Promise((resolve, reject) => {
       const tryOpen = (attempt: number) => {
-        const code = makeRoomCode();
+        const code = attempt === 0 && preferredCode ? preferredCode : makeRoomCode();
         const peer = new Peer(roomPeerId(code));
         this.peer = peer;
         peer.on('open', () => {
@@ -63,7 +78,6 @@ class Net {
           resolve(code);
         });
         peer.on('error', (err) => {
-          // Code collision on the broker: roll a new one.
           if ((err as { type?: string }).type === 'unavailable-id' && attempt < 4) {
             peer.destroy();
             tryOpen(attempt + 1);
@@ -75,7 +89,7 @@ class Net {
         peer.on('connection', (conn) => this.acceptClient(conn));
         peer.on('disconnected', () => {
           // Broker link lost; existing WebRTC connections keep working, but
-          // try to get back so new joins still work in the lobby.
+          // try to get back so new joins and rejoins still work.
           if (!this.closing) peer.reconnect();
         });
       };
@@ -83,17 +97,52 @@ class Net {
     });
   }
 
+  /** Host resuming after a refresh: reopen the room and pre-register the
+   *  known seats as disconnected so rejoining players match back in. */
+  expectSeats(entries: { name: string; profileId: string | null; seat: number }[]) {
+    this.begun = true;
+    this.clients = entries.map((e) => ({
+      conn: null,
+      name: e.name,
+      profileId: e.profileId,
+      seat: e.seat,
+      connected: false,
+    }));
+  }
+
   private acceptClient(conn: DataConnection) {
     conn.on('data', (raw) => {
       const msg = raw as NetMsg;
       if (msg.type === 'hello') {
-        this.clients.push({
-          conn,
-          name: msg.name.trim() || 'Player',
-          profileId: msg.profileId ?? null,
-          seat: -1,
-        });
-        this.emitLobby();
+        const name = msg.name.trim() || 'Player';
+        if (!this.begun) {
+          this.clients.push({
+            conn,
+            name,
+            profileId: msg.profileId ?? null,
+            seat: -1,
+            connected: true,
+          });
+          this.emitLobby();
+          return;
+        }
+        // Mid-game hello: this is a RECONNECT. Match by profile id first,
+        // then by name; unknown peers are turned away politely.
+        const slot = this.clients.find(
+          (c) =>
+            !c.connected
+            && c.seat >= 0
+            && ((msg.profileId && c.profileId === msg.profileId) || c.name === name),
+        );
+        if (slot) {
+          slot.conn = conn;
+          slot.connected = true;
+          this.cb?.onPresence(slot.seat, true);
+          this.cb?.onReattach(slot.seat); // the store answers with a fresh begin
+        } else {
+          conn.send({ type: 'bye', reason: 'game in progress; no open seat matches you' } satisfies NetMsg);
+          setTimeout(() => conn.close(), 400);
+        }
         return;
       }
       if (msg.type === 'intent') {
@@ -101,16 +150,27 @@ class Net {
         if (slot && slot.seat >= 0) this.cb?.onIntent(slot.seat, msg.action);
       }
     });
-    conn.on('close', () => {
+    // Abrupt losses (closed tab, dead wifi) never send a close frame; they
+    // only show up as ICE state changes. Handle both paths once.
+    let downHandled = false;
+    const onDown = () => {
+      if (downHandled) return;
+      downHandled = true;
       const slot = this.clients.find((c) => c.conn === conn);
-      this.clients = this.clients.filter((c) => c.conn !== conn);
-      if (slot && slot.seat >= 0) {
-        // Mid-game loss is fatal for now: tell everyone and fold the table.
-        this.broadcast({ type: 'bye', reason: `${slot.name} disconnected` });
-        this.drop(`${slot.name} disconnected`);
-      } else {
+      if (!slot) return;
+      if (!this.begun || slot.seat < 0) {
+        this.clients = this.clients.filter((c) => c !== slot);
         this.emitLobby();
+        return;
       }
+      // Mid-game drop: hold the seat, tell the table, and wait.
+      slot.conn = null;
+      slot.connected = false;
+      this.cb?.onPresence(slot.seat, false);
+    };
+    conn.on('close', onDown);
+    conn.on('iceStateChanged', (s) => {
+      if (s === 'disconnected' || s === 'failed' || s === 'closed') onDown();
     });
   }
 
@@ -136,10 +196,18 @@ class Net {
           if (msg.type === 'lobby') this.cb?.onLobby(msg.players);
           else if (msg.type === 'begin') this.cb?.onBegin(msg.state, msg.seat, msg.seatKinds);
           else if (msg.type === 'sync') this.cb?.onSync(msg.action, msg.state);
+          else if (msg.type === 'meta') this.cb?.onMeta(msg.connected, msg.seatKinds);
           else if (msg.type === 'bye') this.drop(msg.reason);
         });
-        conn.on('close', () => {
-          if (!this.closing) this.drop('lost the connection to the host');
+        let downHandled = false;
+        const onHostDown = () => {
+          if (downHandled || this.closing) return;
+          downHandled = true;
+          this.drop('lost the connection to the host');
+        };
+        conn.on('close', onHostDown);
+        conn.on('iceStateChanged', (s) => {
+          if (s === 'disconnected' || s === 'failed' || s === 'closed') onHostDown();
         });
       });
       peer.on('error', (err) => {
@@ -155,15 +223,27 @@ class Net {
   /** Host: lock the lobby into a game. Seat 0 is the host; clients get their
    *  seats in join order (the caller built the same order via buildSeats). */
   begin(state: GameState, seatKinds: SeatKind[]) {
+    this.begun = true;
     this.clients.forEach((c, i) => {
       c.seat = i + 1;
-      c.conn.send({ type: 'begin', state, seat: c.seat, seatKinds } satisfies NetMsg);
+      c.conn?.send({ type: 'begin', state, seat: c.seat, seatKinds } satisfies NetMsg);
     });
+  }
+
+  /** Host: re-sync ONE seat (a reconnecting player). */
+  beginSeat(seat: number, state: GameState, seatKinds: SeatKind[]) {
+    const slot = this.clients.find((c) => c.seat === seat);
+    slot?.conn?.send({ type: 'begin', state, seat, seatKinds } satisfies NetMsg);
   }
 
   /** Host: after every applied action. */
   sync(action: Action, state: GameState) {
     this.broadcast({ type: 'sync', action, state });
+  }
+
+  /** Host: push presence + seat kinds to every client. */
+  meta(connected: boolean[], seatKinds: SeatKind[]) {
+    this.broadcast({ type: 'meta', connected, seatKinds });
   }
 
   /** Client: ask the host to play this action. */
@@ -180,6 +260,22 @@ class Net {
     return this.clients.map((c) => c.profileId);
   }
 
+  /** Names + ids per client seat, for host-side persistence. */
+  seatRoster(): { name: string; profileId: string | null; seat: number }[] {
+    return this.clients
+      .filter((c) => c.seat >= 0)
+      .map((c) => ({ name: c.name, profileId: c.profileId, seat: c.seat }));
+  }
+
+  /** Connection truth per seat (host itself is always seat 0 and connected). */
+  presence(totalSeats: number): boolean[] {
+    const out = Array<boolean>(totalSeats).fill(true); // bots count as present
+    for (const c of this.clients) {
+      if (c.seat >= 0 && c.seat < totalSeats) out[c.seat] = c.connected;
+    }
+    return out;
+  }
+
   clientCount(): number {
     return this.clients.length;
   }
@@ -191,7 +287,7 @@ class Net {
   }
 
   private broadcast(msg: NetMsg) {
-    for (const c of this.clients) c.conn.send(msg);
+    for (const c of this.clients) c.conn?.send(msg);
   }
 
   private drop(reason: string) {
@@ -209,6 +305,7 @@ class Net {
     this.hostConn = null;
     this.mode = 'offline';
     this.roomCode = null;
+    this.begun = false;
     this.closing = false;
   }
 }

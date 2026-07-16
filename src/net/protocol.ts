@@ -18,6 +18,8 @@ export type NetMsg =
     }
   | { type: 'sync'; action: Action; state: GameState }
   | { type: 'intent'; action: Action }
+  /** Host -> clients: per-seat connection truth + current seat kinds. */
+  | { type: 'meta'; connected: boolean[]; seatKinds: SeatKind[] }
   | { type: 'bye'; reason: string };
 
 /** Peer ids on the public broker are global; prefix + code keeps rooms ours. */

@@ -5,8 +5,8 @@ import { Game } from './Game';
 import { IconPicker } from './IconPicker';
 import { Lab } from './Lab';
 import { iconError, iconUrl, loadPacks, savePacks } from './packs';
-import { useGame } from './store';
-import type { SeatKind } from './store';
+import { clearSavedSession, loadSavedSession, useGame } from './store';
+import type { SavedSession, SeatKind } from './store';
 
 const SEAT_COLORS: SeatColor[] = ['red', 'blue', 'black', 'green', 'yellow'];
 
@@ -21,6 +21,74 @@ export function App() {
   if (mode !== 'offline') return <OnlineLobby />;
   if (lab) return <Lab onClose={() => setLab(false)} />;
   return <Setup onLab={() => setLab(true)} />;
+}
+
+/** A crashed or refreshed session leaves a save behind; offer the way back. */
+function ResumeBox() {
+  const [saved, setSaved] = useState<SavedSession | null>(() => loadSavedSession());
+  const resumeOffline = useGame((s) => s.resumeOffline);
+  const resumeHost = useGame((s) => s.resumeHost);
+  const joinRoom = useGame((s) => s.joinRoom);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  if (!saved) return null;
+  const discard = () => {
+    clearSavedSession();
+    setSaved(null);
+  };
+  return (
+    <section className="netbox resumebox">
+      <b>Game in progress</b>
+      <div className="netrow">
+        {saved.mode === 'offline' && (
+          <button className="primary" onClick={resumeOffline}>
+            Resume game (round {saved.game?.round ?? '?'})
+          </button>
+        )}
+        {saved.mode === 'host' && (
+          <button
+            className="primary"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setErr(null);
+              try {
+                await resumeHost();
+              } catch (e) {
+                setErr(String(e instanceof Error ? e.message : e));
+                setBusy(false);
+              }
+            }}
+          >
+            Reopen room {saved.roomCode} and resume
+          </button>
+        )}
+        {saved.mode === 'client' && (
+          <button
+            className="primary"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setErr(null);
+              try {
+                await joinRoom(saved.roomCode!, saved.myName ?? 'Player');
+              } catch (e) {
+                setErr(String(e instanceof Error ? e.message : e));
+                setBusy(false);
+              }
+            }}
+          >
+            Rejoin room {saved.roomCode}
+          </button>
+        )}
+        <button onClick={discard}>discard</button>
+      </div>
+      {saved.mode === 'host' && (
+        <span className="dimtext">your players rejoin with the room code; their seats are held</span>
+      )}
+      {err && <div className="err">{err}</div>}
+    </section>
+  );
 }
 
 /** Sign in, profile (username + WoW-icon avatar), and lifetime stats. */
@@ -201,6 +269,7 @@ function Setup({ onLab }: { onLab: () => void }) {
     <main className="setup">
       <h1>Dicemancer</h1>
 
+      <ResumeBox />
       <AccountBox />
 
       <section className="netbox">

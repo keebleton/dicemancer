@@ -114,6 +114,8 @@ main.game { max-width: 1560px; }
 .oppmat { cursor: zoom-in; transition: transform 0.15s ease, border-color 0.15s ease; }
 .oppmat:hover { border-color: #6b769a; transform: translateY(-2px); }
 .zoomhint { font-size: 10px; font-weight: 400; color: #8a8f9e; opacity: 0; transition: opacity 0.12s; }
+.offlinetag { background: #42221f; color: #ffb3a8; border-radius: 8px; padding: 1px 7px; font-size: 10px; font-weight: 700; margin-left: 6px; letter-spacing: 0.5px; }
+.resumebox { border-color: #2dd4a7; }
 .oppmat:hover .zoomhint { opacity: 1; }
 .inspect-overlay { position: fixed; inset: 0; background: rgba(10, 12, 20, 0.7); display: flex; align-items: center; justify-content: center; z-index: 60; }
 .inspect { width: 1150px; max-width: 94vw; max-height: 88vh; overflow: auto; animation: winnerpop 0.2s ease-out; }

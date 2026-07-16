@@ -20,6 +20,8 @@ export function Game() {
   const mode = useGame((s) => s.mode);
   const mySeat = useGame((s) => s.mySeat);
   const roomCode = useGame((s) => s.roomCode);
+  const connectedSeats = useGame((s) => s.connectedSeats);
+  const replaceWithBot = useGame((s) => s.replaceWithBot);
   const [preview, setPreview] = useState<AllocationMode | null>(null);
   const [buySel, setBuySel] = useState<{ src: 'shop' | 'market' | 'relic'; i: number } | null>(
     null,
@@ -94,12 +96,15 @@ export function Game() {
       : [];
   const humanRoller = iControl(game.current);
   // Who the stage is waiting on (null = it is waiting on me, show buttons).
+  const actingConnected = mode === 'offline' || (connectedSeats[acting] ?? true);
   const waitLabel =
     game.winner !== null || iControl(acting)
       ? null
       : seatKinds[acting] === 'bot'
         ? 'thinking...'
-        : `waiting for ${game.players[acting]!.name}...`;
+        : actingConnected
+          ? `waiting for ${game.players[acting]!.name}...`
+          : `${game.players[acting]!.name} is disconnected; their seat is held...`;
 
   // Seating: you sit at the bottom. Online that is simply my seat; in hotseat
   // the table rotates so the current human is always the bottom seat.
@@ -132,6 +137,8 @@ export function Game() {
       pulses={pulses.filter((x) => x.seat === seat)}
       fired={seat === game.current ? firedSlots : []}
       onInspect={() => setInspect(seat)}
+      disconnected={mode !== 'offline' && seatKinds[seat] === 'human' && !(connectedSeats[seat] ?? true)}
+      onReplaceBot={mode === 'host' ? () => replaceWithBot(seat) : undefined}
     />
   );
 
@@ -642,8 +649,11 @@ function OppMat(props: {
   pulses: StatPulse[];
   fired: number[];
   onInspect: () => void;
+  disconnected?: boolean;
+  /** Host-only: hand this seat to a bot (shown while disconnected). */
+  onReplaceBot?: () => void;
 }) {
-  const { p, seat, game, fired } = props;
+  const { p, seat, game, fired, disconnected } = props;
   const isTurn = seat === game.current;
   const paidSlots = game.echoNumbers[seat] ?? [];
   return (
@@ -655,7 +665,18 @@ function OppMat(props: {
         <h3>
           <span className={p.color}>{p.name}</span> {isTurn ? '(rolling)' : ''}
           {p.eliminated ? ' - ELIMINATED' : ''}
+          {disconnected && <span className="offlinetag">offline</span>}
         </h3>
+        {disconnected && props.onReplaceBot && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onReplaceBot!();
+            }}
+          >
+            hand seat to a bot
+          </button>
+        )}
         <StatChips
           hp={p.hp}
           money={p.money}
