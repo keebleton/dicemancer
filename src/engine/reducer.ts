@@ -1,4 +1,4 @@
-import { applyEffect, conditionHolds, damagePlayer } from './effects';
+import { applyEffect, conditionHolds, damagePlayer, stealMoney } from './effects';
 import { rollDie } from './rng';
 import { dealRow, refillMarketSlot } from './shop';
 import type { Action, AllocationMode, CardDef, GameState, QueuedEffect, Rng } from './types';
@@ -167,6 +167,7 @@ function installCard(state: GameState, card: CardDef, targetSlot: number): void 
   const displaced = me.board[targetSlot - 1]!;
   me.echoStack.push({ def: displaced, slot: targetSlot });
   me.board[targetSlot - 1] = card;
+  me.charges[targetSlot - 1] = 0; // a fresh card starts uncharged
   state.phase = 'end'; // max 1 buy per turn, shop and market combined
 }
 
@@ -267,7 +268,7 @@ function allocate(state: GameState, mode: AllocationMode, rng: Rng): void {
   for (const slot of numbers) {
     const card = rollerState.board[slot - 1];
     if (!card) throw new Error(`slot ${slot} has no card`);
-    for (const effect of card.active) queue.push({ effect, owner: roller, echo: false });
+    for (const effect of card.active) queue.push({ effect, owner: roller, echo: false, slot });
   }
   state.pendingEffects = queue;
   if (drainQueue(state, rng)) finishResolution(state, rng);
@@ -276,10 +277,11 @@ function allocate(state: GameState, mode: AllocationMode, rng: Rng): void {
 function chooseTarget(state: GameState, playerId: number, rng: Rng): void {
   const queue = state.pendingEffects;
   const head = queue?.shift();
-  if (!head || head.effect.kind !== 'damage') {
+  if (!head || (head.effect.kind !== 'damage' && head.effect.kind !== 'steal')) {
     throw new Error('no pending target choice'); // unreachable via assertLegal
   }
-  damagePlayer(state, playerId, head.effect.amount);
+  if (head.effect.kind === 'damage') damagePlayer(state, playerId, head.effect.amount);
+  else stealMoney(state, playerId, head.owner, head.effect.amount);
   if (drainQueue(state, rng)) finishResolution(state, rng);
 }
 
@@ -299,7 +301,7 @@ function drainQueue(state: GameState, rng: Rng): boolean {
       queue.shift();
       if (conditionHolds(state, eff.when, item.owner)) {
         queue.unshift(
-          ...eff.then.map((effect) => ({ effect, owner: item.owner, echo: item.echo })),
+          ...eff.then.map((effect) => ({ effect, owner: item.owner, echo: item.echo, slot: item.slot })),
         );
       }
       continue;
@@ -310,12 +312,31 @@ function drainQueue(state: GameState, rng: Rng): boolean {
       if (owner.money >= eff.pay) {
         owner.money -= eff.pay;
         queue.unshift(
-          ...eff.then.map((effect) => ({ effect, owner: item.owner, echo: item.echo })),
+          ...eff.then.map((effect) => ({ effect, owner: item.owner, echo: item.echo, slot: item.slot })),
         );
       }
       continue;
     }
-    if (eff.kind === 'damage' && eff.target === 'chooseOpponent' && !item.echo) {
+    if (eff.kind === 'charge') {
+      queue.shift();
+      const idx = (item.slot ?? 0) - 1;
+      const owner = state.players[item.owner]!;
+      if (idx >= 0 && idx < 12) {
+        owner.charges[idx] = (owner.charges[idx] ?? 0) + 1;
+        if (owner.charges[idx]! >= eff.need) {
+          owner.charges[idx] = 0; // the counter resets and the payoff fires
+          queue.unshift(
+            ...eff.then.map((effect) => ({ effect, owner: item.owner, echo: item.echo, slot: item.slot })),
+          );
+        }
+      }
+      continue;
+    }
+    if (
+      (eff.kind === 'damage' || eff.kind === 'steal')
+      && eff.target === 'chooseOpponent'
+      && !item.echo
+    ) {
       const targets = legalTargets(state, state.current);
       if (targets.length === 0) {
         queue.shift(); // nobody to hit
@@ -325,8 +346,9 @@ function drainQueue(state: GameState, rng: Rng): boolean {
         state.phase = 'chooseTarget'; // pause; head stays queued for CHOOSE_TARGET
         return false;
       }
-      queue.shift();
-      damagePlayer(state, targets[0]!, eff.amount); // single target: no pointless choice
+      queue.shift(); // single target: no pointless choice
+      if (eff.kind === 'damage') damagePlayer(state, targets[0]!, eff.amount);
+      else stealMoney(state, targets[0]!, item.owner, eff.amount);
       continue;
     }
     queue.shift();
@@ -411,7 +433,9 @@ function fireEchoesFor(state: GameState, seat: number, numbers: number[], rng: R
   for (const n of numbers) {
     for (const entry of stack) {
       if (entry.slot !== n) continue;
-      for (const effect of entry.def.echo) queue.push({ effect, owner: seat, echo: true });
+      for (const effect of entry.def.echo) {
+        queue.push({ effect, owner: seat, echo: true, slot: entry.slot });
+      }
     }
   }
   const heard = [...numbers];

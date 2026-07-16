@@ -144,7 +144,9 @@ const COLOR_SLOTS: Record<string, Set<number>> = {
 
 const flatKinds = (effects: Effect[]): string[] =>
   effects.flatMap((e) =>
-    e.kind === 'conditional' || e.kind === 'trade' ? [e.kind, ...flatKinds(e.then)] : [e.kind],
+    e.kind === 'conditional' || e.kind === 'trade' || e.kind === 'charge'
+      ? [e.kind, ...flatKinds(e.then)]
+      : [e.kind],
   );
 
 export interface CardCheck {
@@ -183,6 +185,34 @@ export function validateCard(card: CardDef): CardCheck {
     if (kinds.includes('damage') || kinds.includes('gainToken')) {
       warnings.push('colorless is normally money/utility only (no damage, no tokens)');
     }
+  }
+  // Win conditions must be earned: a bare winGame fires on any roll of the slot.
+  const bareWin = (effects: Effect[]): boolean =>
+    effects.some(
+      (e) =>
+        e.kind === 'winGame'
+        || ((e.kind === 'conditional' || e.kind === 'trade') && bareWin(e.then)),
+    );
+  if (bareWin(card.active) || bareWin(card.echo)) {
+    errors.push('winGame must sit inside a charge (it needs a build-up)');
+  }
+  const badCharge = (effects: Effect[]): boolean =>
+    effects.some(
+      (e) =>
+        (e.kind === 'charge' && (e.need < 2 || e.need > 20))
+        || ((e.kind === 'conditional' || e.kind === 'trade' || e.kind === 'charge')
+          && badCharge(e.then)),
+    );
+  if (badCharge(card.active) || badCharge(card.echo)) {
+    errors.push('charge needs 2-20 fires');
+  }
+  for (const e of [...card.active, ...card.echo]) {
+    if (e.kind === 'swapBoard' && (e.a < 1 || e.a > 12 || e.b < 1 || e.b > 12 || e.a === e.b)) {
+      errors.push('swapBoard needs two different slots 1-12');
+    }
+  }
+  if (flatKinds(card.echo).includes('charge')) {
+    warnings.push('charges in echo lines count on the retired slot; usually you want it on the active');
   }
   return { errors, warnings };
 }

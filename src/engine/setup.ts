@@ -48,6 +48,7 @@ export function createGame(config: GameConfig, rng?: Rng): GameState {
       buyDiscount: 0,
       shopFrozen: false,
       board: structuredClone(config.starterBoard),
+      charges: Array<number>(12).fill(0),
       echoStack: [],
       eliminated: false,
       shop: config.pools ? Array<CardDef | null>(1).fill(null) : [],

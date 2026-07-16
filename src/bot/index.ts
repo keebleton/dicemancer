@@ -97,6 +97,18 @@ function scoreEchoLine(
       case 'conditional':
         v += conditionOdds(state, e.when, seat, roll) * scoreEchoLine(state, e.then, seat, roll);
         break;
+      case 'steal':
+        v += e.amount * 1.6; // my gain plus their loss
+        break;
+      case 'swapBoard':
+        v += 0.4; // board shuffling: hard to value, mildly interesting
+        break;
+      case 'charge':
+        v += scoreEchoLine(state, e.then, seat, roll) / Math.max(1, e.need);
+        break;
+      case 'winGame':
+        v += 40;
+        break;
     }
   }
   return v;
@@ -164,6 +176,19 @@ function scoreEffects(
       }
       case 'conditional':
         v += conditionOdds(state, e.when, seat, roll) * scoreEffects(state, e.then, seat, roll);
+        break;
+      case 'steal':
+        v += e.amount * 1.6;
+        break;
+      case 'swapBoard':
+        v += 0.4;
+        break;
+      case 'charge':
+        // Amortized: the payoff lands once per `need` fires.
+        v += scoreEffects(state, e.then, seat, roll) / Math.max(1, e.need);
+        break;
+      case 'winGame':
+        v += 40;
         break;
     }
   }

@@ -604,6 +604,10 @@ const EFFECT_KINDS = [
   'discount',
   'trade',
   'conditional',
+  'steal',
+  'swapBoard',
+  'charge',
+  'winGame',
 ] as const;
 
 function defaultEffect(kind: (typeof EFFECT_KINDS)[number]): Effect {
@@ -626,6 +630,14 @@ function defaultEffect(kind: (typeof EFFECT_KINDS)[number]): Effect {
       return { kind: 'trade', pay: 2, then: [{ kind: 'gainPoints', amount: 1 }] };
     case 'conditional':
       return { kind: 'conditional', when: { sumAtLeast: 8 }, then: [{ kind: 'gainMoney', amount: 1 }] };
+    case 'steal':
+      return { kind: 'steal', amount: 1, target: 'chooseOpponent' };
+    case 'swapBoard':
+      return { kind: 'swapBoard', a: 2, b: 12 };
+    case 'charge':
+      return { kind: 'charge', need: 5, then: [{ kind: 'gainPoints', amount: 5 }] };
+    case 'winGame':
+      return { kind: 'winGame' };
   }
 }
 
@@ -636,8 +648,8 @@ function EffectListEditor(props: {
 }) {
   const { list, onChange, nested } = props;
   const kinds = nested
-    ? EFFECT_KINDS.filter((k) => k !== 'conditional' && k !== 'trade')
-    : EFFECT_KINDS;
+    ? EFFECT_KINDS.filter((k) => k !== 'conditional' && k !== 'trade' && k !== 'charge')
+    : EFFECT_KINDS.filter((k) => k !== 'winGame'); // winGame only via a charge payoff
   return (
     <div className={nested ? 'fxnest' : ''}>
       {list.map((e, i) => (
@@ -732,6 +744,32 @@ function EffectRow(props: {
           <EffectListEditor list={e.then} nested onChange={(then) => onChange({ ...e, then })} />
         </>
       )}
+      {e.kind === 'steal' && (
+        <>
+          {num(e.amount, (n) => onChange({ ...e, amount: n }))}
+          <select
+            value={e.target}
+            onChange={(ev) => onChange({ ...e, target: ev.target.value as typeof e.target })}
+          >
+            <option value="chooseOpponent">from a chosen foe</option>
+            <option value="roller">from the roller</option>
+          </select>
+        </>
+      )}
+      {e.kind === 'swapBoard' && (
+        <>
+          swap slot {num(e.a, (n) => onChange({ ...e, a: Math.min(12, Math.max(1, n)) }), 1)} with
+          slot {num(e.b, (n) => onChange({ ...e, b: Math.min(12, Math.max(1, n)) }), 1)}
+        </>
+      )}
+      {e.kind === 'charge' && (
+        <>
+          fires every {num(e.need, (n) => onChange({ ...e, need: Math.max(2, n) }), 2)} charges,
+          then:
+          <EffectListEditor list={e.then} nested onChange={(then) => onChange({ ...e, then })} />
+        </>
+      )}
+      {e.kind === 'winGame' && <span className="dimtext">the owner wins the game outright</span>}
       {!nested && <span />}
       <button className="fxdel" onClick={onRemove}>
         remove

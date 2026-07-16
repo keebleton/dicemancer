@@ -15,11 +15,13 @@ export const DEFAULT_TUNABLES: Tunables = {
 };
 
 /** HP by player count is THE damage-race lever; retuned whenever the economy
- *  moves. 2026-07-14 (full-coverage expansion, 110 new cards): red's deeper
- *  damage pool pushed the 2p race again; re-simmed with the Legion of Echoes
- *  nerf and black threshold re-anchor, 2p lands at 31 (colors 47-53), 3p
- *  stays 18, 4p stays 14. Explicit startingHp overrides win. */
-export const HP_BY_PLAYER_COUNT: Record<number, number> = { 2: 31, 3: 18, 4: 14 };
+ *  moves. 2026-07-14 second pass (mechanics batch spread damage into every
+ *  color): more total damage supply reheated the races; 4p moves 14 -> 16
+ *  (red lands 26 percent, three colors within a point of fair) and 2p 31 ->
+ *  32. Standing 2p watch list: black runs ~58 and blue ~39 at every HP level
+ *  tried - that seesaw is card-level, next balance pass owns it. Explicit
+ *  startingHp overrides win. */
+export const HP_BY_PLAYER_COUNT: Record<number, number> = { 2: 32, 3: 18, 4: 16 };
 
 /** Personal shop row: own-color cards only (colorless moved to the shared
  *  market, 2026-07-13). Buys per turn is 1 across shop AND market, hardcoded

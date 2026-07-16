@@ -309,6 +309,8 @@ export const RED_CARDS: CardDef[] = [
   { id: 'forge-of-souls', name: 'Forge of Souls', icon: 'Achievement_Dungeon_Icecrown_ForgeofSouls.PNG', color: 'red', rarity: 'rare', cost: 9, legalSlots: [8, 10], active: [{ kind: 'damage', amount: 3, target: 'chooseOpponent' }, { kind: 'gainPoints', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
   { id: 'world-in-flames', name: 'World in Flames', icon: 'ABILITY_WARLOCK_INFERNO.PNG', color: 'red', rarity: 'rare', cost: 8, legalSlots: [12], active: [{ kind: 'damage', amount: 5, target: 'chooseOpponent' }, { kind: 'gainPoints', amount: 2 }], echo: [{ kind: 'damage', amount: 2, target: 'roller' }] },
   { id: 'pilot-light', name: 'Pilot Light', icon: 'INV_Enchanting_70_Pet_Torch.PNG', color: 'red', rarity: 'common', cost: 3, legalSlots: [1, 6], active: [{ kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  // --- 2026-07-14 mechanics batch: the long fuse charges up to a haymaker.
+  { id: 'long-fuse', name: 'Long Fuse', icon: 'Ability_Blackhand_Slagbombs.PNG', color: 'red', rarity: 'rare', cost: 7, legalSlots: [4, 5], active: [{ kind: 'charge', need: 5, then: [{ kind: 'damage', amount: 6, target: 'chooseOpponent' }] }], echo: [{ kind: 'damage', amount: 1, target: 'roller' }] },
 ];
 
 export const BLUE_CARDS: CardDef[] = [
@@ -620,6 +622,12 @@ export const BLUE_CARDS: CardDef[] = [
   { id: 'water-strider', name: 'Water Strider', icon: 'Ability_Mount_WaterStriderMount.PNG', color: 'blue', rarity: 'common', cost: 4, legalSlots: [2, 8], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'gainToken', token: 'reroll', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
   { id: 'conjure-eleven', name: 'Conjure Eleven', icon: 'Ability_Mage_ConjureWater11.PNG', color: 'blue', rarity: 'common', cost: 4, legalSlots: [1, 11], active: [{ kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
   { id: 'mana-break', name: 'Mana Break', icon: 'Ability_DemonHunter_ManaBreak.PNG', color: 'blue', rarity: 'common', cost: 5, legalSlots: [6, 10], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  // --- 2026-07-14 mechanics batch: blue gets precise chill damage + the
+  // signature board swap (your 2 and your 12 trade places... until it fires
+  // again and the tides turn back).
+  { id: 'ice-lance', name: 'Ice Lance', icon: 'Spell_Frost_Frostbolt.PNG', color: 'blue', rarity: 'common', cost: 4, legalSlots: [2, 3], active: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }, { kind: 'gainToken', token: 'reroll', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'deep-freeze', name: 'Deep Freeze', icon: 'Spell_Frost_FrostBolt02.PNG', color: 'blue', rarity: 'common', cost: 5, legalSlots: [7], active: [{ kind: 'damage', amount: 2, target: 'chooseOpponent' }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'mirror-current', name: 'Mirror Current', icon: 'Spell_Nature_MirrorImage.PNG', color: 'blue', rarity: 'rare', cost: 8, legalSlots: [4], active: [{ kind: 'swapBoard', a: 2, b: 12 }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
 ];
 
 // Colorless = MARKET ARTIFACTS (2026-07-13): a shared static shop all players
@@ -760,6 +768,18 @@ export const COLORLESS_CARDS: CardDef[] = [
       { kind: 'gainPoints', amount: 2 },
       { kind: 'conditional', when: { hpAtOrBelow: 10 }, then: [{ kind: 'gainPoints', amount: 2 }] },
     ],
+    echo: [{ kind: 'gainMoney', amount: 1 }],
+  },
+  {
+    // The Space Base homage: fire this slot seven times and just... win.
+    id: 'doomsday-device',
+    name: 'Doomsday Device',
+    icon: 'Ability_IronMaidens_DetonationSequence.PNG',
+    color: 'colorless',
+    rarity: 'rare',
+    cost: 14,
+    legalSlots: HIGH_SLOTS,
+    active: [{ kind: 'charge', need: 7, then: [{ kind: 'winGame' }] }],
     echo: [{ kind: 'gainMoney', amount: 1 }],
   },
 ];
@@ -1094,6 +1114,10 @@ export const BLACK_CARDS: CardDef[] = [
   { id: 'cursed-scroll', name: 'Cursed Scroll', icon: 'Ability_Creature_Cursed_01.PNG', color: 'black', rarity: 'common', cost: 5, legalSlots: [4, 10], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
   { id: 'bone-pile', name: 'Bone Pile', icon: 'INV_Bone_Skull_04.PNG', color: 'black', rarity: 'common', cost: 3, legalSlots: [5, 8], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainMoney', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
   { id: 'fire-raven', name: 'Fire Raven', icon: 'Ability_Mount_FireRavenGodMount.PNG', color: 'black', rarity: 'rare', cost: 9, legalSlots: [11, 12], active: [{ kind: 'gainPoints', amount: 3 }, { kind: 'conditional', when: { echoStackAtLeast: 6 }, then: [{ kind: 'gainPoints', amount: 2 }] }], echo: [{ kind: 'gainPoints', amount: 2 }] },
+  // --- 2026-07-14 mechanics batch: black robs graves and swings scythes.
+  { id: 'grave-robbery', name: 'Grave Robbery', icon: 'INV_Misc_Shovel_01.PNG', color: 'black', rarity: 'common', cost: 5, legalSlots: [6], active: [{ kind: 'steal', amount: 1, target: 'chooseOpponent' }, { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'gainMoney', amount: 1 }] }], echo: [{ kind: 'steal', amount: 1, target: 'roller' }] },
+  { id: 'bone-scythe', name: 'Bone Scythe', icon: 'INV_Archaeology_80_Witch_BoneScythe.PNG', color: 'black', rarity: 'rare', cost: 8, legalSlots: [10, 12], active: [{ kind: 'damage', amount: 3, target: 'chooseOpponent' }, { kind: 'gainPoints', amount: 1 }], echo: [{ kind: 'damage', amount: 1, target: 'roller' }] },
+  { id: 'hexblade', name: 'Hexblade', icon: 'INV_Archaeology_80_Witch_Dagger.PNG', color: 'black', rarity: 'common', cost: 5, legalSlots: [3, 5], active: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }, { kind: 'conditional', when: { echoStackAtLeast: 5 }, then: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
 ];
 
 // GREEN "Wildgrove": odd slots {1,3,5} + odd sums {3,5,9}. Odd-dice parity
@@ -1409,6 +1433,10 @@ export const GREEN_CARDS: CardDef[] = [
   { id: 'nightmare-stem', name: 'Nightmare Stem', icon: 'INV_Misc_Herb_NightmareVine_Stem.PNG', color: 'green', rarity: 'common', cost: 4, legalSlots: [3, 7], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'discount', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
   { id: 'seasons-turn', name: "Season's Turn", icon: 'Achievement_ChallengeMode_Everbloom_Hourglass.PNG', color: 'green', rarity: 'rare', cost: 8, legalSlots: [6, 12], active: [{ kind: 'gainPoints', amount: 2 }, { kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
   { id: 'petal-fall', name: 'Petal Fall', icon: 'INV_ Misc_Herb_DeathBlossom_Leaf.PNG', color: 'green', rarity: 'common', cost: 3, legalSlots: [1, 8], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'conditional', when: { bothDiceOdd: true }, then: [{ kind: 'gainMoney', amount: 1 }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  // --- 2026-07-14 mechanics batch: nature bites back, and rotates its crops.
+  { id: 'thorn-lash', name: 'Thorn Lash', icon: 'INV_Misc_1h_FarmSickle_A_01.PNG', color: 'green', rarity: 'common', cost: 4, legalSlots: [3, 5], active: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }, { kind: 'conditional', when: { bothDiceOdd: true }, then: [{ kind: 'damage', amount: 1, target: 'chooseOpponent' }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'the-reaping', name: 'The Reaping', icon: 'INV_Misc_2h_FarmScythe_A_01.PNG', color: 'green', rarity: 'common', cost: 5, legalSlots: [9], active: [{ kind: 'damage', amount: 2, target: 'chooseOpponent' }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'crop-rotation', name: 'Crop Rotation', icon: 'INV_Misc_2h_FarmShovel_A_01.PNG', color: 'green', rarity: 'common', cost: 4, legalSlots: [1, 3], active: [{ kind: 'swapBoard', a: 4, b: 9 }, { kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 1 }] },
 ];
 
 // YELLOW "Gildmint": slots {2,4} + the unclaimed middle sums {6,8}. Raw coin
@@ -1699,6 +1727,11 @@ export const YELLOW_CARDS: CardDef[] = [
   { id: 'final-judgement', name: 'Final Judgement', icon: 'Ability_Paladin_JudgementRed.PNG', color: 'yellow', rarity: 'rare', cost: 8, legalSlots: [7, 12], active: [{ kind: 'gainMoney', amount: 2 }, { kind: 'gainPoints', amount: 2 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
   { id: 'amulet-of-plenty', name: 'Amulet of Plenty', icon: 'INV_Jewelry_Amulet_03.PNG', color: 'yellow', rarity: 'common', cost: 5, legalSlots: [3, 11], active: [{ kind: 'gainMoney', amount: 2 }], echo: [{ kind: 'gainPoints', amount: 1 }] },
   { id: 'dawn-lantern', name: 'Dawn Lantern', icon: 'Inv_misc_trinket6oIH_lanternA3.PNG', color: 'yellow', rarity: 'common', cost: 4, legalSlots: [1, 12], active: [{ kind: 'gainMoney', amount: 1 }], echo: [{ kind: 'gainMoney', amount: 2 }] },
+  // --- 2026-07-14 mechanics batch: gold turns violent. Trades that convert
+  // coin stacks into damage and theft are the deliberate 4p coin sink.
+  { id: 'hired-blade', name: 'Hired Blade', icon: 'INV_Sword_1H_ArtifactFelomelorn_D_01.PNG', color: 'yellow', rarity: 'common', cost: 5, legalSlots: [5, 7], active: [{ kind: 'trade', pay: 3, then: [{ kind: 'damage', amount: 3, target: 'chooseOpponent' }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'bribery', name: 'Bribery', icon: 'INV_Misc_Bag_10.PNG', color: 'yellow', rarity: 'rare', cost: 7, legalSlots: [8], active: [{ kind: 'gainMoney', amount: 1 }, { kind: 'trade', pay: 2, then: [{ kind: 'steal', amount: 2, target: 'chooseOpponent' }] }], echo: [{ kind: 'gainMoney', amount: 1 }] },
+  { id: 'loan-shark', name: 'Loan Shark', icon: 'INV_Misc_Landshark.PNG', color: 'yellow', rarity: 'common', cost: 4, legalSlots: [2, 4], active: [{ kind: 'steal', amount: 1, target: 'chooseOpponent' }], echo: [{ kind: 'gainMoney', amount: 1 }] },
 ];
 
 export function pools() {

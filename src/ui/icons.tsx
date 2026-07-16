@@ -262,6 +262,35 @@ function EffectChip({ e, context }: { e: Effect; context: 'active' | 'echo' }) {
           if {condShort(e.when)}: <EffectIcons effects={e.then} context={context} />
         </span>
       );
+    case 'steal':
+      return (
+        <span className="fxchip fxsteal" title={tip}>
+          <Coin />
+          {'←'}
+          {e.amount}
+        </span>
+      );
+    case 'swapBoard':
+      return (
+        <span className="fxchip glyph" title={tip}>
+          {e.a}
+          {'⇄'}
+          {e.b}
+        </span>
+      );
+    case 'charge':
+      return (
+        <span className="fxif fxcharge" title={tip}>
+          {e.need}
+          {'× then'}: <EffectIcons effects={e.then} context={context} />
+        </span>
+      );
+    case 'winGame':
+      return (
+        <span className="fxchip fxwin" title={tip}>
+          {'★ WIN'}
+        </span>
+      );
   }
 }
 
@@ -275,10 +304,19 @@ export function aggregateEchoEffects(lines: Effect[][]): Effect[] {
   const tokens: Record<TokenKind, number> = { reroll: 0, nudge: 0 };
   let refresh = 0;
   let discount = 0;
+  let steal = 0;
   const rest: Effect[] = [];
   for (const line of lines) {
     for (const e of line) {
       switch (e.kind) {
+        case 'steal':
+          steal += e.amount; // echo steals always rob the roller
+          break;
+        case 'swapBoard':
+        case 'charge':
+        case 'winGame':
+          rest.push(e);
+          break;
         case 'gainMoney':
           money += e.amount;
           break;
@@ -315,6 +353,7 @@ export function aggregateEchoEffects(lines: Effect[][]): Effect[] {
   if (tokens.reroll > 0) out.push({ kind: 'gainToken', token: 'reroll', amount: tokens.reroll });
   if (tokens.nudge > 0) out.push({ kind: 'gainToken', token: 'nudge', amount: tokens.nudge });
   if (discount > 0) out.push({ kind: 'discount', amount: discount });
+  if (steal > 0) out.push({ kind: 'steal', amount: steal, target: 'roller' });
   for (let i = 0; i < refresh; i++) out.push({ kind: 'refreshShop' });
   return [...out, ...rest];
 }

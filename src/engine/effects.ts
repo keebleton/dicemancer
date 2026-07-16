@@ -23,6 +23,16 @@ export function damagePlayer(state: GameState, seat: number, amount: number): vo
   }
 }
 
+/** Money moves from victim to thief, capped by the victim's purse. */
+export function stealMoney(state: GameState, victim: number, thief: number, amount: number): void {
+  const from = state.players[victim];
+  const to = state.players[thief];
+  if (!from || !to || from.eliminated) return;
+  const moved = Math.min(from.money, amount);
+  from.money -= moved;
+  to.money += moved;
+}
+
 /** Last player standing wins the moment everyone else is eliminated. */
 export function checkKo(state: GameState): void {
   if (state.winner !== null) return;
@@ -100,9 +110,37 @@ export function applyEffect(
     case 'discount':
       owner.buyDiscount += effect.amount;
       break;
+    case 'steal':
+      if (effect.target === 'chooseOpponent' && !ctx.echo) {
+        throw new Error('active chooseOpponent steal must resolve through the queue');
+      }
+      // target 'roller', or echo-coerced chooseOpponent: rob the roller.
+      stealMoney(state, ctx.roller, ctx.owner, effect.amount);
+      break;
+    case 'swapBoard': {
+      const i = effect.a - 1;
+      const j = effect.b - 1;
+      const cardA = owner.board[i];
+      const cardB = owner.board[j];
+      if (!cardA || !cardB) break; // malformed slots: fizzle
+      owner.board[i] = cardB;
+      owner.board[j] = cardA;
+      const chargeA = owner.charges[i] ?? 0;
+      owner.charges[i] = owner.charges[j] ?? 0;
+      owner.charges[j] = chargeA;
+      break;
+    }
+    case 'winGame':
+      if (state.winner === null) {
+        state.winner = ctx.owner;
+        state.winReason = 'card';
+      }
+      break;
     case 'trade':
       throw new Error('trades must be unwrapped by the resolution queue');
     case 'conditional':
       throw new Error('conditionals must be unwrapped by the resolution queue');
+    case 'charge':
+      throw new Error('charges must be unwrapped by the resolution queue');
   }
 }

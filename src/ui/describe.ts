@@ -35,6 +35,14 @@ export function fxText(e: Effect): string {
       return `pay ${e.pay} money: ${e.then.map(fxText).join(', ')}`;
     case 'conditional':
       return `if ${condText(e.when)}: ${e.then.map(fxText).join(', ')}`;
+    case 'steal':
+      return `steal ${e.amount} money (${e.target === 'roller' ? 'from roller' : 'choose foe'})`;
+    case 'swapBoard':
+      return `swap your slot ${e.a} and slot ${e.b} cards`;
+    case 'charge':
+      return `charge up (fires at ${e.need}): ${e.then.map(fxText).join(', ')}`;
+    case 'winGame':
+      return 'WIN THE GAME';
   }
 }
 

@@ -44,7 +44,16 @@ export type Effect =
   | { kind: 'discount'; amount: number }
   /** Yellow: if the owner can pay, spend the money and apply `then`; otherwise nothing. */
   | { kind: 'trade'; pay: number; then: Effect[] }
-  | { kind: 'conditional'; when: ConditionalWhen; then: Effect[] };
+  | { kind: 'conditional'; when: ConditionalWhen; then: Effect[] }
+  /** Moves money from the victim to the owner (capped by what they have). */
+  | { kind: 'steal'; amount: number; target: EffectTarget }
+  /** Swaps the owner's board cards (and their charge counters) at slots a/b. */
+  | { kind: 'swapBoard'; a: number; b: number }
+  /** Space Base style build-up: each fire adds a charge to this SLOT; at
+   *  `need` charges the counter resets and `then` fires. */
+  | { kind: 'charge'; need: number; then: Effect[] }
+  /** The owner wins the game outright (meant to live inside a charge). */
+  | { kind: 'winGame' };
 
 export interface CardDef {
   id: string;
@@ -80,6 +89,9 @@ export interface PlayerState {
   shopFrozen: boolean;
   /** Always 12 entries; index i holds the card installed in slot i+1. */
   board: CardDef[];
+  /** Charge counters per slot (index i = slot i+1); reset when the slot's
+   *  card is replaced, swapped along with the card by swapBoard. */
+  charges: number[];
   echoStack: EchoEntry[];
   eliminated: boolean;
   /** Own-color row in pooled games (null = bought this rotation); [] when the game has no pools. */
@@ -104,9 +116,13 @@ export interface QueuedEffect {
   effect: Effect;
   owner: number;
   echo: boolean;
+  /** Board slot (1-12) whose card produced this line; charge counters key on
+   *  it. Absent for lines with no slot provenance. */
+  slot?: number;
 }
 
-export type WinReason = 'points' | 'ko' | 'failsafe';
+/** 'card' = a card effect won the game outright (charge-up win conditions). */
+export type WinReason = 'points' | 'ko' | 'failsafe' | 'card';
 
 export interface Tunables {
   startingHp: number;

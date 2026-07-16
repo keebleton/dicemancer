@@ -532,6 +532,11 @@ function SelfMat(props: {
               </div>
               <div className={cls} onClick={() => onSlotClick(slot)} title={tip}>
                 <CardFace card={card} slotBadge={slot} />
+                {(p.charges[i] ?? 0) > 0 && (
+                  <span className="chargebadge" title={`${p.charges[i]} charge(s) built up`}>
+                    {p.charges[i]}×
+                  </span>
+                )}
               </div>
             </div>
           );
@@ -602,6 +607,7 @@ function OppMat(props: {
               )}
               <span className="mininum">{slot}</span>
               {echoesHere.length > 0 && <span className="miniecho">{echoesHere.length}</span>}
+              {(p.charges[i] ?? 0) > 0 && <span className="minicharge">{p.charges[i]}</span>}
             </div>
           );
         })}

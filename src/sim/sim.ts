@@ -54,7 +54,7 @@ export function simulate(
   const seatWins = Array<number>(options.players).fill(0);
   const colorWins: Record<SeatColor, number> = { red: 0, blue: 0, black: 0, green: 0, yellow: 0 };
   const colorGames: Record<SeatColor, number> = { red: 0, blue: 0, black: 0, green: 0, yellow: 0 };
-  const reasons: Record<WinReason, number> = { points: 0, ko: 0, failsafe: 0 };
+  const reasons: Record<WinReason, number> = { points: 0, ko: 0, failsafe: 0, card: 0 };
   let totalRounds = 0;
   let maxRounds = 0;
   let unfinished = 0;
@@ -163,7 +163,7 @@ export function formatReport(r: SimReport): string {
       + `  (fair = ${pct(1, players)})`,
   );
   lines.push(
-    `win reasons:    points ${pct(r.reasons.points, games)}  ko ${pct(r.reasons.ko, games)}  failsafe ${pct(r.reasons.failsafe, games)}`,
+    `win reasons:    points ${pct(r.reasons.points, games)}  ko ${pct(r.reasons.ko, games)}  failsafe ${pct(r.reasons.failsafe, games)}  card ${pct(r.reasons.card, games)}`,
   );
   lines.push(`avg length:     ${r.avgRounds.toFixed(1)} rounds (longest ${r.maxRounds})`);
   if (r.unfinished > 0) {
