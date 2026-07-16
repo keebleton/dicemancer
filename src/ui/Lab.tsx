@@ -489,6 +489,16 @@ function CardEditor(props: {
             )}
           </div>
           <div className="field">
+            flavor{' '}
+            <input
+              value={draft.flavor ?? ''}
+              maxLength={90}
+              placeholder="optional italic line on the card"
+              size={40}
+              onChange={(e) => setDraft({ ...draft, flavor: e.target.value || undefined })}
+            />
+          </div>
+          <div className="field">
             color{' '}
             <select
               value={draft.color}

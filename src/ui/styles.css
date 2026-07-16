@@ -177,22 +177,25 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .stage .die { width: 62px; height: 62px; }
 .stageinfo { font-family: var(--display); font-size: 19px; font-weight: 400; letter-spacing: 1px; margin-bottom: 2px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
 .stagebtns { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 4px; }
+/* The action strip speaks in the display faces: hero buttons in Germania,
+   choice labels in Grenze. */
+.stagebtns button { font-family: var(--serif); font-size: 13.5px; }
+.stagebtns button.primary { font-family: var(--display); font-size: 15px; font-weight: 400; letter-spacing: 0.8px; }
 .choicebtn { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 16px; background: linear-gradient(180deg, #fdfaf1, #efe9da); color: #2b2a26; border: 2px solid #caa53d; border-radius: 10px; box-shadow: inset 0 1px 0 #fff, 0 3px 8px rgba(0, 0, 0, 0.35); }
 .choicebtn:hover:not(:disabled) { background: linear-gradient(180deg, #fffdf7, #f6f1e3); transform: translateY(-2px); box-shadow: inset 0 1px 0 #fff, 0 6px 16px rgba(0, 0, 0, 0.4), 0 0 12px rgba(240, 180, 41, 0.35); filter: none; }
-.choicelabel { font-weight: 700; font-size: 13px; }
+.choicelabel { font-family: var(--display); font-weight: 400; font-size: 15px; letter-spacing: 0.6px; }
 .choicefx { display: inline-flex; gap: 10px; align-items: center; min-height: 14px; }
 .choiceslot { display: inline-flex; gap: 4px; align-items: center; }
 
 .dicetray { display: flex; gap: 8px; margin: 8px 0; }
-/* Dice tumble in from above, squash on the landing, and settle with a
-   double bounce; the second die lands a beat late. */
-.die { width: 40px; height: 40px; border-radius: 12px; filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.45)); animation: diceroll 0.62s cubic-bezier(0.2, 0.8, 0.3, 1.15); }
-.stagedice .die:nth-child(2) { animation-delay: 0.1s; animation-fill-mode: backwards; }
+/* Dice tumble in from above with an overshoot; the second lands a beat late.
+   (The juice-2 squash-and-double-bounce read as funky; reverted to this.) */
+.die { width: 40px; height: 40px; border-radius: 12px; filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.45)); animation: diceroll 0.55s cubic-bezier(0.2, 0.8, 0.3, 1.15); }
+.stagedice .die:nth-child(2) { animation-delay: 0.08s; animation-fill-mode: backwards; }
 @keyframes diceroll {
-  0% { transform: translateY(-64px) rotate(-320deg) scale(0.4); opacity: 0; }
-  48% { transform: translateY(6px) rotate(12deg) scale(1.16, 0.86); opacity: 1; }
-  64% { transform: translateY(-7px) rotate(-6deg) scale(0.96, 1.06); }
-  80% { transform: translateY(2px) rotate(2deg) scale(1.04, 0.98); }
+  0% { transform: translateY(-36px) rotate(-200deg) scale(0.5); opacity: 0; }
+  55% { transform: translateY(4px) rotate(10deg) scale(1.07); opacity: 1; }
+  76% { transform: translateY(-3px) rotate(-4deg) scale(1.02); }
   100% { transform: translateY(0) rotate(0) scale(1); }
 }
 
@@ -256,14 +259,23 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .fxline.dim { opacity: 0.6; }
 .fxchip { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; font-weight: 700; }
 .fxchip.glyph { color: #1d4ed8; }
-.fxif { border: 1px dashed #9a9285; border-radius: 3px; padding: 0 3px; font-size: 10px; display: inline-flex; align-items: center; gap: 3px; }
+/* Conditionals wear a small gold condition tag instead of a dashed box. */
+.fxif { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; }
+.condtag { background: linear-gradient(180deg, #f3e3b8, #e3cd90); color: #6b4e0d; border: 1px solid #cbab5a; border-radius: 8px; padding: 0 5px; font-size: 9px; font-weight: 700; white-space: nowrap; line-height: 1.4; }
+.condtag.charge { background: linear-gradient(180deg, #ffd267, #dd9a25); color: #4a3208; border-color: #b57e19; }
 .fxsteal { color: #b45309; }
-.fxcharge { border-color: #d4952a; border-style: solid; }
+/* Card effect zones: a die glyph marks the rolled line, sound waves mark the
+   echo line (no word labels; the icon key explains them). */
+.czone { display: flex; align-items: flex-start; gap: 4px; margin-top: 3px; line-height: 1.15; }
+.czone .zglyph { width: 11px; height: 11px; flex: none; margin-top: 1px; }
+.zglyph { width: 11px; height: 11px; }
+.czone.echo { background: rgba(124, 92, 196, 0.12); border-left: 2px solid rgba(124, 92, 196, 0.5); border-radius: 3px; padding: 1px 3px 2px; margin-left: -3px; opacity: 0.92; }
+.cflavor { font-family: var(--serif); font-style: italic; font-size: 10px; color: #6f6a5c; margin-top: 3px; line-height: 1.2; }
 .fxwin { background: linear-gradient(180deg, #ffd97a, #d4952a); color: #2b2410; border-radius: 4px; padding: 0 5px; font-weight: 800; font-size: 10px; letter-spacing: 0.5px; }
 /* Charge counters: board cards show an amber pip badge; minis a tiny one. */
 .chargebadge { position: absolute; bottom: 3px; right: 3px; background: linear-gradient(180deg, #ffd267, #dd9a25); color: #2b2410; font-size: 10px; font-weight: 800; border-radius: 8px; padding: 0 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); z-index: 2; }
 .minicharge { position: absolute; bottom: 1px; left: 1px; min-width: 12px; height: 12px; padding: 0 2px; border-radius: 4px; background: #dd9a25; color: #2b2410; font-size: 9px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
-.rowlab { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 5px; color: #9a9a94; }
+.rowlab { font-family: var(--serif); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 5px; color: #9a9a94; }
 
 .shop { margin: 10px 0; }
 .shopcard { display: inline-block; border: 1px solid #b7ae99; border-radius: 10px; padding: 0; overflow: hidden; margin: 3px; width: 122px; vertical-align: top; font-size: 11px; background: linear-gradient(180deg, #fbf8f0, #f1ecdd); color: #2b2a26; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 2px 5px rgba(0, 0, 0, 0.4); transition: transform 0.16s ease, box-shadow 0.16s ease; position: relative; }

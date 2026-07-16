@@ -18,7 +18,6 @@ function condShort(when: ConditionalWhen): string {
 }
 
 const STAR = 'M6 .8 7.5 4.1l3.6.4-2.7 2.5.8 3.6L6 8.8l-3.2 1.8.8-3.6L.9 4.5l3.6-.4z';
-const BURST = 'M6 0l1.4 4.6L12 6 7.4 7.4 6 12 4.6 7.4 0 6l4.6-1.4z';
 const CROSS = 'M4.6 1h2.8v3.6H11v2.8H7.4V11H4.6V7.4H1V4.6h3.6z';
 const DROP = 'M6 .8C6 .8 2.2 5.2 2.2 7.7a3.8 3.8 0 0 0 7.6 0C9.8 5.2 6 .8 6 .8Z';
 const HEART =
@@ -39,10 +38,49 @@ function Star() {
     </svg>
   );
 }
-function Burst() {
+/** A sword pointing top-right: reads "damage" (the old red burst did not). */
+function Sword() {
   return (
     <svg className="fxi" viewBox="0 0 12 12" aria-hidden="true">
-      <path d={BURST} fill="#dc2626" stroke="#dc2626" />
+      <g transform="rotate(45 6 6)">
+        <path d="M6 0.2 L7.1 1.7 V6.9 H4.9 V1.7 Z" fill="#dc2626" />
+        <rect x="3.5" y="6.9" width="5" height="1.25" rx="0.5" fill="#7c2d12" />
+        <rect x="5.3" y="8.15" width="1.4" height="2.3" rx="0.6" fill="#7c2d12" />
+      </g>
+    </svg>
+  );
+}
+
+/** Card-zone markers (Yu-Gi-Oh style: the symbol carries the meaning, no
+ *  "roll"/"echo" words). Die = fires when its slot is rolled; sound waves =
+ *  the echo it leaves once retired. */
+export function ZoneDie() {
+  return (
+    <svg className="zglyph" viewBox="0 0 12 12" aria-hidden="true">
+      <rect x="1" y="1" width="10" height="10" rx="2.8" fill="#2b2a26" />
+      <circle cx="6" cy="6" r="1.7" fill="#f7f4ec" />
+    </svg>
+  );
+}
+export function ZoneEcho() {
+  return (
+    <svg className="zglyph" viewBox="0 0 12 12" aria-hidden="true">
+      <circle cx="2.7" cy="6" r="1.3" fill="#7c5cc4" />
+      <path
+        d="M5 3.4a4 4 0 0 1 0 5.2"
+        fill="none"
+        stroke="#7c5cc4"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7.6 2a6.4 6.4 0 0 1 0 8"
+        fill="none"
+        stroke="#7c5cc4"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        opacity="0.65"
+      />
     </svg>
   );
 }
@@ -218,7 +256,7 @@ function EffectChip({ e, context }: { e: Effect; context: 'active' | 'echo' }) {
       const self = context === 'active' && e.target === 'roller';
       return (
         <span className="fxchip" title={self ? `costs ${e.amount} of your own HP` : tip}>
-          {self ? <Drop /> : <Burst />}
+          {self ? <Drop /> : <Sword />}
           {e.amount}
         </span>
       );
@@ -252,14 +290,15 @@ function EffectChip({ e, context }: { e: Effect; context: 'active' | 'echo' }) {
     case 'trade':
       return (
         <span className="fxif" title={tip}>
-          pay <Coin />
-          {e.pay}: <EffectIcons effects={e.then} context={context} />
+          <span className="condtag">pay {e.pay}</span>
+          <EffectIcons effects={e.then} context={context} />
         </span>
       );
     case 'conditional':
       return (
         <span className="fxif" title={tip}>
-          if {condShort(e.when)}: <EffectIcons effects={e.then} context={context} />
+          <span className="condtag">{condShort(e.when)}</span>
+          <EffectIcons effects={e.then} context={context} />
         </span>
       );
     case 'steal':
@@ -280,9 +319,9 @@ function EffectChip({ e, context }: { e: Effect; context: 'active' | 'echo' }) {
       );
     case 'charge':
       return (
-        <span className="fxif fxcharge" title={tip}>
-          {e.need}
-          {'× then'}: <EffectIcons effects={e.then} context={context} />
+        <span className="fxif" title={tip}>
+          <span className="condtag charge">{e.need}{'×'}</span>
+          <EffectIcons effects={e.then} context={context} />
         </span>
       );
     case 'winGame':
@@ -368,7 +407,7 @@ export function IconLegend() {
         <Star /> points
       </span>
       <span className="fxchip">
-        <Burst /> damage
+        <Sword /> damage
       </span>
       <span className="fxchip">
         <Drop /> your own HP
@@ -376,11 +415,17 @@ export function IconLegend() {
       <span className="fxchip">
         <Cross /> heal
       </span>
+      <span className="fxchip">
+        <ZoneDie /> when rolled
+      </span>
+      <span className="fxchip">
+        <ZoneEcho /> echo once retired
+      </span>
       <span className="fxchip glyph">{'↻'} reroll</span>
       <span className="fxchip glyph">{'±'} nudge</span>
       <span className="fxchip glyph">{'⟳'} new shop</span>
       <span className="dimtext">
-        roll = fires when its number lands | dim echo row = what that card echoes once retired |
+        die row = fires when its number lands | wave row = what the card echoes once retired |
         purple tab = retired cards echoing there now, paying on other players' turns
       </span>
     </div>

@@ -2,7 +2,7 @@
 // color stripe, then name + effects below. Used by boards, shops, the market,
 // and the Card Lab. Presentation only.
 import type { CardDef } from '../engine';
-import { EffectIcons } from './icons';
+import { EffectIcons, ZoneDie, ZoneEcho } from './icons';
 import { iconError, iconLoaded, iconUrl } from './packs';
 
 export const TINT: Record<string, string> = {
@@ -45,14 +45,17 @@ export function CardFace(props: {
       <div className="cstripe" style={{ background: tint }} />
       <div className="cbody">
         <div className="cname">{card.name}</div>
-        <div className="fxline">
-          <span className="rowlab">roll</span>
+        {/* No word labels: the die glyph means "when rolled", the sound
+            waves mean "echo once retired" (legend explains both). */}
+        <div className="czone" title="fires when its slot is rolled">
+          <ZoneDie />
           <EffectIcons effects={card.active} context="active" />
         </div>
-        <div className="fxline dim">
-          <span className="rowlab">echo</span>
+        <div className="czone echo" title="echoes this once the card is retired">
+          <ZoneEcho />
           <EffectIcons effects={card.echo} context="echo" />
         </div>
+        {card.flavor && <div className="cflavor">{card.flavor}</div>}
       </div>
     </div>
   );
