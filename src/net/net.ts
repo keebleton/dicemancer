@@ -24,8 +24,8 @@ import type { NetMsg, SeatKind } from './protocol';
  *  (50 GB/month) and fill in the two constants below; credentials are then
  *  fetched fresh per session and merged in. Until then the public entries
  *  ride along as a hail mary. */
-const METERED_APP = ''; // e.g. 'dicemancer' from the metered.ca dashboard
-const METERED_KEY = '';
+const METERED_APP = 'dicemancer';
+const METERED_KEY = '6b7289937879b3f8ec1dd112da603bdfd181';
 
 const BASE_ICE: RTCIceServer[] = [
   { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
