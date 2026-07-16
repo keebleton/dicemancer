@@ -7,46 +7,45 @@
    arc to the earning seat, damage numbers slam in with a shockwave, KOs
    flash and quake the room -- plus the victory splash. All fixed-position,
    so the static-table rule holds. */
-/* Self-hosted faces (SIL OFL): Germania One for hero moments (the logo
-   font, Jake's keeper), Atkinson Hyperlegible for everything players read
-   at small sizes -- card text, numbers, buttons (2026-07-16, readability
-   pass; it replaced Grenze). Vite fingerprints the files. */
+/* One face for everything (2026-07-16, Jake: no more typeface mismatch):
+   Lexend (SIL OFL, self-hosted 400/500/700/800). Hero moments read as
+   heroes through WEIGHT now, not a second family; the display variable
+   survives so hero surfaces stay addressable. */
 @font-face {
-  font-family: 'Germania One';
+  font-family: 'Lexend';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('./fonts/GermaniaOne.woff2') format('woff2');
+  src: url('./fonts/Lexend-400.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Atkinson Hyperlegible';
+  font-family: 'Lexend';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 500;
   font-display: swap;
-  src: url('./fonts/AtkinsonHyperlegible-400.woff2') format('woff2');
+  src: url('./fonts/Lexend-500.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Atkinson Hyperlegible';
+  font-family: 'Lexend';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('./fonts/AtkinsonHyperlegible-700.woff2') format('woff2');
+  src: url('./fonts/Lexend-700.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Atkinson Hyperlegible';
-  font-style: italic;
-  font-weight: 400;
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 800;
   font-display: swap;
-  src: url('./fonts/AtkinsonHyperlegible-400i.woff2') format('woff2');
+  src: url('./fonts/Lexend-800.woff2') format('woff2');
 }
 
 :root {
   --gold: #f0b429;
   --gold-deep: #b57e19;
-  --display: 'Germania One', 'Palatino Linotype', Georgia, serif;
-  /* Historical name: every "serif" accent surface now reads in Atkinson. */
-  --serif: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
-  --text: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+  --display: 'Lexend', 'Segoe UI', system-ui, sans-serif;
+  --serif: 'Lexend', 'Segoe UI', system-ui, sans-serif;
+  --text: 'Lexend', 'Segoe UI', system-ui, sans-serif;
 }
 body { font-family: var(--text); margin: 0; padding: 10px 18px; background: radial-gradient(ellipse 100% 78% at 50% 30%, #344263 0%, #252b40 48%, #14192a 100%) fixed #14192a; color: #e8eaf2; }
 /* The room vignette: darkness pools at the edges, the table stays lit. */
@@ -146,7 +145,7 @@ main.game { max-width: 1560px; }
 .howtocard .cart img { width: 48px; height: 48px; }
 .howtonotes { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 8px; }
 .howto .legend { margin-top: 4px; }
-.howto h3 { font-family: var(--display); font-size: 22px; font-weight: 400; margin: 0; }
+.howto h3 { font-family: var(--display); font-size: 22px; font-weight: 700; margin: 0; }
 .howto h4 { font-family: var(--serif); color: var(--gold); margin: 14px 0 4px; font-size: 15px; }
 .howto p { margin: 0; font-size: 13.5px; line-height: 1.55; color: #cfd4e2; }
 .howtohead { display: flex; justify-content: space-between; align-items: center; }
@@ -155,7 +154,7 @@ main.game { max-width: 1560px; }
 .inspect { width: 1150px; max-width: 94vw; max-height: 88vh; overflow: auto; animation: winnerpop 0.2s ease-out; }
 .inspect .selfmat { border-width: 2px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); }
 .inspecthint { text-align: center; margin-top: 6px; }
-h1 { font-size: 26px; margin: 0; letter-spacing: 2px; font-family: var(--display); font-weight: 400; background: linear-gradient(180deg, #ffe19a 10%, #d4952a 90%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)); }
+h1 { font-size: 26px; margin: 0; letter-spacing: 1px; font-family: var(--display); font-weight: 800; background: linear-gradient(180deg, #ffe19a 10%, #d4952a 90%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)); }
 h3 { margin: 0 0 8px; font-size: 14px; color: #e8eaf2; }
 
 button { padding: 5px 13px; cursor: pointer; border-radius: 8px; border: 1px solid #4a5470; background: linear-gradient(180deg, #3c4560, #2e364f); color: #dfe3ee; font-size: 12.5px; margin: 2px; position: relative; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease; }
@@ -200,15 +199,15 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .stage { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 12px; background: radial-gradient(ellipse 75% 95% at 50% 18%, rgba(240, 180, 41, 0.11) 0%, transparent 58%), linear-gradient(180deg, #2f374f, #262c40); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 26px rgba(0, 0, 0, 0.45); }
 .stagedice { display: flex; gap: 16px; padding: 4px 0 2px; }
 .stage .die { width: 62px; height: 62px; }
-.stageinfo { font-family: var(--display); font-size: 19px; font-weight: 400; letter-spacing: 1px; margin-bottom: 2px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+.stageinfo { font-family: var(--display); font-size: 19px; font-weight: 700; letter-spacing: 1px; margin-bottom: 2px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
 .stagebtns { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 4px; }
 /* The action strip speaks in the display faces: hero buttons in Germania,
    choice labels in Grenze. */
 .stagebtns button { font-family: var(--serif); font-size: 13.5px; }
-.stagebtns button.primary { font-family: var(--display); font-size: 15px; font-weight: 400; letter-spacing: 0.8px; }
+.stagebtns button.primary { font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: 0.8px; }
 .choicebtn { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 16px; background: linear-gradient(180deg, #fdfaf1, #efe9da); color: #2b2a26; border: 2px solid #caa53d; border-radius: 10px; box-shadow: inset 0 1px 0 #fff, 0 3px 8px rgba(0, 0, 0, 0.35); }
 .choicebtn:hover:not(:disabled) { background: linear-gradient(180deg, #fffdf7, #f6f1e3); transform: translateY(-2px); box-shadow: inset 0 1px 0 #fff, 0 6px 16px rgba(0, 0, 0, 0.4), 0 0 12px rgba(240, 180, 41, 0.35); filter: none; }
-.choicelabel { font-family: var(--display); font-weight: 400; font-size: 19px; letter-spacing: 0.6px; }
+.choicelabel { font-family: var(--display); font-weight: 700; font-size: 19px; letter-spacing: 0.6px; }
 .choicefx { display: inline-flex; gap: 12px; align-items: center; min-height: 17px; }
 .choiceslot { display: inline-flex; gap: 4px; align-items: center; }
 /* The breakdown row under the label reads at the same scale as the label. */
@@ -337,7 +336,7 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 
 .echo { font-size: 11px; margin-top: 4px; color: #a8adbd; }
 .log { max-height: 190px; overflow: auto; font-family: Consolas, monospace; font-size: 11.5px; background: #171a24; color: #cfd4e2; padding: 10px; border-radius: 8px; white-space: pre-wrap; }
-.turntoast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(38, 44, 64, 0.85); backdrop-filter: blur(6px); border: 1px solid rgba(240, 180, 41, 0.5); border-radius: 20px; padding: 6px 20px; font-size: 17px; font-family: var(--display); letter-spacing: 0.5px; z-index: 40; pointer-events: none; opacity: 0; animation: turntoast 1.6s ease-out forwards; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), 0 0 14px rgba(240, 180, 41, 0.15); }
+.turntoast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(38, 44, 64, 0.85); backdrop-filter: blur(6px); border: 1px solid rgba(240, 180, 41, 0.5); border-radius: 20px; padding: 6px 20px; font-size: 17px; font-weight: 700; font-family: var(--display); letter-spacing: 0.5px; z-index: 40; pointer-events: none; opacity: 0; animation: turntoast 1.6s ease-out forwards; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), 0 0 14px rgba(240, 180, 41, 0.15); }
 @keyframes turntoast {
   0% { opacity: 0; transform: translate(-50%, -8px); }
   12% { opacity: 1; transform: translate(-50%, 0); }
@@ -345,7 +344,7 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
   100% { opacity: 0; transform: translate(-50%, -4px); }
 }
 
-.winner { background: linear-gradient(180deg, #ffdf8a, #d4952a); color: #2b2410; padding: 16px 20px; font-size: 27px; font-weight: 400; font-family: var(--display); letter-spacing: 1px; border-radius: 12px; margin: 12px 0; animation: winnerpop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.25); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 10px 30px rgba(240, 180, 41, 0.35); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35); position: relative; overflow: hidden; }
+.winner { background: linear-gradient(180deg, #ffdf8a, #d4952a); color: #2b2410; padding: 16px 20px; font-size: 27px; font-weight: 700; font-family: var(--display); letter-spacing: 1px; border-radius: 12px; margin: 12px 0; animation: winnerpop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.25); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 10px 30px rgba(240, 180, 41, 0.35); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35); position: relative; overflow: hidden; }
 .winner::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.5) 50%, transparent 58%); background-size: 260% 100%; animation: goldsheen 2.6s linear infinite; }
 @keyframes winnerpop {
   0% { transform: scale(0.9); opacity: 0; }
@@ -368,8 +367,8 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
   0% { opacity: 0; transform: translateY(26px) scale(0.85); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
-.winkicker { font-family: var(--display); font-size: 21px; letter-spacing: 9px; color: var(--gold); text-shadow: 0 0 20px rgba(240, 180, 41, 0.55), 0 2px 3px rgba(0, 0, 0, 0.7); }
-.winname { font-family: var(--display); font-size: 66px; line-height: 1.08; letter-spacing: 2px; text-shadow: 0 4px 26px rgba(0, 0, 0, 0.65), 0 0 34px rgba(240, 180, 41, 0.25); }
+.winkicker { font-family: var(--display); font-weight: 700; font-size: 21px; letter-spacing: 9px; color: var(--gold); text-shadow: 0 0 20px rgba(240, 180, 41, 0.55), 0 2px 3px rgba(0, 0, 0, 0.7); }
+.winname { font-family: var(--display); font-weight: 800; font-size: 60px; line-height: 1.08; letter-spacing: 2px; text-shadow: 0 4px 26px rgba(0, 0, 0, 0.65), 0 0 34px rgba(240, 180, 41, 0.25); }
 .winhow { font-family: var(--serif); font-size: 21px; color: #d8dcea; margin: 4px 0 20px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6); }
 .confetti { position: absolute; top: -24px; width: 9px; height: 14px; border-radius: 2px; opacity: 0; animation-name: confetti; animation-timing-function: linear; animation-fill-mode: forwards; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
 @keyframes confetti {
@@ -389,7 +388,7 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
   55% { opacity: 1; transform: translate(calc(-50% + var(--tx) * 0.55), calc(-50% + var(--ty) * 0.55 - 38px)) scale(1); }
   100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.72); }
 }
-.fxdmg { font-family: var(--display); font-size: 36px; color: #ff5f4e; text-shadow: 0 0 14px rgba(220, 38, 38, 0.7), 0 2px 3px rgba(0, 0, 0, 0.9); }
+.fxdmg { font-family: var(--display); font-weight: 800; font-size: 34px; color: #ff5f4e; text-shadow: 0 0 14px rgba(220, 38, 38, 0.7), 0 2px 3px rgba(0, 0, 0, 0.9); }
 .fxcoin { width: 15px; height: 15px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe9a8, #f0b429 55%, #a16207); box-shadow: 0 0 10px rgba(240, 180, 41, 0.8), inset 0 0 3px #a16207; animation-duration: 0.72s; }
 .fxpts { font-size: 27px; color: #c9a6ff; text-shadow: 0 0 14px rgba(167, 139, 218, 0.8), 0 2px 3px rgba(0, 0, 0, 0.8); animation-duration: 0.7s; }
 /* Impact shockwave at the victim's mat, timed to the number's arrival. */
@@ -444,15 +443,15 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 /* Every setup-screen button speaks Grenze; hero CTAs stay Germania (.big). */
 .setup button { font-family: var(--serif); font-size: 13.5px; }
 .netbox { border: 1px solid #caa53d; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; background: #322f3e; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 6px 16px rgba(0, 0, 0, 0.25); }
-.netbox > b { font-family: var(--display); font-weight: 400; font-size: 18px; letter-spacing: 1.2px; color: var(--gold); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+.netbox > b { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: 1.2px; color: var(--gold); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
 .localbox { border-color: #4a5470; }
 .seatlab { font-family: var(--serif); font-size: 13.5px; color: #a8adbd; min-width: 52px; }
-button.big { font-family: var(--display); font-weight: 400; font-size: 18px; letter-spacing: 1px; padding: 9px 22px; margin-top: 4px; align-self: flex-start; }
+button.big { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: 1px; padding: 9px 22px; margin-top: 4px; align-self: flex-start; }
 .setupfoot { justify-content: center; }
 .netrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .codein { width: 74px; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; text-align: center; }
 .roomcode { font-size: 15px; }
-.roomcode b { font-size: 30px; letter-spacing: 6px; color: #f0b429; margin-left: 6px; font-family: var(--display); font-weight: 400; }
+.roomcode b { font-size: 30px; letter-spacing: 6px; color: #f0b429; margin-left: 6px; font-family: var(--display); font-weight: 700; }
 
 .avatar { width: 38px; height: 38px; border-radius: 8px; border: 1px solid #4a5470; background: #1c2130; }
 .friendrow .avatar { width: 26px; height: 26px; }
@@ -461,7 +460,7 @@ button.big { font-family: var(--display); font-weight: 400; font-size: 18px; let
 .presdot { width: 9px; height: 9px; border-radius: 50%; background: #4a5470; flex: none; }
 .presdot.on { background: #2dd4a7; box-shadow: 0 0 7px rgba(45, 212, 167, 0.8); }
 .leaderlist { display: flex; flex-direction: column; gap: 6px; }
-.leadrank { font-family: var(--display); font-size: 16px; min-width: 26px; text-align: center; color: #8a8f9e; }
+.leadrank { font-family: var(--display); font-weight: 700; font-size: 16px; min-width: 26px; text-align: center; color: #8a8f9e; }
 .leadrank.top { color: var(--gold); text-shadow: 0 0 8px rgba(240, 180, 41, 0.4); }
 .leadstats { margin-left: auto; }
 .proposals { display: flex; flex-direction: column; gap: 10px; }
@@ -515,7 +514,7 @@ input, select { background: #333b52; border: 1px solid #4a5470; color: #e8eaf2; 
 .chatbar input { flex: 1; min-width: 60px; max-width: 340px; padding: 3px 8px; font-size: 12px; }
 .emotebtn { padding: 2px 7px; font-size: 11px; }
 .chatbubble { position: absolute; top: -12px; right: 14px; z-index: 30; background: linear-gradient(180deg, #fdfaf1, #efe9da); color: #2b2a26; border: 1px solid #b7ae99; border-radius: 12px 12px 12px 3px; padding: 4px 12px; font-size: 13px; max-width: 260px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45); pointer-events: none; animation: bubblelife 5s ease forwards; }
-.chatbubble.big { font-family: var(--display); font-size: 19px; padding: 6px 16px; border-color: #caa53d; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 12px rgba(240, 180, 41, 0.35); }
+.chatbubble.big { font-family: var(--display); font-weight: 700; font-size: 19px; padding: 6px 16px; border-color: #caa53d; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 12px rgba(240, 180, 41, 0.35); }
 @keyframes bubblelife {
   0% { opacity: 0; transform: translateY(6px) scale(0.85); }
   6% { opacity: 1; transform: translateY(0) scale(1.04); }
