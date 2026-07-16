@@ -4,6 +4,7 @@ import { RELIC_BY_ID, actingSeat, legalActions, previewNumbers } from '../engine
 import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
 import { CardFace, TINT } from './CardFace';
 import { fxList } from './describe';
+import { HowToPlay } from './HowToPlay';
 import { aggregateEchoEffects, Die, EffectIcons, IconLegend, StatChips } from './icons';
 import { iconError, iconLoaded, iconUrl } from './packs';
 import { isMuted, setMuted } from './sfx';
@@ -28,6 +29,7 @@ export function Game() {
   );
   const [muted, setMutedState] = useState(isMuted());
   const [showLegend, setShowLegend] = useState(false);
+  const [help, setHelp] = useState(false);
   const [inspect, setInspect] = useState<number | null>(null);
 
   useEffect(() => {
@@ -156,6 +158,7 @@ export function Game() {
           <button onClick={() => setShowLegend(!showLegend)}>
             {showLegend ? 'hide icon key' : 'icon key'}
           </button>
+          <button onClick={() => setHelp(true)}>how to play</button>
           <button
             onClick={() => {
               setMuted(!muted);
@@ -335,6 +338,8 @@ export function Game() {
           </div>
         </section>
       </div>
+
+      {help && <HowToPlay onClose={() => setHelp(false)} />}
 
       {inspect !== null && (
         <div className="inspect-overlay" onClick={() => setInspect(null)}>

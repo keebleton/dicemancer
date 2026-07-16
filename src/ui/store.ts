@@ -6,6 +6,7 @@ import type { NetMode } from '../net/net';
 import { buildSeats, isLegalIntent } from '../net/protocol';
 import { reportMatch, useAccount } from './account';
 import { describeTransition } from './describe';
+import { publishRoom, unpublishRoom } from './rooms';
 import { effectiveStarterBoard, loadPacks, mergedPools } from './packs';
 import type { CardPack } from './packs';
 import { playForDispatch } from './sfx';
@@ -204,7 +205,14 @@ export const useGame = create<GameStore>()((set, get) => {
 
   // The net layer reports in through these; registered once at store creation.
   net.setCallbacks({
-    onLobby: (players) => set({ lobby: players }),
+    onLobby: (players) => {
+      set({ lobby: players });
+      // Keep the open-rooms directory's player count fresh while hosting.
+      const s = get();
+      if (s.mode === 'host' && !s.game && s.roomCode) {
+        publishRoom(s.roomCode, players[0] ?? 'Host', players.length);
+      }
+    },
     onBegin: (state, seat, seatKinds) => {
       set({
         game: state,
@@ -338,6 +346,7 @@ export const useGame = create<GameStore>()((set, get) => {
       set({ netNotice: null });
       const code = await net.host(name);
       set({ mode: 'host', roomCode: code, lobby: net.lobbyNames() });
+      publishRoom(code, name, 1); // list it in the open-rooms directory
       return code;
     },
     joinRoom: async (code, name) => {
@@ -375,9 +384,12 @@ export const useGame = create<GameStore>()((set, get) => {
         log: [`online game started: ${seats.names.join(', ')}`],
       });
       net.begin(game, seats.kinds);
+      if (get().roomCode) unpublishRoom(get().roomCode!); // game started: delist
       persist();
     },
     leaveOnline: (notice = null) => {
+      const s = get();
+      if (s.mode === 'host' && s.roomCode) unpublishRoom(s.roomCode);
       net.leave();
       clearSavedSession();
       set({

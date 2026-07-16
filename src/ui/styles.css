@@ -116,6 +116,11 @@ main.game { max-width: 1560px; }
 .zoomhint { font-size: 10px; font-weight: 400; color: #8a8f9e; opacity: 0; transition: opacity 0.12s; }
 .offlinetag { background: #42221f; color: #ffb3a8; border-radius: 8px; padding: 1px 7px; font-size: 10px; font-weight: 700; margin-left: 6px; letter-spacing: 0.5px; }
 .resumebox { border-color: #2dd4a7; }
+.howto { width: 720px; }
+.howto h3 { font-family: var(--display); font-size: 22px; font-weight: 400; margin: 0; }
+.howto h4 { font-family: var(--serif); color: var(--gold); margin: 14px 0 4px; font-size: 15px; }
+.howto p { margin: 0; font-size: 13.5px; line-height: 1.55; color: #cfd4e2; }
+.howtohead { display: flex; justify-content: space-between; align-items: center; }
 .oppmat:hover .zoomhint { opacity: 1; }
 .inspect-overlay { position: fixed; inset: 0; background: rgba(10, 12, 20, 0.7); display: flex; align-items: center; justify-content: center; z-index: 60; }
 .inspect { width: 1150px; max-width: 94vw; max-height: 88vh; overflow: auto; animation: winnerpop 0.2s ease-out; }
@@ -349,6 +354,31 @@ input, select { background: #333b52; border: 1px solid #4a5470; color: #e8eaf2; 
 .warn { color: #ffd23f; font-size: 12px; }
 .err { color: #ff8272; font-size: 12px; }
 .lab h4 { margin: 12px 0 4px; font-size: 13px; text-transform: capitalize; }
+
+.openrooms { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.matchlist { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; max-height: 60vh; overflow-y: auto; }
+.matchrow { display: flex; flex-direction: column; gap: 2px; border: 1px solid #3a4258; border-radius: 8px; padding: 6px 10px; background: #262d40; font-size: 12.5px; }
+.matchdate { font-size: 11px; }
+.matchplayers { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* Small screens: the table stacks. Not a phone-first design, but playable. */
+@media (max-width: 900px) {
+  body { padding: 8px; }
+  main.game { max-width: 100%; }
+  .midrow { flex-wrap: wrap; }
+  .sidezone { position: static; width: calc(50% - 5px); }
+  .topzone .oppmat { width: 100%; max-width: none; box-sizing: border-box; }
+  .topzone .minislots { grid-template-columns: repeat(6, 1fr); }
+  .stagebtns { padding: 0 4px; }
+  .centerrow { flex-wrap: wrap; }
+  .centerrow .stage { order: -1; flex-basis: 100%; }
+  .centerrow .marketpanel, .centerrow .shoppanel { flex: 1 1 100%; width: auto; }
+  .shoprowcards { grid-template-columns: repeat(auto-fit, 116px); justify-content: center; }
+  .slots { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .inspect { max-width: 96vw; }
+  .setup { margin: 16px auto; padding: 16px; }
+  .howto { width: 96vw; }
+}
 
 /* Motion hygiene: honor the OS-level reduced motion preference. */
 @media (prefers-reduced-motion: reduce) {

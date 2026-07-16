@@ -5,6 +5,10 @@ import { Game } from './Game';
 import { IconPicker } from './IconPicker';
 import { Lab } from './Lab';
 import { iconError, iconUrl, loadPacks, savePacks } from './packs';
+import { HowToPlay } from './HowToPlay';
+import { MatchHistory } from './MatchHistory';
+import { listRooms } from './rooms';
+import type { OpenRoom } from './rooms';
 import { clearSavedSession, loadSavedSession, useGame } from './store';
 import type { SavedSession, SeatKind } from './store';
 
@@ -231,6 +235,8 @@ function Setup({ onLab }: { onLab: () => void }) {
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [help, setHelp] = useState(false);
+  const [history, setHistory] = useState(false);
   const togglePack = (id: string) => {
     const next = packs.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p));
     setPacks(next);
@@ -248,12 +254,13 @@ function Setup({ onLab }: { onLab: () => void }) {
       setBusy(null);
     }
   };
-  const goJoin = async () => {
+  const goJoin = async (codeArg?: string) => {
+    const code = (codeArg ?? joinCode).trim().toUpperCase();
     saveName(myName());
-    setBusy(`joining ${joinCode.toUpperCase()}...`);
+    setBusy(`joining ${code}...`);
     setErr(null);
     try {
-      await joinRoom(joinCode.trim().toUpperCase(), myName());
+      await joinRoom(code, myName());
     } catch (e) {
       setErr(String(e instanceof Error ? e.message : e));
       setBusy(null);
@@ -296,10 +303,11 @@ function Setup({ onLab }: { onLab: () => void }) {
             className="codein"
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
           />
-          <button disabled={busy !== null || joinCode.trim().length !== 4} onClick={goJoin}>
+          <button disabled={busy !== null || joinCode.trim().length !== 4} onClick={() => goJoin()}>
             Join
           </button>
         </div>
+        <OpenRoomsList disabled={busy !== null} onJoin={(code) => void goJoin(code)} />
         {busy && !err && <div className="dimtext">{busy}</div>}
         {err && <div className="err">{err}</div>}
       </section>
@@ -354,8 +362,41 @@ function Setup({ onLab }: { onLab: () => void }) {
       <button className="primary" onClick={() => start(count, 0, undefined, kinds, colors)}>
         Start game
       </button>
-      <button onClick={onLab}>Card Lab</button>
+      <div className="netrow">
+        <button onClick={onLab}>Card Lab</button>
+        <button onClick={() => setHelp(true)}>How to play</button>
+        <button onClick={() => setHistory(true)}>Match history</button>
+      </div>
+      {help && <HowToPlay onClose={() => setHelp(false)} />}
+      {history && <MatchHistory onClose={() => setHistory(false)} />}
     </main>
+  );
+}
+
+/** Joinable rooms published by hosts; silent until any exist. */
+function OpenRoomsList({ onJoin, disabled }: { onJoin: (code: string) => void; disabled: boolean }) {
+  const [rooms, setRooms] = useState<OpenRoom[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const load = () => void listRooms().then((r) => alive && setRooms(r));
+    load();
+    const t = setInterval(load, 15_000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, []);
+  if (!rooms || rooms.length === 0) return null;
+  return (
+    <div className="openrooms">
+      <span className="dimtext">open tables:</span>
+      {rooms.map((r) => (
+        <button key={r.code} disabled={disabled} onClick={() => onJoin(r.code)}>
+          {r.host_name}
+          {"'"}s table ({r.players}) {r.code}
+        </button>
+      ))}
+    </div>
   );
 }
 
