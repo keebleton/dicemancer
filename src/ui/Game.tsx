@@ -183,7 +183,7 @@ export function Game() {
                     const sel = buySel?.src === 'market' && buySel.i === i;
                     return card ? (
                       <div
-                        key={i}
+                        key={`${card.id}-${i}`}
                         className={
                           'shopcard market' + (sel ? ' selected' : '') + (buyable ? '' : ' dead')
                         }
@@ -219,7 +219,7 @@ export function Game() {
                     const sel = buySel?.src === 'shop' && buySel.i === i;
                     return card ? (
                       <div
-                        key={i}
+                        key={`${card.id}-${i}`}
                         className={
                           'shopcard' +
                           (card.rarity === 'rare' ? ' rare' : '') +
