@@ -147,9 +147,7 @@ function AccountBox() {
           <button disabled={acc.busy || !ok} onClick={() => acc.signUp(email, pw)}>
             Create account
           </button>
-          <span className="dimtext">optional: profiles, avatars, stats</span>
         </div>
-        <span className="dimtext">no email needed; do not forget your password</span>
         {acc.error && <div className="err">{acc.error}</div>}
         {acc.notice && <div className="dimtext">{acc.notice}</div>}
       </section>
@@ -223,9 +221,8 @@ function AccountBox() {
   );
 }
 
-/** Friends: add by username, accept or decline requests, see the roster.
- *  Signed-in only; inert until supabase/schema2.sql is applied. */
-function FriendsBox() {
+/** Friends overlay: add by username, accept or decline requests, the roster. */
+function FriendsOverlay({ onClose }: { onClose: () => void }) {
   const myId = useAccount((s) => s.profile?.id);
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [adding, setAdding] = useState('');
@@ -235,16 +232,21 @@ function FriendsBox() {
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(refresh, [myId]);
-  if (!myId) return null;
 
   const accepted = friends.filter((f) => f.status === 'accepted');
   const incoming = friends.filter((f) => f.status === 'pending' && f.direction === 'in');
   const outgoing = friends.filter((f) => f.status === 'pending' && f.direction === 'out');
+  if (!myId) return null;
 
   return (
-    <section className="netbox">
-      <b>Friends</b>
-      <div className="netrow">
+    <div className="inspect-overlay" onClick={onClose}>
+      <div className="inspect howto friendspanel" onClick={(e) => e.stopPropagation()}>
+        <section className="panel">
+          <div className="howtohead">
+            <h3>Friends</h3>
+            <button onClick={onClose}>close</button>
+          </div>
+          <div className="netrow">
         <input
           placeholder="add by username"
           maxLength={24}
@@ -299,16 +301,22 @@ function FriendsBox() {
           </button>
         </div>
       ))}
-      {outgoing.map((f) => (
-        <div key={f.id} className="netrow friendrow">
-          <img className="avatar" src={iconUrl(f.profile.avatar_icon)} alt="" onError={iconError} />
-          <b>{f.profile.username}</b>
-          <span className="dimtext">request pending</span>
-          <button onClick={() => void removeFriend(f.id).then(refresh)}>cancel</button>
-        </div>
-      ))}
-      {friends.length === 0 && <span className="dimtext">nobody yet; add a username above</span>}
-    </section>
+          {outgoing.map((f) => (
+            <div key={f.id} className="netrow friendrow">
+              <img
+                className="avatar"
+                src={iconUrl(f.profile.avatar_icon)}
+                alt=""
+                onError={iconError}
+              />
+              <b>{f.profile.username}</b>
+              <span className="dimtext">request pending</span>
+              <button onClick={() => void removeFriend(f.id).then(refresh)}>cancel</button>
+            </div>
+          ))}
+        </section>
+      </div>
+    </div>
   );
 }
 
@@ -332,6 +340,7 @@ function Setup({ onLab }: { onLab: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [help, setHelp] = useState(false);
   const [history, setHistory] = useState(false);
+  const [showFriends, setShowFriends] = useState(false);
   const togglePack = (id: string) => {
     const next = packs.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p));
     setPacks(next);
@@ -388,7 +397,6 @@ function Setup({ onLab }: { onLab: () => void }) {
 
       <ResumeBox />
       <AccountBox />
-      <FriendsBox />
 
       <section className="netbox">
         <b>Play online</b>
@@ -503,9 +511,11 @@ function Setup({ onLab }: { onLab: () => void }) {
         <button onClick={onLab}>Card Lab</button>
         <button onClick={() => setHelp(true)}>How to play</button>
         <button onClick={() => setHistory(true)}>Match history</button>
+        {profile && <button onClick={() => setShowFriends(true)}>Friends</button>}
       </div>
       {help && <HowToPlay onClose={() => setHelp(false)} />}
       {history && <MatchHistory onClose={() => setHistory(false)} />}
+      {showFriends && <FriendsOverlay onClose={() => setShowFriends(false)} />}
     </main>
   );
 }
