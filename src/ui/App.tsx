@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import type { BotLevel } from '../bot';
 import type { SeatColor } from '../engine';
 import { useAccount, validLogin } from './account';
+import { acceptFriend, addFriend, fetchFriends, removeFriend } from './friends';
+import type { FriendEntry } from './friends';
 import { Game } from './Game';
 import { Die } from './icons';
 import { IconPicker } from './IconPicker';
@@ -9,7 +11,7 @@ import { Lab } from './Lab';
 import { iconError, iconUrl, loadPacks, savePacks } from './packs';
 import { HowToPlay } from './HowToPlay';
 import { MatchHistory } from './MatchHistory';
-import { listRooms } from './rooms';
+import { listLiveGames, listRooms } from './rooms';
 import type { OpenRoom } from './rooms';
 import { clearSavedSession, loadSavedSession, useGame } from './store';
 import type { SavedSession, SeatKind } from './store';
@@ -221,6 +223,95 @@ function AccountBox() {
   );
 }
 
+/** Friends: add by username, accept or decline requests, see the roster.
+ *  Signed-in only; inert until supabase/schema2.sql is applied. */
+function FriendsBox() {
+  const myId = useAccount((s) => s.profile?.id);
+  const [friends, setFriends] = useState<FriendEntry[]>([]);
+  const [adding, setAdding] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const refresh = () => {
+    if (myId) void fetchFriends(myId).then(setFriends);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(refresh, [myId]);
+  if (!myId) return null;
+
+  const accepted = friends.filter((f) => f.status === 'accepted');
+  const incoming = friends.filter((f) => f.status === 'pending' && f.direction === 'in');
+  const outgoing = friends.filter((f) => f.status === 'pending' && f.direction === 'out');
+
+  return (
+    <section className="netbox">
+      <b>Friends</b>
+      <div className="netrow">
+        <input
+          placeholder="add by username"
+          maxLength={24}
+          value={adding}
+          onChange={(e) => setAdding(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return;
+            void addFriend(myId, adding).then((err) => {
+              setNote(err ?? 'request sent');
+              if (!err) setAdding('');
+              refresh();
+            });
+          }}
+        />
+        <button
+          disabled={!adding.trim()}
+          onClick={() =>
+            void addFriend(myId, adding).then((err) => {
+              setNote(err ?? 'request sent');
+              if (!err) setAdding('');
+              refresh();
+            })
+          }
+        >
+          add
+        </button>
+        {note && <span className="dimtext">{note}</span>}
+      </div>
+      {incoming.map((f) => (
+        <div key={f.id} className="netrow friendrow">
+          <img className="avatar" src={iconUrl(f.profile.avatar_icon)} alt="" onError={iconError} />
+          <b>{f.profile.username}</b>
+          <span className="dimtext">wants to be friends</span>
+          <button
+            className="primary"
+            onClick={() => void acceptFriend(f.id).then(refresh)}
+          >
+            accept
+          </button>
+          <button onClick={() => void removeFriend(f.id).then(refresh)}>decline</button>
+        </div>
+      ))}
+      {accepted.map((f) => (
+        <div key={f.id} className="netrow friendrow">
+          <img className="avatar" src={iconUrl(f.profile.avatar_icon)} alt="" onError={iconError} />
+          <b>{f.profile.username}</b>
+          <span className="dimtext">
+            {f.profile.games_won} wins / {f.profile.games_played} games
+          </span>
+          <button title="remove friend" onClick={() => void removeFriend(f.id).then(refresh)}>
+            remove
+          </button>
+        </div>
+      ))}
+      {outgoing.map((f) => (
+        <div key={f.id} className="netrow friendrow">
+          <img className="avatar" src={iconUrl(f.profile.avatar_icon)} alt="" onError={iconError} />
+          <b>{f.profile.username}</b>
+          <span className="dimtext">request pending</span>
+          <button onClick={() => void removeFriend(f.id).then(refresh)}>cancel</button>
+        </div>
+      ))}
+      {friends.length === 0 && <span className="dimtext">nobody yet; add a username above</span>}
+    </section>
+  );
+}
+
 const savedName = () => localStorage.getItem('dicemancer_name') ?? '';
 const saveName = (n: string) => localStorage.setItem('dicemancer_name', n);
 
@@ -228,6 +319,7 @@ function Setup({ onLab }: { onLab: () => void }) {
   const start = useGame((s) => s.start);
   const hostRoom = useGame((s) => s.hostRoom);
   const joinRoom = useGame((s) => s.joinRoom);
+  const spectateRoom = useGame((s) => s.spectateRoom);
   const netNotice = useGame((s) => s.netNotice);
   const [count, setCount] = useState(2);
   const [kinds, setKinds] = useState<SeatKind[]>(['human', 'bot', 'bot', 'bot']);
@@ -272,6 +364,16 @@ function Setup({ onLab }: { onLab: () => void }) {
       setBusy(null);
     }
   };
+  const goWatch = async (code: string) => {
+    setBusy(`joining ${code} as a spectator...`);
+    setErr(null);
+    try {
+      await spectateRoom(code, myName());
+    } catch (e) {
+      setErr(String(e instanceof Error ? e.message : e));
+      setBusy(null);
+    }
+  };
   return (
     <main className="setup">
       <header className="herotitle">
@@ -283,10 +385,10 @@ function Setup({ onLab }: { onLab: () => void }) {
           <Die value={6} />
         </span>
       </header>
-      <div className="tagline">Build an engine out of dice.</div>
 
       <ResumeBox />
       <AccountBox />
+      <FriendsBox />
 
       <section className="netbox">
         <b>Play online</b>
@@ -318,7 +420,11 @@ function Setup({ onLab }: { onLab: () => void }) {
             Join
           </button>
         </div>
-        <OpenRoomsList disabled={busy !== null} onJoin={(code) => void goJoin(code)} />
+        <OpenRoomsList
+          disabled={busy !== null}
+          onJoin={(code) => void goJoin(code)}
+          onWatch={(code) => void goWatch(code)}
+        />
         {busy && !err && <div className="dimtext">{busy}</div>}
         {err && <div className="err">{err}</div>}
       </section>
@@ -404,12 +510,20 @@ function Setup({ onLab }: { onLab: () => void }) {
   );
 }
 
-/** Joinable rooms published by hosts; silent until any exist. */
-function OpenRoomsList({ onJoin, disabled }: { onJoin: (code: string) => void; disabled: boolean }) {
+/** Joinable lobbies + live games to spectate; silent until any exist. */
+function OpenRoomsList(props: {
+  onJoin: (code: string) => void;
+  onWatch: (code: string) => void;
+  disabled: boolean;
+}) {
   const [rooms, setRooms] = useState<OpenRoom[] | null>(null);
+  const [live, setLive] = useState<OpenRoom[] | null>(null);
   useEffect(() => {
     let alive = true;
-    const load = () => void listRooms().then((r) => alive && setRooms(r));
+    const load = () => {
+      void listRooms().then((r) => alive && setRooms(r));
+      void listLiveGames().then((r) => alive && setLive(r));
+    };
     load();
     const t = setInterval(load, 15_000);
     return () => {
@@ -417,17 +531,34 @@ function OpenRoomsList({ onJoin, disabled }: { onJoin: (code: string) => void; d
       clearInterval(t);
     };
   }, []);
-  if (!rooms || rooms.length === 0) return null;
+  const anyRooms = rooms !== null && rooms.length > 0;
+  const anyLive = live !== null && live.length > 0;
+  if (!anyRooms && !anyLive) return null;
   return (
-    <div className="openrooms">
-      <span className="dimtext">open tables:</span>
-      {rooms.map((r) => (
-        <button key={r.code} disabled={disabled} onClick={() => onJoin(r.code)}>
-          {r.host_name}
-          {"'"}s table ({r.players}) {r.code}
-        </button>
-      ))}
-    </div>
+    <>
+      {anyRooms && (
+        <div className="openrooms">
+          <span className="dimtext">open tables:</span>
+          {rooms!.map((r) => (
+            <button key={r.code} disabled={props.disabled} onClick={() => props.onJoin(r.code)}>
+              {r.host_name}
+              {"'"}s table ({r.players}) {r.code}
+            </button>
+          ))}
+        </div>
+      )}
+      {anyLive && (
+        <div className="openrooms">
+          <span className="dimtext">live games:</span>
+          {live!.map((r) => (
+            <button key={r.code} disabled={props.disabled} onClick={() => props.onWatch(r.code)}>
+              watch {r.host_name}
+              {"'"}s game ({r.players})
+            </button>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 

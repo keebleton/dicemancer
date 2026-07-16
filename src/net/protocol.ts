@@ -8,11 +8,14 @@ export type SeatKind = 'human' | 'bot';
 /** Everything that crosses the wire. Host is the only authority: clients send
  *  `intent`, the host answers with `sync` (full state; it is a few KB). */
 export type NetMsg =
-  | { type: 'hello'; name: string; profileId: string | null }
+  /** spectate = watch only: the host replies begin with seat -1 and streams
+   *  syncs, but the connection never gets a seat or a chat voice. */
+  | { type: 'hello'; name: string; profileId: string | null; spectate?: boolean }
   | { type: 'lobby'; players: string[] }
   | {
       type: 'begin';
       state: GameState;
+      /** -1 = you are a spectator. */
       seat: number;
       seatKinds: SeatKind[];
     }

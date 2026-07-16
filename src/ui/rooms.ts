@@ -9,12 +9,20 @@ export interface OpenRoom {
   host_name: string;
   players: number;
   created_at: string;
+  status?: 'open' | 'playing';
 }
 
-export function publishRoom(code: string, hostName: string, players: number): void {
+/** status 'open' = joinable lobby; 'playing' = a live game (spectate). The
+ *  host re-upserts periodically while playing so the row stays fresh. */
+export function publishRoom(
+  code: string,
+  hostName: string,
+  players: number,
+  status: 'open' | 'playing' = 'open',
+): void {
   void supa
     .from('open_rooms')
-    .upsert({ code, host_name: hostName, players, created_at: new Date().toISOString() })
+    .upsert({ code, host_name: hostName, players, status, created_at: new Date().toISOString() })
     .then(() => {});
 }
 
@@ -22,9 +30,8 @@ export function unpublishRoom(code: string): void {
   void supa.from('open_rooms').delete().eq('code', code).then(() => {});
 }
 
-/** Joinable rooms, freshest first; stale rows (>30 min) are filtered out. */
-export async function listRooms(): Promise<OpenRoom[]> {
-  const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+async function listByStatus(status: string, maxAgeMin: number): Promise<OpenRoom[]> {
+  const cutoff = new Date(Date.now() - maxAgeMin * 60 * 1000).toISOString();
   const { data, error } = await supa
     .from('open_rooms')
     .select('*')
@@ -32,8 +39,17 @@ export async function listRooms(): Promise<OpenRoom[]> {
     .order('created_at', { ascending: false })
     .limit(10);
   if (error) return [];
-  return (data ?? []) as OpenRoom[];
+  // Filtered client-side: a pre-status directory row has no status column
+  // and should behave as 'open'.
+  return ((data ?? []) as OpenRoom[]).filter((r) => (r.status ?? 'open') === status);
 }
+
+/** Joinable lobbies, freshest first; stale rows are filtered out. */
+export const listRooms = () => listByStatus('open', 30);
+
+/** Live games to spectate; hosts refresh the row every couple of minutes,
+ *  so a short window keeps crashed hosts from ghosting the list. */
+export const listLiveGames = () => listByStatus('playing', 10);
 
 export interface MatchRow {
   id: string;

@@ -31,6 +31,8 @@ interface Callbacks {
   onPresence: (seat: number, connected: boolean) => void;
   /** Host only: a dropped player is back on their seat; re-sync them. */
   onReattach: (seat: number) => void;
+  /** Host only: a spectator connected; answer with net.beginSpectator(id). */
+  onSpectate: (id: number) => void;
   /** Client only: presence + seat kinds pushed by the host. */
   onMeta: (connected: boolean[], seatKinds: SeatKind[]) => void;
   /** Host only: a client wants to say something (host validates + relays). */
@@ -55,6 +57,8 @@ class Net {
   roomCode: string | null = null;
   private peer: Peer | null = null;
   private clients: ClientSlot[] = []; // host side, join order
+  private spectators = new Map<number, DataConnection>(); // host side, watch-only
+  private nextSpectatorId = 1;
   private hostConn: DataConnection | null = null; // client side
   private hostName = '';
   private begun = false;
@@ -119,6 +123,25 @@ class Net {
       const msg = raw as NetMsg;
       if (msg.type === 'hello') {
         const name = msg.name.trim() || 'Player';
+        if (msg.spectate) {
+          if (!this.begun) {
+            conn.send({
+              type: 'bye',
+              reason: 'no game running yet; join with the code instead',
+            } satisfies NetMsg);
+            setTimeout(() => conn.close(), 400);
+            return;
+          }
+          const id = this.nextSpectatorId++;
+          this.spectators.set(id, conn);
+          const dropSpec = () => this.spectators.delete(id);
+          conn.on('close', dropSpec);
+          conn.on('iceStateChanged', (s) => {
+            if (s === 'disconnected' || s === 'failed' || s === 'closed') dropSpec();
+          });
+          this.cb?.onSpectate(id); // the store answers with beginSpectator
+          return;
+        }
         if (!this.begun) {
           this.clients.push({
             conn,
@@ -184,8 +207,9 @@ class Net {
     });
   }
 
-  /** Join someone's room. Resolves once the host connection is open. */
-  join(code: string, name: string, profileId: string | null = null): Promise<void> {
+  /** Join someone's room (spectate = watch only). Resolves once the host
+   *  connection is open. */
+  join(code: string, name: string, profileId: string | null = null, spectate = false): Promise<void> {
     this.leave();
     this.mode = 'client';
     this.roomCode = code;
@@ -198,7 +222,7 @@ class Net {
         this.hostConn = conn;
         conn.on('open', () => {
           opened = true;
-          conn.send({ type: 'hello', name, profileId } satisfies NetMsg);
+          conn.send({ type: 'hello', name, profileId, spectate } satisfies NetMsg);
           resolve();
         });
         conn.on('data', (raw) => {
@@ -245,6 +269,11 @@ class Net {
   beginSeat(seat: number, state: GameState, seatKinds: SeatKind[]) {
     const slot = this.clients.find((c) => c.seat === seat);
     slot?.conn?.send({ type: 'begin', state, seat, seatKinds } satisfies NetMsg);
+  }
+
+  /** Host: hand a fresh spectator the current game (seat -1). */
+  beginSpectator(id: number, state: GameState, seatKinds: SeatKind[]) {
+    this.spectators.get(id)?.send({ type: 'begin', state, seat: -1, seatKinds } satisfies NetMsg);
   }
 
   /** Host: after every applied action. */
@@ -309,6 +338,7 @@ class Net {
 
   private broadcast(msg: NetMsg) {
     for (const c of this.clients) c.conn?.send(msg);
+    for (const s of this.spectators.values()) s.send(msg); // watchers see everything
   }
 
   private drop(reason: string) {
@@ -323,6 +353,7 @@ class Net {
     this.peer?.destroy();
     this.peer = null;
     this.clients = [];
+    this.spectators.clear();
     this.hostConn = null;
     this.mode = 'offline';
     this.roomCode = null;

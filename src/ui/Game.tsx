@@ -176,13 +176,15 @@ export function Game() {
           ? `waiting for ${game.players[acting]!.name}...`
           : `${game.players[acting]!.name} is disconnected; their seat is held...`;
 
-  // Seating: you sit at the bottom. Online that is simply my seat; in hotseat
-  // the table rotates so the current human is always the bottom seat.
+  // Seating: you sit at the bottom. Online that is simply my seat (a
+  // spectator's seat is -1 and watches from seat 0's chair); in hotseat the
+  // table rotates so the current human is always the bottom seat.
+  const spectating = mode === 'client' && mySeat === -1;
   const n = game.players.length;
   const humanSeats = seatKinds.flatMap((k, i) => (k === 'human' ? [i] : []));
   const perspective =
     mode !== 'offline'
-      ? (mySeat ?? 0)
+      ? (mySeat != null && mySeat >= 0 ? mySeat : 0)
       : seatKinds[game.current] === 'human'
         ? game.current
         : (humanSeats[0] ?? 0);
@@ -224,6 +226,7 @@ export function Game() {
           </span>
           <span className={`chip turn ${me.color}`}>{me.name}{"'"}s turn</span>
           {mode !== 'offline' && roomCode && <span className="chip">room {roomCode}</span>}
+          {spectating && <span className="chip">spectating</span>}
           <button onClick={() => setShowLegend(!showLegend)}>
             {showLegend ? 'hide icon key' : 'icon key'}
           </button>
@@ -433,7 +436,7 @@ export function Game() {
         <section className="panel logpanel">
           <div className="loghead">
             <h3>Log</h3>
-            {mode !== 'offline' && (
+            {mode !== 'offline' && !spectating && (
               <div className="chatbar">
                 <input
                   placeholder="say something..."

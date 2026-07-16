@@ -151,6 +151,8 @@ interface GameStore {
   // --- online actions ---
   hostRoom: (name: string) => Promise<string>;
   joinRoom: (code: string, name: string) => Promise<void>;
+  /** Watch a live game (seat -1, read-only). */
+  spectateRoom: (code: string, name: string) => Promise<void>;
   /** Host only: lobby -> live game. Bots fill the tail seats. */
   startOnline: (
     botCount: number,
@@ -220,7 +222,8 @@ export const useGame = create<GameStore>()((set, get) => {
   const persist = () => {
     const s = get();
     if (s.mode === 'client') {
-      if (s.game && s.roomCode) {
+      // Spectators (seat -1) have nothing to resume into.
+      if (s.game && s.roomCode && (s.mySeat ?? 0) >= 0) {
         saveSession({ v: 1, mode: 'client', roomCode: s.roomCode, myName: savedName() });
       }
       return;
@@ -242,6 +245,9 @@ export const useGame = create<GameStore>()((set, get) => {
       roster: s.mode === 'host' ? net.seatRoster() : undefined,
     });
   };
+
+  // Live-game directory row refresh throttle (host side).
+  let lastRoomRefresh = 0;
 
   // Table talk. The host is the hub: it validates (rate limit + length),
   // stamps the seat from the connection, relays to everyone, and shows it
@@ -293,7 +299,11 @@ export const useGame = create<GameStore>()((set, get) => {
         pulses: [],
         fx: [],
         connectedSeats: state.players.map(() => true),
-        log: [`joined ${state.players.length}-player online game as ${state.players[seat]!.name}`],
+        log: [
+          seat < 0
+            ? `watching a ${state.players.length}-player game`
+            : `joined ${state.players.length}-player online game as ${state.players[seat]!.name}`,
+        ],
       });
       persist();
     },
@@ -324,6 +334,11 @@ export const useGame = create<GameStore>()((set, get) => {
       if (!s.game) return;
       net.beginSeat(seat, s.game, s.seatKinds);
       pushMeta();
+    },
+    onSpectate: (id) => {
+      const s = get();
+      if (!s.game) return;
+      net.beginSpectator(id, s.game, s.seatKinds);
     },
     onMeta: (connected, seatKinds) => set({ connectedSeats: connected, seatKinds }),
     onChatSend: (seat, text, big) => hostRelayChat(seat, text, big),
@@ -408,14 +423,21 @@ export const useGame = create<GameStore>()((set, get) => {
       set(ingest(get, prev, action, next));
       if (mode === 'host') {
         net.sync(action, next);
-        // Game just ended: record the result for profile stats.
+        // Game just ended: record the result and leave the live-games list.
         if (next.winner !== null && prev.winner === null) {
           reportMatch(next, get().seatProfiles);
+          if (get().roomCode) unpublishRoom(get().roomCode!);
+        } else if (get().roomCode && Date.now() - lastRoomRefresh > 120_000) {
+          // Keep the spectate row fresh so crashed hosts age out fast.
+          lastRoomRefresh = Date.now();
+          publishRoom(get().roomCode!, next.players[0]?.name ?? 'Host', next.players.length, 'playing');
         }
       }
       persist();
     },
     reset: () => {
+      const s = get();
+      if (s.mode === 'host' && s.roomCode) unpublishRoom(s.roomCode);
       net.leave();
       clearSavedSession();
       set({
@@ -442,6 +464,13 @@ export const useGame = create<GameStore>()((set, get) => {
       set({ netNotice: null });
       await net.join(code, name, useAccount.getState().profile?.id ?? null);
       set({ mode: 'client', roomCode: code });
+    },
+    spectateRoom: async (code, name) => {
+      set({ netNotice: null });
+      await net.join(code, name, null, true);
+      set({ mode: 'client', roomCode: code });
+      // The host answers with begin(seat -1); until then the lobby screen
+      // shows the connecting state.
     },
     startOnline: (botCount, roundCap, colors, botLevel = 'normal') => {
       const names = net.lobbyNames();
@@ -474,7 +503,10 @@ export const useGame = create<GameStore>()((set, get) => {
         log: [`online game started: ${seats.names.join(', ')}`],
       });
       net.begin(game, seats.kinds);
-      if (get().roomCode) unpublishRoom(get().roomCode!); // game started: delist
+      // The lobby leaves the open list and becomes a spectatable live game.
+      if (get().roomCode) {
+        publishRoom(get().roomCode!, seats.names[0] ?? 'Host', seats.names.length, 'playing');
+      }
       persist();
     },
     leaveOnline: (notice = null) => {
@@ -512,6 +544,7 @@ export const useGame = create<GameStore>()((set, get) => {
       set({ netNotice: null });
       const code = await net.host(saved.myName ?? 'Host', saved.roomCode);
       net.expectSeats(saved.roster ?? []);
+      publishRoom(code, saved.myName ?? 'Host', saved.game.players.length, 'playing');
       rng = mulberry32(((Date.now() % 0xffffffff) + 1) >>> 0);
       set({
         game: saved.game,
