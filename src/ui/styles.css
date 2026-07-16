@@ -7,8 +7,10 @@
    arc to the earning seat, damage numbers slam in with a shockwave, KOs
    flash and quake the room -- plus the victory splash. All fixed-position,
    so the static-table rule holds. */
-/* Self-hosted display faces (SIL OFL): Germania One for hero moments,
-   Grenze for card names and readable accents. Vite fingerprints the files. */
+/* Self-hosted faces (SIL OFL): Germania One for hero moments (the logo
+   font, Jake's keeper), Atkinson Hyperlegible for everything players read
+   at small sizes -- card text, numbers, buttons (2026-07-16, readability
+   pass; it replaced Grenze). Vite fingerprints the files. */
 @font-face {
   font-family: 'Germania One';
   font-style: normal;
@@ -17,20 +19,36 @@
   src: url('./fonts/GermaniaOne.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Grenze';
+  font-family: 'Atkinson Hyperlegible';
   font-style: normal;
-  font-weight: 400 700;
+  font-weight: 400;
   font-display: swap;
-  src: url('./fonts/Grenze.woff2') format('woff2');
+  src: url('./fonts/AtkinsonHyperlegible-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/AtkinsonHyperlegible-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/AtkinsonHyperlegible-400i.woff2') format('woff2');
 }
 
 :root {
   --gold: #f0b429;
   --gold-deep: #b57e19;
   --display: 'Germania One', 'Palatino Linotype', Georgia, serif;
-  --serif: 'Grenze', 'Palatino Linotype', Palatino, Cambria, Georgia, serif;
+  /* Historical name: every "serif" accent surface now reads in Atkinson. */
+  --serif: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+  --text: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
 }
-body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 10px 18px; background: radial-gradient(ellipse 100% 78% at 50% 30%, #344263 0%, #252b40 48%, #14192a 100%) fixed #14192a; color: #e8eaf2; }
+body { font-family: var(--text); margin: 0; padding: 10px 18px; background: radial-gradient(ellipse 100% 78% at 50% 30%, #344263 0%, #252b40 48%, #14192a 100%) fixed #14192a; color: #e8eaf2; }
 /* The room vignette: darkness pools at the edges, the table stays lit. */
 body::after { content: ''; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse 115% 95% at 50% 38%, transparent 52%, rgba(4, 6, 12, 0.55) 100%); z-index: 2; }
 main { max-width: 1150px; margin: 0 auto; position: relative; z-index: 3; }
@@ -251,7 +269,7 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
 .ccost { right: 3px; background: rgba(133, 94, 11, 0.92); }
 .cstripe { height: 3px; flex: none; }
 .cbody { padding: 3px 6px 5px; }
-.cname { font-family: var(--serif); font-size: 13px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cname { font-family: var(--text); font-size: 13px; font-weight: 700; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .slot.preview { background: #ffe9a8; border-color: #d8a921; }
 .slot.fired { background: #d9f0d9; border-color: #5aa15a; animation: firedflash 0.75s cubic-bezier(0.2, 0.8, 0.3, 1); }
 @keyframes firedflash {
