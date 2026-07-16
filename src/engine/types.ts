@@ -98,6 +98,13 @@ export interface PlayerState {
   shop: (CardDef | null)[];
   colorDeck: CardDef[];
   colorDiscard: CardDef[];
+  /** Owned relic ids (engine/relics.ts), max MAX_RELICS. */
+  relics: string[];
+  /** Slot picks for relics bought with needsSlotPick (relic id -> slot 1-12). */
+  relicPicks: Record<string, number>;
+  /** Per-relic usage flags (loaded-die this turn, iron-aegis this round...).
+   *  Cleared at this player's turn start. */
+  relicUsed: Record<string, number>;
 }
 
 export type TurnPhase = 'roll' | 'allocate' | 'chooseTarget' | 'echoChoice' | 'buy' | 'end';
@@ -155,6 +162,9 @@ export interface GameState {
    *  first buyer takes a card and the slot refills from the shared deck. */
   market: (CardDef | null)[];
   marketDeck: CardDef[];
+  /** The RELIQUARY: shared face-up relic display (ids; null = sold out slot). */
+  reliquary: (string | null)[];
+  relicDeck: string[];
   /** Seats (in order after the roller) still to hear this roll for their echoes.
    *  The head of the list is the seat an ECHO_CHOICE is awaited from. */
   echoPending: number[];
@@ -180,6 +190,14 @@ export type Action =
   /** Toggle: freeze YOUR whole shop so it stops rotating (no new cards until
    *  you unfreeze). Does not consume the turn's purchase. */
   | { type: 'FREEZE_SHOP' }
+  /** Buy a relic from the reliquary. Does NOT consume the turn's card
+   *  purchase (relics are the money sink, not a tempo tax). slotPick is
+   *  required for relics with needsSlotPick. */
+  | { type: 'BUY_RELIC'; index: number; slotPick?: number }
+  /** Loaded Die relic: set one die to a chosen face (once per turn). */
+  | { type: 'SET_DIE'; dieIndex: 0 | 1; face: number }
+  /** Destiny Stone relic: reroll both dice (once per turn). */
+  | { type: 'REROLL_BOTH' }
   | { type: 'SKIP_BUY' }
   | { type: 'END_TURN' };
 // Deferred: RESOLVE_ORDER (cards resolve in die order; revisit if ordering ever matters).

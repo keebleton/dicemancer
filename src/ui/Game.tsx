@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { chooseAction } from '../bot';
-import { actingSeat, legalActions, previewNumbers } from '../engine';
+import { RELIC_BY_ID, actingSeat, legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, GameState, PlayerState } from '../engine';
 import { CardFace, TINT } from './CardFace';
 import { fxList } from './describe';
@@ -21,7 +21,9 @@ export function Game() {
   const mySeat = useGame((s) => s.mySeat);
   const roomCode = useGame((s) => s.roomCode);
   const [preview, setPreview] = useState<AllocationMode | null>(null);
-  const [buySel, setBuySel] = useState<{ src: 'shop' | 'market'; i: number } | null>(null);
+  const [buySel, setBuySel] = useState<{ src: 'shop' | 'market' | 'relic'; i: number } | null>(
+    null,
+  );
   const [muted, setMutedState] = useState(isMuted());
   const [showLegend, setShowLegend] = useState(false);
   const [inspect, setInspect] = useState<number | null>(null);
@@ -73,12 +75,19 @@ export function Game() {
   const marketBuys = actions.filter(
     (a): a is Action & { type: 'BUY_MARKET' } => a.type === 'BUY_MARKET',
   );
+  const relicBuys = actions.filter(
+    (a): a is Action & { type: 'BUY_RELIC' } => a.type === 'BUY_RELIC',
+  );
   const buySlots =
     buySel === null
       ? []
       : buySel.src === 'shop'
         ? shopBuys.filter((a) => a.shopIndex === buySel.i).map((a) => a.targetSlot)
-        : marketBuys.filter((a) => a.marketIndex === buySel.i).map((a) => a.targetSlot);
+        : buySel.src === 'market'
+          ? marketBuys.filter((a) => a.marketIndex === buySel.i).map((a) => a.targetSlot)
+          : relicBuys
+              .filter((a) => a.index === buySel.i && a.slotPick !== undefined)
+              .map((a) => a.slotPick!);
   const firedSlots =
     game.lastAllocation && game.phase !== 'roll' && game.phase !== 'allocate'
       ? game.lastAllocation.numbers
@@ -200,6 +209,38 @@ export function Game() {
                     );
                   })}
                 </div>
+                {game.reliquary.length > 0 && (
+                  <div className="reliquary">
+                    {game.reliquary.map((id, i) => {
+                      if (!id) {
+                        return (
+                          <span key={i} className="relicchip dead">
+                            claimed
+                          </span>
+                        );
+                      }
+                      const def = RELIC_BY_ID[id]!;
+                      const buyable = humanRoller && relicBuys.some((a) => a.index === i);
+                      const sel = buySel?.src === 'relic' && buySel.i === i;
+                      return (
+                        <button
+                          key={id}
+                          className={'relicchip' + (sel ? ' selected' : '') + (buyable ? '' : ' dead')}
+                          title={def.text + (def.needsSlotPick ? ' (you will pick a slot)' : '')}
+                          onClick={() => {
+                            if (!buyable) return;
+                            if (def.needsSlotPick) setBuySel(sel ? null : { src: 'relic', i });
+                            else dispatch({ type: 'BUY_RELIC', index: i });
+                          }}
+                        >
+                          <img src={iconUrl(def.icon ?? '')} alt="" onError={iconError} />
+                          {def.name}
+                          <b>{def.cost}</b>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </section>
             )}
 
@@ -269,7 +310,9 @@ export function Game() {
               dispatch(
                 buySel.src === 'shop'
                   ? { type: 'BUY', shopIndex: buySel.i, targetSlot: slot }
-                  : { type: 'BUY_MARKET', marketIndex: buySel.i, targetSlot: slot },
+                  : buySel.src === 'market'
+                    ? { type: 'BUY_MARKET', marketIndex: buySel.i, targetSlot: slot }
+                    : { type: 'BUY_RELIC', index: buySel.i, slotPick: slot },
               );
               setBuySel(null);
             }
@@ -362,6 +405,26 @@ function Stage(props: {
                 : `Nudge die ${t.dieIndex + 1} ${t.delta === 1 ? '+1' : '-1'}`}
             </button>
           ))}
+
+          {actions.some((a) => a.type === 'REROLL_BOTH') && (
+            <button onClick={() => dispatch({ type: 'REROLL_BOTH' })}>Destiny: reroll both</button>
+          )}
+          {([0, 1] as const).map((di) => {
+            const faces = actions.filter(
+              (a): a is Action & { type: 'SET_DIE' } => a.type === 'SET_DIE' && a.dieIndex === di,
+            );
+            if (faces.length === 0) return null;
+            return (
+              <span key={di} className="loadrow">
+                <span className="dimtext">load die {di + 1}:</span>
+                {faces.map((a) => (
+                  <button key={a.face} className="facebtn" onClick={() => dispatch(a)}>
+                    {a.face}
+                  </button>
+                ))}
+              </span>
+            );
+          })}
 
           {allocs.map((a) => {
             const nums = previewNumbers(dice!, a.mode);
@@ -484,6 +547,7 @@ function SelfMat(props: {
           nudge={p.tokens.nudge}
           pulses={props.pulses}
         />
+        <RelicChips p={p} />
       </div>
       <div className="slots">
         {p.board.map((card, i) => {
@@ -546,6 +610,28 @@ function SelfMat(props: {
   );
 }
 
+/** Owned relics as small icon chips (tooltip carries the rules text). */
+function RelicChips({ p }: { p: PlayerState }) {
+  if (p.relics.length === 0) return null;
+  return (
+    <span className="relicowned">
+      {p.relics.map((id) => {
+        const d = RELIC_BY_ID[id]!;
+        const pick = p.relicPicks[id];
+        return (
+          <img
+            key={id}
+            src={iconUrl(d.icon ?? '')}
+            alt={d.name}
+            title={`${d.name}: ${d.text}${pick !== undefined ? ` (slot ${pick})` : ''}`}
+            onError={iconError}
+          />
+        );
+      })}
+    </span>
+  );
+}
+
 /** An opponent's seat: compact mat of icon tiles. Hover a tile for the full
  *  card; the purple corner counts echoes waiting in that slot. Click the mat
  *  to open the full-size board. */
@@ -578,6 +664,7 @@ function OppMat(props: {
           nudge={p.tokens.nudge}
           pulses={props.pulses}
         />
+        <RelicChips p={p} />
         <span className="zoomhint">click to enlarge</span>
       </div>
       <div className="minislots">

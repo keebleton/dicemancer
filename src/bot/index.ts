@@ -2,7 +2,7 @@
 // engine API as the UI (legalActions + action payloads); no rules live here.
 // Known dumbness, accepted for MVP: never spends tokens, ignores echo value
 // and opponent echo stacks, scores only immediate effects.
-import { actingSeat, legalActions, previewNumbers } from '../engine';
+import { RELIC_BY_ID, actingSeat, legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, ConditionalWhen, Effect, GameState } from '../engine';
 
 export function chooseAction(state: GameState): Action {
@@ -269,6 +269,31 @@ function bestTarget(state: GameState, actions: Action[]): Action {
   return best!;
 }
 
+/** Rough lifetime value per relic for the buy heuristic. Resonant Bell stays
+ *  at 0: bots cannot tell money echoes from self-harm echoes, so they skip it. */
+const RELIC_VALUE: Record<string, number> = {
+  'echo-prism': 8,
+  'merchant-crown': 6,
+  'golden-scales': 7,
+  'interest-ledger': 7,
+  'bottomless-purse': 4,
+  'auctioneers-gavel': 5,
+  'collectors-case': 6,
+  'loaded-die': 5,
+  'fates-hourglass': 5,
+  'weighted-dice': 6,
+  'destiny-stone': 6,
+  'resonant-bell': 0,
+  'grave-lantern': 7,
+  'chorus-amplifier': 8,
+  'iron-aegis': 4,
+  'vampiric-chalice': 4,
+  'assassins-mark': 4,
+  'chrono-anchor': 6,
+  'magnet-stone': 4,
+  'wildcard-sleeve': 5,
+};
+
 function bestBuy(state: GameState, actions: Action[]): Action {
   const seat = state.current;
   const me = state.players[seat]!;
@@ -289,6 +314,30 @@ function bestBuy(state: GameState, actions: Action[]): Action {
       best = a;
     }
   }
+  // Relics: only with real surplus (the sink working as intended), best
+  // value-for-money first. Slot picks land on the strongest own-active slot
+  // (prism) or the best sum slot (sleeve).
+  let bestRelic: Action | null = null;
+  let bestRelicScore = 0;
+  for (const a of actions) {
+    if (a.type !== 'BUY_RELIC') continue;
+    const id = state.reliquary[a.index];
+    if (!id) continue;
+    const def = RELIC_BY_ID[id]!;
+    if (me.money - def.cost < 6) continue; // keep a working purse
+    let s = (RELIC_VALUE[id] ?? 3) / def.cost;
+    if (a.slotPick !== undefined) {
+      const slotValue =
+        scoreEffects(state, me.board[a.slotPick - 1]!.active, seat) * triggerProb(a.slotPick);
+      s += slotValue / def.cost;
+    }
+    if (s > bestRelicScore) {
+      bestRelicScore = s;
+      bestRelic = a;
+    }
+  }
+  // A relic with surplus cash beats a marginal card buy.
+  if (bestRelic && bestRelicScore > bestScore * 0.6) return bestRelic;
   if (best) return best;
   // Nothing affordable is worth buying. Freeze the shop when it holds a card
   // clearly worth saving up for; unfreeze once nothing in it qualifies.

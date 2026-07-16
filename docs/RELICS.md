@@ -1,4 +1,11 @@
-# Relics (design spec, 2026-07-14)
+# Relics (design spec, 2026-07-14 - SHIPPED same day)
+
+STATUS: implemented in src/engine/relics.ts + reducer/effects hooks; 15 hook
+tests in relics.test.ts. One deviation: #11 "Third Die" would have meant
+rewriting the two-dice model everywhere, so it shipped as **Destiny Stone**
+(22): once per turn, reroll both dice. Same fantasy, sane engine.
+Sim result: 4p hit its best balance yet (all colors 22-29 percent) and games
+run ~2.5 rounds faster - the sink converts hoards into engine power.
 
 Jake's brief: 4p games drown players in coins with nothing to spend them on.
 Relics are the sink: expensive, powerful, personal augments that bend the

@@ -48,6 +48,18 @@ main.game { max-width: 1560px; }
 .shoprowcards .shopcard { margin: 0; width: auto; display: flex; flex-direction: column; }
 .shoprowcards .shopcard .cface { flex: 1; }
 .shoprowcards .placeholder { align-items: center; justify-content: center; color: #8a8f9e; background: #33394d; border-color: #4a5470; }
+
+/* The Reliquary: relic chips under the market cards. */
+.reliquary { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.relicchip { display: inline-flex; align-items: center; gap: 7px; padding: 3px 8px; font-size: 12px; text-align: left; border: 1px solid #6b5a2a; background: linear-gradient(180deg, #3d3524, #2e2a1d); color: #e8dfc8; border-radius: 8px; }
+.relicchip img { width: 22px; height: 22px; border-radius: 5px; flex: none; }
+.relicchip b { margin-left: auto; color: var(--gold); }
+.relicchip.dead { opacity: 0.45; cursor: default; }
+.relicchip.selected { outline: 2px solid #2dd4a7; }
+.relicowned { display: inline-flex; gap: 3px; align-items: center; }
+.relicowned img { width: 22px; height: 22px; border-radius: 5px; border: 1px solid #6b5a2a; background: #1c2130; box-shadow: 0 0 5px rgba(240, 180, 41, 0.3); }
+.loadrow { display: inline-flex; align-items: center; gap: 3px; }
+.facebtn { padding: 2px 7px; font-size: 11px; margin: 1px; }
 .midrow { display: flex; gap: 10px; align-items: flex-start; }
 .centerzone { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .sidezone { width: 220px; flex: none; position: sticky; top: 10px; }

@@ -1,3 +1,4 @@
+import { hasRelic, pointLeaderPoints } from './relics';
 import { dealRow } from './shop';
 import type { ConditionalWhen, Effect, GameState, Rng } from './types';
 
@@ -11,12 +12,34 @@ export interface EffectContext {
 }
 
 /** Damage + immediate elimination + last-player-standing check, shared by
- *  every damage path (roller-targeted, chosen, auto-chosen). */
-export function damagePlayer(state: GameState, seat: number, amount: number): void {
+ *  every damage path (roller-targeted, chosen, auto-chosen). The attacker
+ *  seat feeds the combat relics (Assassin's Mark, Vampiric Chalice); the
+ *  victim's Iron Aegis blunts the first hit each round. */
+export function damagePlayer(
+  state: GameState,
+  seat: number,
+  amount: number,
+  attacker?: number,
+): void {
   const victim = state.players[seat];
   if (!victim) throw new Error(`no player at seat ${seat}`);
   if (victim.eliminated) return; // untargetable; late damage fizzles
-  victim.hp = Math.max(0, victim.hp - amount);
+
+  let dealt = amount;
+  const striker = attacker !== undefined ? state.players[attacker] : undefined;
+  if (striker && attacker !== seat && hasRelic(striker, 'assassins-mark')) {
+    const leader = pointLeaderPoints(state);
+    if (victim.points >= leader && leader > 0) dealt += 1;
+  }
+  if (hasRelic(victim, 'iron-aegis') && !victim.relicUsed['iron-aegis']) {
+    victim.relicUsed['iron-aegis'] = 1;
+    dealt = Math.max(0, dealt - 2);
+  }
+  if (striker && attacker !== seat && dealt > 0 && hasRelic(striker, 'vampiric-chalice')) {
+    striker.hp = Math.min(state.tunables.startingHp, striker.hp + 1);
+  }
+
+  victim.hp = Math.max(0, victim.hp - dealt);
   if (victim.hp === 0) {
     victim.eliminated = true; // elimination is immediate (PLAN section 2)
     checkKo(state);
@@ -102,7 +125,7 @@ export function applyEffect(
         throw new Error('active chooseOpponent damage must resolve through the queue');
       }
       // target 'roller', or echo-coerced chooseOpponent: both hit the roller.
-      damagePlayer(state, ctx.roller, effect.amount);
+      damagePlayer(state, ctx.roller, effect.amount, ctx.owner);
       break;
     case 'refreshShop':
       dealRow(state, ctx.owner, rng);

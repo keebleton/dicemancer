@@ -18,10 +18,16 @@ if (!existsSync(ICONS_DIR)) {
 }
 
 const referenced = new Set();
-for (const f of readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.ts'))) {
-  const src = readFileSync(join(CONTENT_DIR, f), 'utf8');
-  // Any quoted .PNG in content is an icon reference (icon: fields, the
-  // starter icon map, whatever comes later).
+const scanFiles = [
+  ...readdirSync(CONTENT_DIR)
+    .filter((f) => f.endsWith('.ts'))
+    .map((f) => join(CONTENT_DIR, f)),
+  join(root, 'src', 'engine', 'relics.ts'), // relic art lives with the rules
+];
+for (const path of scanFiles) {
+  const src = readFileSync(path, 'utf8');
+  // Any quoted .PNG is an icon reference (icon: fields, the starter icon
+  // map, relic defs, whatever comes later).
   for (const m of src.matchAll(/'([^']+\.png)'/gi)) referenced.add(m[1]);
 }
 

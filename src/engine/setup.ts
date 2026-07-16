@@ -1,3 +1,4 @@
+import { RELICS, RELIQUARY_SIZE } from './relics';
 import { dealMarket, dealRow, shuffle } from './shop';
 import { DEFAULT_TUNABLES, HP_BY_PLAYER_COUNT } from './tunables';
 import type { CardDef, GameState, PlayerState, Rng, SeatColor, Tunables } from './types';
@@ -54,12 +55,24 @@ export function createGame(config: GameConfig, rng?: Rng): GameState {
       shop: config.pools ? Array<CardDef | null>(1).fill(null) : [],
       colorDeck,
       colorDiscard: [],
+      relics: [],
+      relicPicks: {},
+      relicUsed: {},
     };
   });
 
   // ONE shared colorless market deck for the whole table.
   const marketDeck = config.pools ? structuredClone(config.pools.colorless) : [];
   if (rng) shuffle(marketDeck, rng);
+
+  // The reliquary only opens in pooled (real) games; starter-only test games
+  // have no economy to sink.
+  const relicDeck = config.pools ? RELICS.map((r) => r.id) : [];
+  if (rng) shuffle(relicDeck, rng);
+  const reliquary: (string | null)[] = [];
+  for (let i = 0; i < RELIQUARY_SIZE && relicDeck.length > 0; i++) {
+    reliquary.push(relicDeck.shift() ?? null);
+  }
 
   const state: GameState = {
     tunables,
@@ -72,6 +85,8 @@ export function createGame(config: GameConfig, rng?: Rng): GameState {
     pendingEffects: null,
     market: [],
     marketDeck,
+    reliquary,
+    relicDeck,
     echoPending: [],
     echoNumbers: players.map(() => null),
     winner: null,

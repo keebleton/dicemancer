@@ -10,7 +10,10 @@ export {
   actingSeat,
   applyAction,
   applyActionInPlace,
+  buyCost,
   legalActions,
   legalTargets,
   previewNumbers,
 } from './reducer';
+export { MAX_RELICS, RELICS, RELIC_BY_ID, RELIQUARY_SIZE, hasRelic } from './relics';
+export type { RelicDef } from './relics';

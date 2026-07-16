@@ -30,8 +30,10 @@ export function dealRow(state: GameState, seat: number, rng: Rng): void {
   for (const card of p.shop) {
     if (card) p.colorDiscard.push(card);
   }
+  // Auctioneer's Gavel relic: a wider row.
+  const size = SHOP_COLOR_CARDS + (p.relics.includes('auctioneers-gavel') ? 1 : 0);
   const row: (CardDef | null)[] = [];
-  for (let i = 0; i < SHOP_COLOR_CARDS; i++) row.push(draw(p.colorDeck, p.colorDiscard, rng));
+  for (let i = 0; i < size; i++) row.push(draw(p.colorDeck, p.colorDiscard, rng));
   p.shop = row;
 }
 

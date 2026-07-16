@@ -1,4 +1,5 @@
 // Presentation-only text helpers. No rules here: everything is read off data.
+import { RELIC_BY_ID } from '../engine';
 import type { Action, ConditionalWhen, Effect, GameState } from '../engine';
 
 function condText(when: ConditionalWhen): string {
@@ -98,6 +99,20 @@ export function describeTransition(prev: GameState, action: Action, next: GameSt
       );
       break;
     }
+    case 'BUY_RELIC': {
+      const id = prev.reliquary[action.index];
+      const name = id ? (RELIC_BY_ID[id]?.name ?? id) : '?';
+      lines.push(
+        `${who} claims the ${name} relic${action.slotPick !== undefined ? ` (slot ${action.slotPick})` : ''}`,
+      );
+      break;
+    }
+    case 'SET_DIE':
+      lines.push(`${who} loads die ${action.dieIndex + 1} to ${action.face}`);
+      break;
+    case 'REROLL_BOTH':
+      lines.push(`${who} invokes the Destiny Stone: rerolls ${next.dice![0]} + ${next.dice![1]}`);
+      break;
     case 'SKIP_BUY':
       lines.push(`${who} skips the shop`);
       break;
