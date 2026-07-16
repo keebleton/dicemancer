@@ -356,6 +356,8 @@ input, select { background: #333b52; border: 1px solid #4a5470; color: #e8eaf2; 
 .lab h4 { margin: 12px 0 4px; font-size: 13px; text-transform: capitalize; }
 
 .openrooms { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.botlevels { display: inline-flex; margin-left: 4px; }
+.botlevels button { padding: 2px 7px; font-size: 11px; }
 .matchlist { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; max-height: 60vh; overflow-y: auto; }
 .matchrow { display: flex; flex-direction: column; gap: 2px; border: 1px solid #3a4258; border-radius: 8px; padding: 6px 10px; background: #262d40; font-size: 12.5px; }
 .matchdate { font-size: 11px; }

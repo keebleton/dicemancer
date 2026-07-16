@@ -75,6 +75,52 @@ describe('bot heuristics', () => {
     expect(chooseAction(s)).toEqual({ type: 'ALLOCATE', mode: 'sum' });
   });
 
+  it('hard spends a nudge when it flips a weak roll into a jackpot', () => {
+    let s = newGame(2);
+    s.players[0]!.tokens.nudge = 1;
+    s.players[0]!.board[3] = testCard({
+      id: 'jackpot',
+      legalSlots: [4],
+      active: [{ kind: 'gainMoney', amount: 10 }],
+    });
+    s = applyAction(s, { type: 'ROLL' }, diceRng(3, 6));
+    const hard = chooseAction(s, 'hard');
+    expect(hard.type).toBe('SPEND_TOKEN');
+    if (hard.type === 'SPEND_TOKEN') {
+      expect(hard.kind).toBe('nudge');
+      expect(hard.dieIndex).toBe(0);
+      expect(hard.delta).toBe(1); // 3 -> 4: the jackpot slot fires
+    }
+    // The baseline bot ignores tokens by design.
+    expect(chooseAction(s, 'normal').type).toBe('ALLOCATE');
+  });
+
+  it('hard takes lethal over the point leader; normal does not', () => {
+    let s = newGame(3);
+    s.players[0]!.board[3] = testCard({
+      id: 'bolt2',
+      legalSlots: [4],
+      active: [{ kind: 'damage', amount: 2, target: 'chooseOpponent' }],
+    });
+    s.players[1]!.points = 10; // the leader
+    s.players[2]!.hp = 2; // the kill
+    s = applyAction(s, { type: 'ROLL' }, diceRng(1, 3));
+    s = applyAction(s, { type: 'ALLOCATE', mode: 'sum' }, deadRng());
+    expect(s.phase).toBe('chooseTarget');
+    expect(chooseAction(s, 'hard')).toEqual({ type: 'CHOOSE_TARGET', playerId: 2 });
+    expect(chooseAction(s, 'normal')).toEqual({ type: 'CHOOSE_TARGET', playerId: 1 });
+  });
+
+  it('easy always returns a legal action, derp rolls included', () => {
+    let s = newGame(2);
+    const rng = mulberry32(0xea5e);
+    for (let step = 0; step < 120 && s.winner === null; step++) {
+      const a = chooseAction(s, 'easy');
+      expect(legalActions(s).map((x) => JSON.stringify(x))).toContain(JSON.stringify(a));
+      s = applyAction(s, a, rng);
+    }
+  });
+
   it('buys a clear upgrade and skips overpriced junk', () => {
     const upgrade = newGame(2);
     let s = applyAction(upgrade, { type: 'ROLL' }, diceRng(1, 2));

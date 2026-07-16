@@ -4,6 +4,7 @@ import type { Action, GameState, Rng, SeatColor } from '../engine';
 import { net } from '../net/net';
 import type { NetMode } from '../net/net';
 import { buildSeats, isLegalIntent } from '../net/protocol';
+import type { BotLevel } from '../bot';
 import { reportMatch, useAccount } from './account';
 import { describeTransition } from './describe';
 import { publishRoom, unpublishRoom } from './rooms';
@@ -36,6 +37,7 @@ export interface SavedSession {
   game?: GameState;
   seatKinds?: SeatKind[];
   seatProfiles?: (string | null)[];
+  botLevels?: BotLevel[];
   /** Host: who sat where, for reattaching reconnections after a resume. */
   roster?: { name: string; profileId: string | null; seat: number }[];
 }
@@ -115,12 +117,15 @@ interface GameStore {
   seatProfiles: (string | null)[];
   /** Per-seat connection truth in online games (bots/host count as present). */
   connectedSeats: boolean[];
+  /** Bot strength per seat (only meaningful where seatKinds is 'bot'). */
+  botLevels: BotLevel[];
   start: (
     playerCount: number,
     roundCap: number,
     seed?: number,
     kinds?: SeatKind[],
     colors?: SeatColor[],
+    levels?: BotLevel[],
   ) => void;
   /** The ONLY writer: every state change goes through the engine's applyAction.
    *  Online clients do not apply anything; they forward the intent instead. */
@@ -130,7 +135,12 @@ interface GameStore {
   hostRoom: (name: string) => Promise<string>;
   joinRoom: (code: string, name: string) => Promise<void>;
   /** Host only: lobby -> live game. Bots fill the tail seats. */
-  startOnline: (botCount: number, roundCap: number, colors: SeatColor[]) => void;
+  startOnline: (
+    botCount: number,
+    roundCap: number,
+    colors: SeatColor[],
+    botLevel?: BotLevel,
+  ) => void;
   leaveOnline: (notice?: string | null) => void;
   // --- resilience ---
   /** Restore a saved offline game after a refresh. */
@@ -191,6 +201,7 @@ export const useGame = create<GameStore>()((set, get) => {
       game: s.game,
       seatKinds: s.seatKinds,
       seatProfiles: s.seatProfiles,
+      botLevels: s.botLevels,
       roster: s.mode === 'host' ? net.seatRoster() : undefined,
     });
   };
@@ -280,7 +291,8 @@ export const useGame = create<GameStore>()((set, get) => {
     netNotice: null,
     seatProfiles: [],
     connectedSeats: [],
-    start: (playerCount, roundCap, seed, kinds, colors) => {
+    botLevels: [],
+    start: (playerCount, roundCap, seed, kinds, colors, levels) => {
       rng = mulberry32(seed ?? Date.now() >>> 0);
       const seatKinds: SeatKind[] =
         kinds?.slice(0, playerCount) ?? Array<SeatKind>(playerCount).fill('human');
@@ -302,6 +314,7 @@ export const useGame = create<GameStore>()((set, get) => {
         game,
         seatKinds,
         connectedSeats: Array<boolean>(playerCount).fill(true),
+        botLevels: levels?.slice(0, playerCount) ?? Array<BotLevel>(playerCount).fill('normal'),
         log: [
           `game started: ${playerCount} players${roundCap > 0 ? `, round cap ${roundCap}` : ''}`,
         ],
@@ -354,7 +367,7 @@ export const useGame = create<GameStore>()((set, get) => {
       await net.join(code, name, useAccount.getState().profile?.id ?? null);
       set({ mode: 'client', roomCode: code });
     },
-    startOnline: (botCount, roundCap, colors) => {
+    startOnline: (botCount, roundCap, colors, botLevel = 'normal') => {
       const names = net.lobbyNames();
       const seats = buildSeats(names[0] ?? 'Host', names.slice(1), botCount);
       const seatProfiles: (string | null)[] = [
@@ -381,6 +394,7 @@ export const useGame = create<GameStore>()((set, get) => {
         mySeat: 0,
         seatProfiles,
         connectedSeats: Array<boolean>(seats.names.length).fill(true),
+        botLevels: Array<BotLevel>(seats.names.length).fill(botLevel),
         log: [`online game started: ${seats.names.join(', ')}`],
       });
       net.begin(game, seats.kinds);
@@ -409,6 +423,7 @@ export const useGame = create<GameStore>()((set, get) => {
       set({
         game: saved.game,
         seatKinds: saved.seatKinds ?? saved.game.players.map(() => 'human' as SeatKind),
+        botLevels: saved.botLevels ?? saved.game.players.map(() => 'normal' as BotLevel),
         mode: 'offline',
         mySeat: null,
         connectedSeats: saved.game.players.map(() => true),
@@ -426,6 +441,7 @@ export const useGame = create<GameStore>()((set, get) => {
         game: saved.game,
         seatKinds: saved.seatKinds ?? saved.game.players.map(() => 'human' as SeatKind),
         seatProfiles: saved.seatProfiles ?? saved.game.players.map(() => null),
+        botLevels: saved.botLevels ?? saved.game.players.map(() => 'normal' as BotLevel),
         mode: 'host',
         mySeat: 0,
         roomCode: code,

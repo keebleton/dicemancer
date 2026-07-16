@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { BotLevel } from '../bot';
 import type { SeatColor } from '../engine';
 import { useAccount, validLogin } from './account';
 import { Game } from './Game';
@@ -229,6 +230,7 @@ function Setup({ onLab }: { onLab: () => void }) {
   const netNotice = useGame((s) => s.netNotice);
   const [count, setCount] = useState(2);
   const [kinds, setKinds] = useState<SeatKind[]>(['human', 'bot', 'bot', 'bot']);
+  const [levels, setLevels] = useState<BotLevel[]>(['normal', 'normal', 'normal', 'normal']);
   const [colors, setColors] = useState<SeatColor[]>(['red', 'blue', 'green', 'yellow']);
   const [packs, setPacks] = useState(() => loadPacks());
   const [name, setName] = useState(savedName);
@@ -342,6 +344,20 @@ function Setup({ onLab }: { onLab: () => void }) {
               onClick={() => setColors(colors.map((old, j) => (j === i ? c : old)))}
             />
           ))}
+          {kinds[i] === 'bot' && (
+            <span className="botlevels">
+              {(['easy', 'normal', 'hard'] as const).map((lv) => (
+                <button
+                  key={lv}
+                  className={levels[i] === lv ? 'selected' : ''}
+                  title={`${lv} bot`}
+                  onClick={() => setLevels(levels.map((old, j) => (j === i ? lv : old)))}
+                >
+                  {lv[0]!.toUpperCase()}
+                </button>
+              ))}
+            </span>
+          )}
         </div>
       ))}
       {packs.length > 0 && (
@@ -359,7 +375,7 @@ function Setup({ onLab }: { onLab: () => void }) {
           ))}
         </div>
       )}
-      <button className="primary" onClick={() => start(count, 0, undefined, kinds, colors)}>
+      <button className="primary" onClick={() => start(count, 0, undefined, kinds, colors, levels)}>
         Start game
       </button>
       <div className="netrow">
@@ -408,6 +424,7 @@ function OnlineLobby() {
   const startOnline = useGame((s) => s.startOnline);
   const leaveOnline = useGame((s) => s.leaveOnline);
   const [bots, setBots] = useState(0);
+  const [botLevel, setBotLevel] = useState<BotLevel>('normal');
   const [colors, setColors] = useState<SeatColor[]>(['red', 'blue', 'green', 'yellow']);
   const humans = Math.max(1, lobby.length);
   const maxBots = Math.max(0, 4 - humans);
@@ -457,11 +474,25 @@ function OnlineLobby() {
                 {n}
               </button>
             ))}
+            {botCount > 0 && (
+              <>
+                {' '}
+                {(['easy', 'normal', 'hard'] as const).map((lv) => (
+                  <button
+                    key={lv}
+                    className={botLevel === lv ? 'selected' : ''}
+                    onClick={() => setBotLevel(lv)}
+                  >
+                    {lv}
+                  </button>
+                ))}
+              </>
+            )}
           </div>
           <button
             className="primary"
             disabled={total < 2}
-            onClick={() => startOnline(botCount, 0, colors)}
+            onClick={() => startOnline(botCount, 0, colors, botLevel)}
           >
             {total < 2 ? 'waiting for players...' : `Start game (${total} players)`}
           </button>

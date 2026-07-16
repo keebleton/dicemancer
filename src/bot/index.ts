@@ -1,24 +1,55 @@
-// Heuristic bot: dumb on purpose, replaceable. Consumes the same public
-// engine API as the UI (legalActions + action payloads); no rules live here.
-// Known dumbness, accepted for MVP: never spends tokens, ignores echo value
-// and opponent echo stacks, scores only immediate effects.
+// Heuristic bot at three strengths. 'normal' is the original MVP bot (all
+// balance sims are calibrated against it): never spends tokens, ignores the
+// echo value of buys, scores only immediate effects. 'easy' plays a random
+// legal action a quarter of the time and never buys relics. 'hard' spends
+// nudge and reroll tokens when the math says so, values the echo a purchase
+// sends to the graveyard, leans into charge slots about to pay off, and
+// takes lethal when it sees it. Everything stays deterministic (sims replay
+// per seed): easy's randomness derives from a state hash, not Math.random.
 import { RELIC_BY_ID, actingSeat, legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, ConditionalWhen, Effect, GameState } from '../engine';
 
-export function chooseAction(state: GameState): Action {
+export type BotLevel = 'easy' | 'normal' | 'hard';
+
+/** Deterministic pseudo-randomness for the easy bot's derp factor. */
+function stateHash(state: GameState): number {
+  const d = state.dice;
+  let h = state.round * 2654435761 + state.current * 40503 + (d ? d[0] * 97 + d[1] * 31 : 7);
+  h = (h ^ (h >>> 13)) * 1274126177;
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+export function chooseAction(state: GameState, level: BotLevel = 'normal'): Action {
   const actions = legalActions(state);
   const first = actions[0];
   if (!first) throw new Error('bot asked to act with no legal actions');
   if (actions.length === 1) return first;
+  if (level === 'easy') {
+    const h = stateHash(state);
+    if (h % 4 === 0) {
+      // A random legal action... but never a relic, and never a suicidal
+      // token burn loop (SPEND_TOKEN re-enters allocate forever).
+      const pool = actions.filter((a) => a.type !== 'BUY_RELIC' && a.type !== 'SPEND_TOKEN');
+      return pool[(h >>> 3) % pool.length] ?? first;
+    }
+  }
   switch (state.phase) {
     case 'allocate':
-      return bestAllocation(state, actions);
+      return level === 'hard' ? hardAllocate(state, actions) : bestAllocation(state, actions);
     case 'chooseTarget':
-      return bestTarget(state, actions);
+      return bestTarget(state, actions, level);
     case 'echoChoice':
       return bestEchoChoice(state);
-    case 'buy':
-      return bestBuy(state, actions);
+    case 'buy': {
+      if (level === 'easy') {
+        return bestBuy(
+          state,
+          actions.filter((a) => a.type !== 'BUY_RELIC'),
+          level,
+        );
+      }
+      return bestBuy(state, actions, level);
+    }
     default:
       return first;
   }
@@ -234,17 +265,11 @@ function conditionOdds(
 function bestAllocation(state: GameState, actions: Action[]): Action {
   // SPEND_TOKEN actions are ignored on purpose; pick the better mode.
   const dice = state.dice!;
-  const seat = state.current;
-  const board = state.players[seat]!.board;
   let best: Action | null = null;
   let bestScore = -Infinity;
   for (const a of actions) {
     if (a.type !== 'ALLOCATE') continue;
-    const roll: RollContext = { mode: a.mode, sum: dice[0] + dice[1], dice };
-    let s = 0;
-    for (const n of previewNumbers(dice, a.mode)) {
-      s += scoreEffects(state, board[n - 1]!.active, seat, roll);
-    }
+    const s = allocationValue(state, dice, a.mode);
     if (s > bestScore) {
       bestScore = s;
       best = a;
@@ -253,14 +278,74 @@ function bestAllocation(state: GameState, actions: Action[]): Action {
   return best!;
 }
 
-function bestTarget(state: GameState, actions: Action[]): Action {
-  // Always the point leader; HP breaks ties.
+/** EV of firing these dice under this mode, charge progress included. */
+function allocationValue(state: GameState, dice: [number, number], mode: AllocationMode): number {
+  const seat = state.current;
+  const me = state.players[seat]!;
+  const roll: RollContext = { mode, sum: dice[0] + dice[1], dice };
+  let s = 0;
+  for (const n of previewNumbers(dice, mode)) {
+    s += scoreEffects(state, me.board[n - 1]!.active, seat, roll);
+    // A charge one fire from paying out is nearly its payoff.
+    for (const e of me.board[n - 1]!.active) {
+      if (e.kind === 'charge' && (me.charges[n - 1] ?? 0) >= e.need - 1) {
+        s += scoreEffects(state, e.then, seat, roll) * 0.9;
+      }
+    }
+  }
+  return s;
+}
+
+/** Hard bot: consider nudges (deterministic) and rerolls (in expectation)
+ *  before settling for the best plain allocation. */
+function hardAllocate(state: GameState, actions: Action[]): Action {
+  const dice = state.dice!;
+  const evOf = (d: [number, number]) =>
+    Math.max(allocationValue(state, d, 'individual'), allocationValue(state, d, 'sum'));
+  const current = evOf(dice);
+
+  let bestToken: Action | null = null;
+  let bestGain = 0;
+  for (const a of actions) {
+    if (a.type !== 'SPEND_TOKEN') continue;
+    if (a.kind === 'nudge') {
+      const d: [number, number] = [...dice];
+      d[a.dieIndex] += a.delta!;
+      const gain = evOf(d) - current;
+      if (gain > Math.max(1.2, bestGain)) {
+        bestGain = gain;
+        bestToken = a;
+      }
+    } else {
+      // Reroll in expectation over the six faces.
+      let sum = 0;
+      for (let face = 1; face <= 6; face++) {
+        const d: [number, number] = [...dice];
+        d[a.dieIndex] = face;
+        sum += evOf(d);
+      }
+      const gain = sum / 6 - current;
+      if (gain > Math.max(1.5, bestGain)) {
+        bestGain = gain;
+        bestToken = a;
+      }
+    }
+  }
+  if (bestToken) return bestToken;
+  return bestAllocation(state, actions);
+}
+
+function bestTarget(state: GameState, actions: Action[], level: BotLevel = 'normal'): Action {
+  // Lethal first (hard); otherwise the point leader, HP breaking ties.
+  const pending = state.pendingEffects?.[0]?.effect;
+  const incoming = pending && pending.kind === 'damage' ? pending.amount : 0;
   let best: Action | null = null;
   let bestKey = -Infinity;
   for (const a of actions) {
     if (a.type !== 'CHOOSE_TARGET') continue;
     const p = state.players[a.playerId]!;
-    const key = p.points * 1000 + p.hp;
+    let key = p.points * 1000 + p.hp;
+    if (level === 'hard' && incoming > 0 && p.hp <= incoming) key += 1_000_000; // take the kill
     if (key > bestKey) {
       bestKey = key;
       best = a;
@@ -294,19 +379,30 @@ const RELIC_VALUE: Record<string, number> = {
   'wildcard-sleeve': 5,
 };
 
-function bestBuy(state: GameState, actions: Action[]): Action {
+function bestBuy(state: GameState, actions: Action[], level: BotLevel = 'normal'): Action {
   const seat = state.current;
   const me = state.players[seat]!;
+  const opponents = state.players.filter((p, i) => i !== seat && !p.eliminated).length;
   let best: Action | null = null;
   let bestScore = 0; // a buy must beat "keep the money"
   for (const a of actions) {
     if (a.type !== 'BUY' && a.type !== 'BUY_MARKET') continue;
     const card = a.type === 'BUY' ? me.shop[a.shopIndex]! : state.market[a.marketIndex]!;
     const prob = triggerProb(a.targetSlot);
-    const gain =
-      (scoreEffects(state, card.active, seat)
-        - scoreEffects(state, me.board[a.targetSlot - 1]!.active, seat))
+    const displaced = me.board[a.targetSlot - 1]!;
+    let gain =
+      (scoreEffects(state, card.active, seat) - scoreEffects(state, displaced.active, seat))
       * prob;
+    if (level === 'hard') {
+      // The buy also sends the displaced card to the graveyard, where its
+      // echo earns on every opponent turn for the rest of the game.
+      const echoValue = scoreEchoLine(state, displaced.echo, seat, {
+        mode: 'individual',
+        sum: 7,
+        dice: [3, 4],
+      });
+      gain += echoValue * triggerProb(a.targetSlot) * opponents * 3; // ~3-turn horizon
+    }
     let s = gain / Math.max(1, card.cost - me.buyDiscount);
     if (card.color === me.color) s += 0.05; // prefer own color
     if (s > bestScore) {

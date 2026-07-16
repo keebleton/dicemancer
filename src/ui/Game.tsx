@@ -66,7 +66,8 @@ export function Game() {
         && useGame.getState().mode !== 'client'
         && kinds[actingSeat(g)] === 'bot'
       ) {
-        useGame.getState().dispatch(chooseAction(g));
+        const level = useGame.getState().botLevels[actingSeat(g)] ?? 'normal';
+        useGame.getState().dispatch(chooseAction(g, level));
       }
     }, 300);
     return () => clearTimeout(t);
