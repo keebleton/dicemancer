@@ -16,6 +16,46 @@ import type { Action, GameState } from '../engine';
 import { makeRoomCode, roomPeerId } from './protocol';
 import type { NetMsg, SeatKind } from './protocol';
 
+/** NAT traversal. STUN alone fails whenever either side sits behind a
+ *  strict NAT (hotspots, CGNAT): the join dies before it ever opens with
+ *  "lost the connection". Every FREE public TURN relay we probed
+ *  (openrelay.metered.ca and even peerjs.com's own defaults) is dead, so
+ *  reliable relaying needs a keyed service: create a free metered.ca app
+ *  (50 GB/month) and fill in the two constants below; credentials are then
+ *  fetched fresh per session and merged in. Until then the public entries
+ *  ride along as a hail mary. */
+const METERED_APP = ''; // e.g. 'dicemancer' from the metered.ca dashboard
+const METERED_KEY = '';
+
+const BASE_ICE: RTCIceServer[] = [
+  { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+  {
+    urls: [
+      'turn:openrelay.metered.ca:80',
+      'turn:openrelay.metered.ca:443',
+      'turn:openrelay.metered.ca:443?transport=tcp',
+    ],
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+];
+
+let fetchedTurn: RTCIceServer[] | null = null;
+async function iceServers(): Promise<RTCIceServer[]> {
+  if (!METERED_APP || !METERED_KEY) return BASE_ICE;
+  if (!fetchedTurn) {
+    try {
+      const res = await fetch(
+        `https://${METERED_APP}.metered.live/api/v1/turn/credentials?apiKey=${METERED_KEY}`,
+      );
+      if (res.ok) fetchedTurn = (await res.json()) as RTCIceServer[];
+    } catch {
+      // offline or the service hiccuped: ride the base list this session
+    }
+  }
+  return fetchedTurn ? [...BASE_ICE, ...fetchedTurn] : BASE_ICE;
+}
+
 export type NetMode = 'offline' | 'host' | 'client';
 
 interface Callbacks {
@@ -71,14 +111,15 @@ class Net {
 
   /** Open a room. Tries the preferred code first (host resume), then random
    *  codes on broker collisions. Resolves with the code in use. */
-  host(name: string, preferredCode?: string): Promise<string> {
+  async host(name: string, preferredCode?: string): Promise<string> {
     this.leave();
     this.mode = 'host';
     this.hostName = name;
+    const servers = await iceServers();
     return new Promise((resolve, reject) => {
       const tryOpen = (attempt: number) => {
         const code = attempt === 0 && preferredCode ? preferredCode : makeRoomCode();
-        const peer = new Peer(roomPeerId(code));
+        const peer = new Peer(roomPeerId(code), { config: { iceServers: servers } });
         this.peer = peer;
         peer.on('open', () => {
           this.roomCode = code;
@@ -209,19 +250,35 @@ class Net {
 
   /** Join someone's room (spectate = watch only). Resolves once the host
    *  connection is open. */
-  join(code: string, name: string, profileId: string | null = null, spectate = false): Promise<void> {
+  async join(
+    code: string,
+    name: string,
+    profileId: string | null = null,
+    spectate = false,
+  ): Promise<void> {
     this.leave();
     this.mode = 'client';
     this.roomCode = code;
+    const servers = await iceServers();
     return new Promise((resolve, reject) => {
-      const peer = new Peer();
+      const peer = new Peer({ config: { iceServers: servers } });
       this.peer = peer;
       let opened = false;
+      const CANT_REACH =
+        'could not reach the host; one of your networks blocks the connection (retrying sometimes helps)';
+      // A join that never opens is a NAT/firewall failure, not a host drop;
+      // fail it honestly instead of hanging on the connecting screen.
+      const connectTimer = setTimeout(() => {
+        if (opened || this.closing) return;
+        this.leave();
+        reject(new Error(CANT_REACH));
+      }, 20_000);
       peer.on('open', () => {
         const conn = peer.connect(roomPeerId(code), { reliable: true });
         this.hostConn = conn;
         conn.on('open', () => {
           opened = true;
+          clearTimeout(connectTimer);
           conn.send({ type: 'hello', name, profileId, spectate } satisfies NetMsg);
           resolve();
         });
@@ -238,6 +295,13 @@ class Net {
         const onHostDown = () => {
           if (downHandled || this.closing) return;
           downHandled = true;
+          clearTimeout(connectTimer);
+          if (!opened) {
+            // Died during ICE: nothing was ever "lost", the path never existed.
+            this.leave();
+            reject(new Error(CANT_REACH));
+            return;
+          }
           this.drop('lost the connection to the host');
         };
         conn.on('close', onHostDown);
