@@ -3,6 +3,7 @@ import type { BotLevel } from '../bot';
 import type { SeatColor } from '../engine';
 import { useAccount, validLogin } from './account';
 import { Game } from './Game';
+import { Die } from './icons';
 import { IconPicker } from './IconPicker';
 import { Lab } from './Lab';
 import { iconError, iconUrl, loadPacks, savePacks } from './packs';
@@ -244,7 +245,10 @@ function Setup({ onLab }: { onLab: () => void }) {
     setPacks(next);
     savePacks(next);
   };
-  const myName = () => name.trim() || 'Player';
+  const profile = useAccount((s) => s.profile);
+  // Signed in = you play under your profile name; the field only exists for
+  // guests.
+  const myName = () => (profile?.username ?? name.trim()) || 'Player';
   const goHost = async () => {
     saveName(myName());
     setBusy('opening a room...');
@@ -268,15 +272,18 @@ function Setup({ onLab }: { onLab: () => void }) {
       setBusy(null);
     }
   };
-  const profile = useAccount((s) => s.profile);
-  useEffect(() => {
-    if (profile && !name.trim()) setName(profile.username);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile]);
-
   return (
     <main className="setup">
-      <h1>Dicemancer</h1>
+      <header className="herotitle">
+        <span className="herodie a">
+          <Die value={5} />
+        </span>
+        <h1>Dicemancer</h1>
+        <span className="herodie b">
+          <Die value={6} />
+        </span>
+      </header>
+      <div className="tagline">Build an engine out of dice.</div>
 
       <ResumeBox />
       <AccountBox />
@@ -284,15 +291,17 @@ function Setup({ onLab }: { onLab: () => void }) {
       <section className="netbox">
         <b>Play online</b>
         {netNotice && <div className="err">{netNotice}</div>}
-        <div className="netrow">
-          your name:{' '}
-          <input
-            value={name}
-            maxLength={16}
-            placeholder="Player"
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
+        {!profile && (
+          <div className="netrow">
+            <span className="seatlab">your name</span>
+            <input
+              value={name}
+              maxLength={16}
+              placeholder="Player"
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+        )}
         <div className="netrow">
           <button className="primary" disabled={busy !== null} onClick={goHost}>
             Host a room
@@ -314,8 +323,10 @@ function Setup({ onLab }: { onLab: () => void }) {
         {err && <div className="err">{err}</div>}
       </section>
 
-      <div>
-        players:{' '}
+      <section className="netbox localbox">
+      <b>Local table</b>
+      <div className="netrow">
+        <span className="seatlab">players</span>
         {[2, 3, 4].map((n) => (
           <button key={n} className={count === n ? 'selected' : ''} onClick={() => setCount(n)}>
             {n}
@@ -324,7 +335,7 @@ function Setup({ onLab }: { onLab: () => void }) {
       </div>
       {Array.from({ length: count }, (_, i) => (
         <div key={i} className="seatrow">
-          seat {i + 1}:{' '}
+          <span className="seatlab">seat {i + 1}</span>{' '}
           {(['human', 'bot'] as const).map((k) => (
             <button
               key={k}
@@ -360,8 +371,8 @@ function Setup({ onLab }: { onLab: () => void }) {
         </div>
       ))}
       {packs.length > 0 && (
-        <div>
-          card packs:{' '}
+        <div className="netrow">
+          <span className="seatlab">card packs</span>
           {packs.map((p) => (
             <button
               key={p.id}
@@ -374,10 +385,15 @@ function Setup({ onLab }: { onLab: () => void }) {
           ))}
         </div>
       )}
-      <button className="primary" onClick={() => start(count, 0, undefined, kinds, colors, levels)}>
+      <button
+        className="primary big"
+        onClick={() => start(count, 0, undefined, kinds, colors, levels)}
+      >
         Start game
       </button>
-      <div className="netrow">
+      </section>
+
+      <div className="netrow setupfoot">
         <button onClick={onLab}>Card Lab</button>
         <button onClick={() => setHelp(true)}>How to play</button>
         <button onClick={() => setHistory(true)}>Match history</button>

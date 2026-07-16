@@ -402,8 +402,34 @@ input[type='number'] { width: 64px; background: #333b52; border: 1px solid #4a54
   100% { transform: none; }
 }
 
-.setup { max-width: 440px; margin: 60px auto; background: #2c3348; border: 1px solid #3a4258; border-radius: 12px; padding: 24px 28px; display: flex; flex-direction: column; gap: 12px; }
-.netbox { border: 1px solid #caa53d; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; background: #322f3e; }
+/* ---- The front door: hero wordmark flanked by tumbling dice, sections in
+   the game's panel language, everything dealing in with a small stagger. */
+.setup { max-width: 480px; margin: 44px auto; background: linear-gradient(180deg, #2f374f 0%, #272e42 100%); border: 1px solid #3d4763; border-radius: 14px; padding: 26px 30px 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 18px 50px rgba(0, 0, 0, 0.45); }
+.setup > * { animation: setupin 0.32s cubic-bezier(0.2, 0.8, 0.3, 1) backwards; }
+.setup > *:nth-child(2) { animation-delay: 0.04s; }
+.setup > *:nth-child(3) { animation-delay: 0.08s; }
+.setup > *:nth-child(4) { animation-delay: 0.12s; }
+.setup > *:nth-child(5) { animation-delay: 0.16s; }
+.setup > *:nth-child(6) { animation-delay: 0.2s; }
+.setup > *:nth-child(7) { animation-delay: 0.24s; }
+@keyframes setupin {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.herotitle { display: flex; align-items: center; justify-content: center; gap: 16px; }
+.setup .herotitle h1 { font-size: 46px; letter-spacing: 3px; }
+.herodie { width: 36px; height: 36px; flex: none; }
+.herodie .die { width: 100%; height: 100%; }
+.herodie.a { transform: rotate(-13deg); }
+.herodie.b { transform: rotate(11deg); }
+.herodie.b .die { animation-delay: 0.14s; animation-fill-mode: backwards; }
+.tagline { text-align: center; font-family: var(--serif); font-style: italic; font-size: 15px; color: #b8a86e; margin: -8px 0 4px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+.netbox { border: 1px solid #caa53d; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; background: #322f3e; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 6px 16px rgba(0, 0, 0, 0.25); }
+.netbox > b { font-family: var(--display); font-weight: 400; font-size: 18px; letter-spacing: 1.2px; color: var(--gold); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+.localbox { border-color: #4a5470; }
+.seatlab { font-family: var(--serif); font-size: 13.5px; color: #a8adbd; min-width: 52px; }
+button.big { font-family: var(--display); font-weight: 400; font-size: 18px; letter-spacing: 1px; padding: 9px 22px; margin-top: 4px; align-self: flex-start; }
+.setupfoot { justify-content: center; }
 .netrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .codein { width: 74px; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; text-align: center; }
 .roomcode { font-size: 15px; }
