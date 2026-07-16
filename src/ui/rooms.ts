@@ -2,7 +2,7 @@
 // fire-and-forget and fails silently: until supabase/schema2.sql is run (or
 // when offline) the features are simply inert.
 import { supa } from '../supa/client';
-import type { MatchPlayer } from '../supa/client';
+import type { MatchPlayer, Profile } from '../supa/client';
 
 export interface OpenRoom {
   code: string;
@@ -57,6 +57,22 @@ export interface MatchRow {
   win_reason: string | null;
   rounds: number | null;
   created_at: string;
+}
+
+/** Ranked players: most wins first, win rate breaking ties. */
+export async function listLeaders(limit = 20): Promise<Profile[]> {
+  const { data, error } = await supa
+    .from('profiles')
+    .select('*')
+    .gt('games_played', 0)
+    .order('games_won', { ascending: false })
+    .limit(limit);
+  if (error) return [];
+  return ((data ?? []) as Profile[]).sort(
+    (a, b) =>
+      b.games_won - a.games_won ||
+      b.games_won / Math.max(1, b.games_played) - a.games_won / Math.max(1, a.games_played),
+  );
 }
 
 export async function listMatches(limit = 15): Promise<MatchRow[]> {

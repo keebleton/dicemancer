@@ -272,6 +272,22 @@ export const useGame = create<GameStore>()((set, get) => {
     deliverChat(seat, text, big);
   };
 
+  // Bots talk a little: rare, event-driven emotes through the same relay
+  // real players use. Deterministic gate (no Math.random) keeps sims stable
+  // and the table from turning into a chat room.
+  const botTableTalk = (prev: GameState, next: GameState) => {
+    const kinds = get().seatKinds;
+    next.players.forEach((p, seat) => {
+      if (kinds[seat] !== 'bot') return;
+      const q = prev.players[seat]!;
+      const gate = (next.round * 31 + seat * 7 + p.hp + p.money) % 4;
+      if (next.winner === seat && prev.winner === null) hostRelayChat(seat, 'GG', true);
+      else if (p.eliminated && !q.eliminated) hostRelayChat(seat, 'GG', true);
+      else if (q.hp - p.hp >= 4 && gate === 0) hostRelayChat(seat, 'Ouch!', true);
+      else if (p.money - q.money >= 5 && gate === 1) hostRelayChat(seat, 'Nice!', true);
+    });
+  };
+
   const pushMeta = () => {
     const s = get();
     if (s.mode !== 'host' || !s.game) return;
@@ -421,6 +437,7 @@ export const useGame = create<GameStore>()((set, get) => {
       if (!prev) return;
       const next = applyAction(prev, action, rng);
       set(ingest(get, prev, action, next));
+      botTableTalk(prev, next);
       if (mode === 'host') {
         net.sync(action, next);
         // Game just ended: record the result and leave the live-games list.

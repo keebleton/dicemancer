@@ -12,7 +12,9 @@ import { IconPicker } from './IconPicker';
 import { Lab } from './Lab';
 import { iconError, iconUrl, loadPacks, savePacks } from './packs';
 import { HowToPlay } from './HowToPlay';
+import { Leaderboard } from './Leaderboard';
 import { MatchHistory } from './MatchHistory';
+import { presentIds, trackPresence } from './presence';
 import { listLiveGames, listRooms } from './rooms';
 import type { OpenRoom } from './rooms';
 import { clearSavedSession, loadSavedSession, useGame } from './store';
@@ -23,10 +25,16 @@ const SEAT_COLORS: SeatColor[] = ['red', 'blue', 'black', 'green', 'yellow'];
 export function App() {
   const game = useGame((s) => s.game);
   const mode = useGame((s) => s.mode);
+  const profileId = useAccount((s) => s.profile?.id);
   const [lab, setLab] = useState(false);
   useEffect(() => {
     useAccount.getState().init();
   }, []);
+  // Announce presence for the whole visit (home screen, lobby, and in-game).
+  useEffect(() => {
+    if (!profileId) return;
+    return trackPresence(profileId);
+  }, [profileId]);
   if (game) return <Game />;
   if (mode !== 'offline') return <OnlineLobby />;
   if (lab) return <Lab onClose={() => setLab(false)} />;
@@ -229,11 +237,16 @@ function FriendsOverlay({ onClose }: { onClose: () => void }) {
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [adding, setAdding] = useState('');
   const [note, setNote] = useState<string | null>(null);
+  const [online, setOnline] = useState<Set<string>>(() => presentIds());
   const refresh = () => {
     if (myId) void fetchFriends(myId).then(setFriends);
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(refresh, [myId]);
+  useEffect(() => {
+    const t = setInterval(() => setOnline(presentIds()), 4000);
+    return () => clearInterval(t);
+  }, []);
 
   const accepted = friends.filter((f) => f.status === 'accepted');
   const incoming = friends.filter((f) => f.status === 'pending' && f.direction === 'in');
@@ -293,6 +306,10 @@ function FriendsOverlay({ onClose }: { onClose: () => void }) {
       ))}
       {accepted.map((f) => (
         <div key={f.id} className="netrow friendrow">
+          <span
+            className={'presdot' + (online.has(f.profile.id) ? ' on' : '')}
+            title={online.has(f.profile.id) ? 'online' : 'offline'}
+          />
           <img className="avatar" src={iconUrl(f.profile.avatar_icon)} alt="" onError={iconError} />
           <b>{f.profile.username}</b>
           <span className="dimtext">
@@ -374,6 +391,7 @@ function Setup({ onLab }: { onLab: () => void }) {
   const [help, setHelp] = useState(false);
   const [history, setHistory] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
+  const [leaders, setLeaders] = useState(false);
   const [invite, setInvite] = useState<Invite | null>(null);
   const togglePack = (id: string) => {
     const next = packs.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p));
@@ -570,10 +588,12 @@ function Setup({ onLab }: { onLab: () => void }) {
         <button onClick={onLab}>Card Lab</button>
         <button onClick={() => setHelp(true)}>How to play</button>
         <button onClick={() => setHistory(true)}>Match history</button>
+        <button onClick={() => setLeaders(true)}>Leaderboard</button>
         {profile && <button onClick={() => setShowFriends(true)}>Friends</button>}
       </div>
       {help && <HowToPlay onClose={() => setHelp(false)} />}
       {history && <MatchHistory onClose={() => setHistory(false)} />}
+      {leaders && <Leaderboard onClose={() => setLeaders(false)} />}
       {showFriends && <FriendsOverlay onClose={() => setShowFriends(false)} />}
     </main>
   );
