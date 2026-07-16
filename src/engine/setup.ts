@@ -3,12 +3,20 @@ import { dealMarket, dealRow, shuffle } from './shop';
 import { DEFAULT_TUNABLES, HP_BY_PLAYER_COUNT } from './tunables';
 import type { CardDef, GameState, PlayerState, Rng, SeatColor, Tunables } from './types';
 
+/** A curated deck must keep at least this many cards: small decks turn the
+ *  rotating shop into a consistency machine. */
+export const MIN_DECK_CARDS = 20;
+
 export interface SeatConfig {
   name: string;
   color: SeatColor;
   /** Optional second deck color: the shop deals from both pools merged
    *  (the deck-builder feature). Same as color = ignored. */
   color2?: SeatColor;
+  /** Optional curated deck: keep only these card ids from the color pools.
+   *  Unknown ids are ignored; fewer than MIN_DECK_CARDS survivors falls back
+   *  to the full merge (stale saved decks must not break game creation). */
+  cardIds?: string[];
 }
 
 export interface GameConfig {
@@ -42,9 +50,12 @@ export function createGame(config: GameConfig, rng?: Rng): GameState {
   const players: PlayerState[] = config.seats.map((seat) => {
     const colors: SeatColor[] =
       seat.color2 && seat.color2 !== seat.color ? [seat.color, seat.color2] : [seat.color];
-    const colorDeck = config.pools
-      ? colors.flatMap((c) => structuredClone(config.pools![c]))
-      : [];
+    let colorDeck = config.pools ? colors.flatMap((c) => structuredClone(config.pools![c])) : [];
+    if (seat.cardIds && config.pools) {
+      const keep = new Set(seat.cardIds);
+      const curated = colorDeck.filter((c) => keep.has(c.id));
+      if (curated.length >= MIN_DECK_CARDS) colorDeck = curated;
+    }
     if (rng) shuffle(colorDeck, rng);
     return {
       name: seat.name,

@@ -464,6 +464,9 @@ button.big { font-family: var(--display); font-weight: 700; font-size: 18px; let
 .colordot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, 0.55); display: inline-block; }
 .deckgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; max-height: 68vh; overflow-y: auto; padding-right: 4px; }
 .deckgrid .howtocard { width: auto; }
+.deckgrid.builder .howtocard { cursor: pointer; transition: opacity 0.12s ease, filter 0.12s ease, transform 0.12s ease; }
+.deckgrid.builder .howtocard:hover { transform: translateY(-2px); }
+.deckgrid.builder .howtocard.benched { opacity: 0.32; filter: grayscale(0.7); }
 .presdot.on { background: #2dd4a7; box-shadow: 0 0 7px rgba(45, 212, 167, 0.8); }
 .leaderlist { display: flex; flex-direction: column; gap: 6px; }
 .leadrank { font-family: var(--display); font-weight: 700; font-size: 16px; min-width: 26px; text-align: center; color: #8a8f9e; }

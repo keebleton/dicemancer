@@ -19,7 +19,8 @@ import { presentIds, trackPresence } from './presence';
 import { listLiveGames, listRooms } from './rooms';
 import type { OpenRoom } from './rooms';
 import { clearSavedSession, loadSavedSession, useGame } from './store';
-import type { SavedSession, SeatKind } from './store';
+import type { DeckChoice, SavedSession, SeatKind } from './store';
+import { MIN_DECK_CARDS } from '../engine';
 
 const SEAT_COLORS: SeatColor[] = ['red', 'blue', 'black', 'green', 'yellow'];
 
@@ -371,28 +372,85 @@ function InviteFriendsRow({ code }: { code: string }) {
   );
 }
 
-/** The deck builder's preview: every card a 1-2 color deck can offer. */
-function DeckPreview({ colors, onClose }: { colors: SeatColor[]; onClose: () => void }) {
+// Curated decks persist per color combo, so a build survives across games.
+const deckKey = (colors: SeatColor[]) => 'dicemancer_deck_' + [...colors].sort().join('+');
+const loadSavedDeck = (colors: SeatColor[]): string[] | undefined => {
+  try {
+    const raw = localStorage.getItem(deckKey(colors));
+    return raw ? (JSON.parse(raw) as string[]) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+const saveDeckFor = (colors: SeatColor[], cards?: string[]) => {
+  try {
+    if (cards) localStorage.setItem(deckKey(colors), JSON.stringify(cards));
+    else localStorage.removeItem(deckKey(colors));
+  } catch {
+    // storage unavailable: the deck still applies this session
+  }
+};
+/** Fresh colors for a seat, restoring any saved build for that combo. */
+const deckFor = (colors: SeatColor[]): DeckChoice => ({ colors, cards: loadSavedDeck(colors) });
+
+/** The deck builder: click cards in or out of the 1-2 color pool. */
+function DeckBuilder(props: {
+  deck: DeckChoice;
+  onSave: (cards?: string[]) => void;
+  onClose: () => void;
+}) {
   const community = useAccount((s) => s.community);
   const packs = community && community.cards.length > 0 ? [...loadPacks(), community] : loadPacks();
   const pools = mergedPools(packs);
-  const cards = colors
+  const all = props.deck.colors
     .flatMap((c) => pools[c] ?? [])
     .sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name));
-  const title = colors.map((c) => c[0]!.toUpperCase() + c.slice(1)).join(' + ');
+  const [picked, setPicked] = useState<Set<string>>(
+    () => new Set(props.deck.cards ?? all.map((c) => c.id)),
+  );
+  const title = props.deck.colors.map((c) => c[0]!.toUpperCase() + c.slice(1)).join(' + ');
+  const isAll = picked.size >= all.length;
+  const legal = picked.size >= MIN_DECK_CARDS;
+  const toggle = (id: string) =>
+    setPicked((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
   return (
-    <div className="inspect-overlay" onClick={onClose}>
+    <div className="inspect-overlay" onClick={props.onClose}>
       <div className="inspect howto" onClick={(e) => e.stopPropagation()}>
         <section className="panel">
           <div className="howtohead">
             <h3>
-              {title} <span className="dimtext">{cards.length} cards</span>
+              {title}{' '}
+              <span className={legal ? 'dimtext' : 'err'}>
+                {picked.size} of {all.length} (minimum {MIN_DECK_CARDS})
+              </span>
             </h3>
-            <button onClick={onClose}>close</button>
+            <div>
+              <button onClick={() => setPicked(new Set(all.map((c) => c.id)))}>use all</button>
+              <button
+                className="primary"
+                disabled={!legal}
+                onClick={() => {
+                  props.onSave(isAll ? undefined : [...picked]);
+                  props.onClose();
+                }}
+              >
+                save deck
+              </button>
+              <button onClick={props.onClose}>cancel</button>
+            </div>
           </div>
-          <div className="deckgrid">
-            {cards.map((c) => (
-              <div key={c.id} className="howtocard">
+          <div className="deckgrid builder">
+            {all.map((c) => (
+              <div
+                key={c.id}
+                className={'howtocard' + (picked.has(c.id) ? '' : ' benched')}
+                onClick={() => toggle(c.id)}
+              >
                 <CardFace card={c} showCost />
               </div>
             ))}
@@ -415,15 +473,23 @@ function Setup({ onLab }: { onLab: () => void }) {
   const [count, setCount] = useState(2);
   const [kinds, setKinds] = useState<SeatKind[]>(['human', 'bot', 'bot', 'bot']);
   const [levels, setLevels] = useState<BotLevel[]>(['normal', 'normal', 'normal', 'normal']);
-  // The deck builder: each seat plays 1 or 2 colors merged into one deck.
-  const [decks, setDecks] = useState<SeatColor[][]>([['red'], ['blue'], ['green'], ['yellow']]);
-  const [previewDeck, setPreviewDeck] = useState<SeatColor[] | null>(null);
+  // The deck builder: each seat plays 1 or 2 colors, optionally curated.
+  const [decks, setDecks] = useState<DeckChoice[]>(() =>
+    (['red', 'blue', 'green', 'yellow'] as SeatColor[]).map((c) => deckFor([c])),
+  );
+  const [builderSeat, setBuilderSeat] = useState<number | null>(null);
   const toggleDeckColor = (i: number, c: SeatColor) =>
     setDecks(
       decks.map((d, j) => {
         if (j !== i) return d;
-        if (d.includes(c)) return d.length > 1 ? d.filter((x) => x !== c) : d;
-        return d.length < 2 ? [...d, c] : [d[0]!, c];
+        const cs = d.colors.includes(c)
+          ? d.colors.length > 1
+            ? d.colors.filter((x) => x !== c)
+            : d.colors
+          : d.colors.length < 2
+            ? [...d.colors, c]
+            : [d.colors[0]!, c];
+        return deckFor(cs);
       }),
     );
   const [packs, setPacks] = useState(() => loadPacks());
@@ -582,13 +648,15 @@ function Setup({ onLab }: { onLab: () => void }) {
           {SEAT_COLORS.map((c) => (
             <button
               key={c}
-              className={'swatch sw-' + c + (decks[i]?.includes(c) ? ' selected' : '')}
+              className={'swatch sw-' + c + (decks[i]?.colors.includes(c) ? ' selected' : '')}
               title={`${c} (pick up to two)`}
               aria-label={`seat ${i + 1} plays ${c}`}
               onClick={() => toggleDeckColor(i, c)}
             />
           ))}
-          <button onClick={() => setPreviewDeck(decks[i] ?? ['red'])}>deck</button>
+          <button onClick={() => setBuilderSeat(i)}>
+            deck{decks[i]?.cards ? ` (${decks[i]!.cards!.length})` : ''}
+          </button>
           {kinds[i] === 'bot' && (
             <span className="botlevels">
               {(['easy', 'normal', 'hard'] as const).map((lv) => (
@@ -639,7 +707,16 @@ function Setup({ onLab }: { onLab: () => void }) {
       {history && <MatchHistory onClose={() => setHistory(false)} />}
       {leaders && <Leaderboard onClose={() => setLeaders(false)} />}
       {showFriends && <FriendsOverlay onClose={() => setShowFriends(false)} />}
-      {previewDeck && <DeckPreview colors={previewDeck} onClose={() => setPreviewDeck(null)} />}
+      {builderSeat !== null && decks[builderSeat] && (
+        <DeckBuilder
+          deck={decks[builderSeat]!}
+          onSave={(cards) => {
+            saveDeckFor(decks[builderSeat]!.colors, cards);
+            setDecks(decks.map((d, j) => (j === builderSeat ? { ...d, cards } : d)));
+          }}
+          onClose={() => setBuilderSeat(null)}
+        />
+      )}
     </main>
   );
 }
@@ -705,14 +782,22 @@ function OnlineLobby() {
   const leaveOnline = useGame((s) => s.leaveOnline);
   const [bots, setBots] = useState(0);
   const [botLevel, setBotLevel] = useState<BotLevel>('normal');
-  const [decks, setDecks] = useState<SeatColor[][]>([['red'], ['blue'], ['green'], ['yellow']]);
-  const [previewDeck, setPreviewDeck] = useState<SeatColor[] | null>(null);
+  const [decks, setDecks] = useState<DeckChoice[]>(() =>
+    (['red', 'blue', 'green', 'yellow'] as SeatColor[]).map((c) => deckFor([c])),
+  );
+  const [builderSeat, setBuilderSeat] = useState<number | null>(null);
   const toggleDeckColor = (i: number, c: SeatColor) =>
     setDecks(
       decks.map((d, j) => {
         if (j !== i) return d;
-        if (d.includes(c)) return d.length > 1 ? d.filter((x) => x !== c) : d;
-        return d.length < 2 ? [...d, c] : [d[0]!, c];
+        const cs = d.colors.includes(c)
+          ? d.colors.length > 1
+            ? d.colors.filter((x) => x !== c)
+            : d.colors
+          : d.colors.length < 2
+            ? [...d.colors, c]
+            : [d.colors[0]!, c];
+        return deckFor(cs);
       }),
     );
   const humans = Math.max(1, lobby.length);
@@ -740,13 +825,15 @@ function OnlineLobby() {
                 {SEAT_COLORS.map((c) => (
                   <button
                     key={c}
-                    className={'swatch sw-' + c + (decks[i]?.includes(c) ? ' selected' : '')}
+                    className={'swatch sw-' + c + (decks[i]?.colors.includes(c) ? ' selected' : '')}
                     title={`${c} (pick up to two)`}
                     aria-label={`seat ${i + 1} plays ${c}`}
                     onClick={() => toggleDeckColor(i, c)}
                   />
                 ))}
-                <button onClick={() => setPreviewDeck(decks[i] ?? ['red'])}>deck</button>
+                <button onClick={() => setBuilderSeat(i)}>
+                  deck{decks[i]?.cards ? ` (${decks[i]!.cards!.length})` : ''}
+                </button>
               </>
             )}
           </div>
@@ -786,7 +873,16 @@ function OnlineLobby() {
         </>
       )}
       <button onClick={() => leaveOnline()}>Leave</button>
-      {previewDeck && <DeckPreview colors={previewDeck} onClose={() => setPreviewDeck(null)} />}
+      {builderSeat !== null && decks[builderSeat] && (
+        <DeckBuilder
+          deck={decks[builderSeat]!}
+          onSave={(cards) => {
+            saveDeckFor(decks[builderSeat]!.colors, cards);
+            setDecks(decks.map((d, j) => (j === builderSeat ? { ...d, cards } : d)));
+          }}
+          onClose={() => setBuilderSeat(null)}
+        />
+      )}
     </main>
   );
 }

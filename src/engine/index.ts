@@ -4,7 +4,7 @@
 export * from './types';
 export { mulberry32, rollDie } from './rng';
 export { DEFAULT_TUNABLES } from './tunables';
-export { createGame } from './setup';
+export { MIN_DECK_CARDS, createGame } from './setup';
 export type { GameConfig, SeatConfig } from './setup';
 export {
   actingSeat,

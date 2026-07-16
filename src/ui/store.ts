@@ -90,6 +90,13 @@ const savedName = (): string => {
 
 export type SeatKind = 'human' | 'bot';
 
+/** A seat's deck choice: 1-2 colors, optionally curated to specific cards
+ *  (undefined cards = the full merged pool). */
+export interface DeckChoice {
+  colors: SeatColor[];
+  cards?: string[];
+}
+
 /** A transient resource change, driving the floating +N animations. */
 export interface StatPulse {
   id: number;
@@ -141,8 +148,8 @@ interface GameStore {
     roundCap: number,
     seed?: number,
     kinds?: SeatKind[],
-    /** 1-2 deck colors per seat (the deck builder); [0] is the identity. */
-    decks?: SeatColor[][],
+    /** Per-seat deck choice (the deck builder); colors[0] is the identity. */
+    decks?: DeckChoice[],
     levels?: BotLevel[],
   ) => void;
   /** The ONLY writer: every state change goes through the engine's applyAction.
@@ -158,7 +165,7 @@ interface GameStore {
   startOnline: (
     botCount: number,
     roundCap: number,
-    decks: SeatColor[][],
+    decks: DeckChoice[],
     botLevel?: BotLevel,
   ) => void;
   leaveOnline: (notice?: string | null) => void;
@@ -433,17 +440,18 @@ export const useGame = create<GameStore>()((set, get) => {
       rng = mulberry32(seed ?? Date.now() >>> 0);
       const seatKinds: SeatKind[] =
         kinds?.slice(0, playerCount) ?? Array<SeatKind>(playerCount).fill('human');
-      const seatDecks: SeatColor[][] =
+      const seatDecks: DeckChoice[] =
         decks?.slice(0, playerCount) ??
-        (['red', 'blue', 'green', 'yellow'] as SeatColor[]).map((c) => [c]);
+        (['red', 'blue', 'green', 'yellow'] as SeatColor[]).map((c) => ({ colors: [c] }));
       const game = createGame(
         {
           seats: Array.from({ length: playerCount }, (_, i) => {
             const deck = seatDecks[i % seatDecks.length]!;
             return {
               name: seatKinds[i] === 'bot' ? `Bot ${i + 1}` : `Player ${i + 1}`,
-              color: deck[0] ?? 'red',
-              color2: deck[1],
+              color: deck.colors[0] ?? 'red',
+              color2: deck.colors[1],
+              cardIds: deck.cards,
             };
           }),
           starterBoard: effectiveStarterBoard(), // with any Card Lab edits applied
@@ -539,8 +547,13 @@ export const useGame = create<GameStore>()((set, get) => {
       const game = createGame(
         {
           seats: seats.names.map((n, i) => {
-            const deck = decks[i % decks.length] ?? ['red'];
-            return { name: n, color: deck[0] ?? 'red', color2: deck[1] };
+            const deck = decks[i % decks.length] ?? { colors: ['red' as SeatColor] };
+            return {
+              name: n,
+              color: deck.colors[0] ?? 'red',
+              color2: deck.colors[1],
+              cardIds: deck.cards,
+            };
           }),
           starterBoard: effectiveStarterBoard(),
           pools: mergedPools(activePacks()), // the host's packs + community cards rule the table
