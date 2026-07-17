@@ -13,7 +13,7 @@
 import Peer from 'peerjs';
 import type { DataConnection } from 'peerjs';
 import type { Action, GameState } from '../engine';
-import { makeRoomCode, roomPeerId } from './protocol';
+import { PROTO_VERSION, makeRoomCode, roomPeerId } from './protocol';
 import type { NetMsg, SeatKind } from './protocol';
 import type { SeatColor } from '../engine';
 
@@ -173,6 +173,16 @@ class Net {
     conn.on('data', (raw) => {
       const msg = raw as NetMsg;
       if (msg.type === 'hello') {
+        // Version gate: a stale build joining a fresh host would desync the
+        // room in confusing ways; turn it away with the actual fix instead.
+        if ((msg.v ?? 1) !== PROTO_VERSION) {
+          conn.send({
+            type: 'bye',
+            reason: 'your game is out of date; refresh the page and rejoin',
+          } satisfies NetMsg);
+          setTimeout(() => conn.close(), 400);
+          return;
+        }
         const name = msg.name.trim() || 'Player';
         if (msg.spectate) {
           if (!this.begun) {
@@ -296,7 +306,7 @@ class Net {
         conn.on('open', () => {
           opened = true;
           clearTimeout(connectTimer);
-          conn.send({ type: 'hello', name, profileId, spectate } satisfies NetMsg);
+          conn.send({ type: 'hello', name, profileId, spectate, v: PROTO_VERSION } satisfies NetMsg);
           resolve();
         });
         conn.on('data', (raw) => {

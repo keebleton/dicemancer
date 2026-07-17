@@ -181,13 +181,18 @@ export function Game() {
   }, [game, botTurn, botEchoDue]);
 
   // Do I owe an echo hearing right now? Online: my own seat. Hotseat: the
-  // first pending human seat (players share the screen).
+  // first pending human seat (players share the screen). The legacy
+  // sequential phase (a stale-build host) is answerable too: only its head
+  // seat may choose.
   const myEchoSeat = (() => {
-    if (game.winner !== null || !echoPhase || game.echoPending.length === 0) return null;
+    if (game.winner !== null || game.echoPending.length === 0) return null;
+    if (!echoPhase && game.phase !== 'echoChoice') return null;
+    const pending =
+      game.phase === 'echoChoice' ? game.echoPending.slice(0, 1) : game.echoPending;
     if (mode !== 'offline') {
-      return mySeat !== null && mySeat >= 0 && game.echoPending.includes(mySeat) ? mySeat : null;
+      return mySeat !== null && mySeat >= 0 && pending.includes(mySeat) ? mySeat : null;
     }
-    return game.echoPending.find((s) => seatKinds[s] === 'human') ?? null;
+    return pending.find((s) => seatKinds[s] === 'human') ?? null;
   })();
 
   const actions = legalActions(game);

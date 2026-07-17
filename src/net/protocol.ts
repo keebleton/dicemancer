@@ -5,12 +5,20 @@ import type { Action, GameState, SeatColor } from '../engine';
 
 export type SeatKind = 'human' | 'bot';
 
+/** Wire-compatibility version. Bump on ANY breaking change to game state,
+ *  actions, or messages; the host turns away mismatched joiners with a
+ *  refresh-the-page message instead of letting a mixed room desync (the
+ *  stale-tab lesson: an old host once dealt echo states a new client had no
+ *  buttons for). v2 = concurrent echoes + trade consent + deck picks. */
+export const PROTO_VERSION = 2;
+
 /** Everything that crosses the wire. Host is the only authority: clients send
  *  `intent`, the host answers with `sync` (full state; it is a few KB). */
 export type NetMsg =
   /** spectate = watch only: the host replies begin with seat -1 and streams
-   *  syncs, but the connection never gets a seat or a chat voice. */
-  | { type: 'hello'; name: string; profileId: string | null; spectate?: boolean }
+   *  syncs, but the connection never gets a seat or a chat voice.
+   *  v = the sender's PROTO_VERSION (absent = pre-versioning builds). */
+  | { type: 'hello'; name: string; profileId: string | null; spectate?: boolean; v?: number }
   /** you = the receiver's own index in players (host omits; it is 0). */
   | { type: 'lobby'; players: string[]; you?: number }
   /** Client -> host, lobby only: my seat plays these colors (and, when
