@@ -12,6 +12,19 @@ function toBuyPhase(state: GameState, faces: [number, number] = [1, 2]): GameSta
   return applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
 }
 
+/** Full pass on faces [1, 2]: any owed echo hearings answer split (they run
+ *  concurrently with the buy phase), then skip buy and end the turn. */
+function passTurn(state: GameState): GameState {
+  const rng = mulberry32(0xd1ce);
+  let s = applyAction(state, { type: 'ROLL' }, diceRng(1, 2));
+  s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, rng);
+  for (const seat of [...s.echoPending]) {
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat }, rng);
+  }
+  s = applyAction(s, { type: 'SKIP_BUY' }, rng);
+  return applyAction(s, { type: 'END_TURN' }, rng);
+}
+
 const tiny = (ids: string[], color: CardDef['color']): CardDef[] =>
   ids.map((id) => ({
     id,
@@ -136,7 +149,7 @@ describe('the shared market', () => {
     const rowAfterBuy = s.players[0]!.shop.map((c) => c?.id ?? null);
     expect(rowAfterBuy[1]).toBeNull();
     s = applyAction(s, { type: 'END_TURN' }, mulberry32(5));
-    s = playTurn(s, [1, 2], 'individual'); // p1 passes; p0's refresh is SKIPPED
+    s = passTurn(s); // p1 passes (p0 hears its retiree's echo); p0's refresh is SKIPPED
     s = applyAction(s, { type: 'ROLL' }, diceRng(1, 2));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, mulberry32(6));
     expect(s.players[0]!.shop.map((c) => c?.id ?? null)).toEqual(rowAfterBuy);
@@ -145,7 +158,7 @@ describe('the shared market', () => {
     s = applyAction(s, { type: 'FREEZE_SHOP' }, deadRng());
     s = applyAction(s, { type: 'SKIP_BUY' }, deadRng());
     s = applyAction(s, { type: 'END_TURN' }, mulberry32(7));
-    s = playTurn(s, [1, 2], 'individual'); // p1 passes; p0 refreshes normally
+    s = passTurn(s); // p1 passes; p0 refreshes normally
     const fresh = s.players[0]!.shop;
     expect(fresh).toHaveLength(4);
     expect(fresh.every((c) => c !== null)).toBe(true); // holes gone
@@ -176,8 +189,8 @@ describe('the shared market', () => {
     ];
     s = applyAction(s, { type: 'ROLL' }, diceRng(3, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, mulberry32(9));
-    if (s.phase === 'echoChoice') {
-      s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, mulberry32(10));
+    if (s.echoPending.includes(0)) {
+      s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat: 0 }, mulberry32(10));
     }
     expect(s.players[0]!.shop.map((c) => c?.id ?? null)).toEqual(row);
   });
@@ -265,7 +278,7 @@ describe('buy, install, retire', () => {
     // p1 rolls a 3: p0 chooses to hear the split, so the retired starter echoes.
     s = applyAction(s, { type: 'ROLL' }, diceRng(3, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat: 0 }, deadRng());
     expect(s.players[0]!.money).toBe(moneyBefore + 1);
   });
 });

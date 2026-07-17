@@ -308,7 +308,8 @@ export function playForDispatch(
   else if (
     action.type === 'ALLOCATE' ||
     action.type === 'CHOOSE_TARGET' ||
-    action.type === 'ECHO_CHOICE'
+    action.type === 'ECHO_CHOICE' ||
+    action.type === 'TRADE_CHOICE'
   ) {
     if (pulses.some((p) => p.stat === 'hp' && p.delta < 0)) {
       sfx.hurt(damageColor(action, prev, next) ?? undefined);

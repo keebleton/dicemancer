@@ -778,6 +778,8 @@ function OnlineLobby() {
   const mode = useGame((s) => s.mode);
   const roomCode = useGame((s) => s.roomCode);
   const lobby = useGame((s) => s.lobby);
+  const lobbySelf = useGame((s) => s.lobbySelf);
+  const sendMyDeck = useGame((s) => s.sendMyDeck);
   const startOnline = useGame((s) => s.startOnline);
   const leaveOnline = useGame((s) => s.leaveOnline);
   const [bots, setBots] = useState(0);
@@ -786,21 +788,26 @@ function OnlineLobby() {
     (['red', 'blue', 'green', 'yellow'] as SeatColor[]).map((c) => deckFor([c])),
   );
   const [builderSeat, setBuilderSeat] = useState<number | null>(null);
-  const toggleDeckColor = (i: number, c: SeatColor) =>
-    setDecks(
-      decks.map((d, j) => {
-        if (j !== i) return d;
-        const cs = d.colors.includes(c)
-          ? d.colors.length > 1
-            ? d.colors.filter((x) => x !== c)
-            : d.colors
-          : d.colors.length < 2
-            ? [...d.colors, c]
-            : [d.colors[0]!, c];
-        return deckFor(cs);
-      }),
-    );
+  const toggleDeckColor = (i: number, c: SeatColor) => {
+    const next = decks.map((d, j) => {
+      if (j !== i) return d;
+      const cs = d.colors.includes(c)
+        ? d.colors.length > 1
+          ? d.colors.filter((x) => x !== c)
+          : d.colors
+        : d.colors.length < 2
+          ? [...d.colors, c]
+          : [d.colors[0]!, c];
+      return deckFor(cs);
+    });
+    setDecks(next);
+    if (mode === 'client' && i === lobbySelf && next[i]) sendMyDeck(next[i]!);
+  };
   const humans = Math.max(1, lobby.length);
+  // Who may edit which seat: the host covers itself and the bots; every
+  // joined player owns their own row.
+  const canEdit = (i: number) =>
+    mode === 'host' ? i === 0 || i >= humans : i === lobbySelf;
   const maxBots = Math.max(0, 4 - humans);
   const botCount = Math.min(bots, maxBots);
   const total = humans + botCount;
@@ -820,7 +827,7 @@ function OnlineLobby() {
         {seatNames.map((n, i) => (
           <div key={i} className="seatrow">
             seat {i + 1}: <b>{n}</b>
-            {mode === 'host' && (
+            {canEdit(i) && (
               <>
                 {SEAT_COLORS.map((c) => (
                   <button
@@ -878,7 +885,11 @@ function OnlineLobby() {
           deck={decks[builderSeat]!}
           onSave={(cards) => {
             saveDeckFor(decks[builderSeat]!.colors, cards);
-            setDecks(decks.map((d, j) => (j === builderSeat ? { ...d, cards } : d)));
+            const next = decks.map((d, j) => (j === builderSeat ? { ...d, cards } : d));
+            setDecks(next);
+            if (mode === 'client' && builderSeat === lobbySelf && next[builderSeat]) {
+              sendMyDeck(next[builderSeat]!);
+            }
           }}
           onClose={() => setBuilderSeat(null)}
         />

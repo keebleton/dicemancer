@@ -80,7 +80,7 @@ describe('targeted damage', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat: 1 }, deadRng());
     expect(s.phase).toBe('buy'); // an echo never pauses for a target
     expect(s.players[0]!.hp).toBe(23); // roller took it
     expect(s.players[2]!.hp).toBe(25);
@@ -99,9 +99,11 @@ describe('targeted damage', () => {
 
 describe('trade (yellow)', () => {
   it('pays the cost and applies the payoff', () => {
-    const s = fireSlot1(newGame(2), [
+    let s = fireSlot1(newGame(2), [
       { kind: 'trade', pay: 3, then: [{ kind: 'gainPoints', amount: 2 }] },
     ]);
+    expect(s.phase).toBe('tradeChoice'); // your own trade waits for consent
+    s = applyAction(s, { type: 'TRADE_CHOICE', accept: true }, deadRng());
     expect(s.players[0]!.money).toBe(5 - 3 + 1); // paid 3, slot 2 starter paid 1
     expect(s.players[0]!.points).toBe(2);
   });
@@ -121,6 +123,8 @@ describe('trade (yellow)', () => {
     let s = fireSlot1(s0, [
       { kind: 'trade', pay: 2, then: [{ kind: 'damage', amount: 2, target: 'chooseOpponent' }] },
     ]);
+    expect(s.phase).toBe('tradeChoice');
+    s = applyAction(s, { type: 'TRADE_CHOICE', accept: true }, deadRng());
     expect(s.phase).toBe('chooseTarget');
     s = applyAction(s, { type: 'CHOOSE_TARGET', playerId: 1 }, deadRng());
     expect(s.players[1]!.hp).toBe(23);

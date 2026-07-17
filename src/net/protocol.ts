@@ -11,7 +11,11 @@ export type NetMsg =
   /** spectate = watch only: the host replies begin with seat -1 and streams
    *  syncs, but the connection never gets a seat or a chat voice. */
   | { type: 'hello'; name: string; profileId: string | null; spectate?: boolean }
-  | { type: 'lobby'; players: string[] }
+  /** you = the receiver's own index in players (host omits; it is 0). */
+  | { type: 'lobby'; players: string[]; you?: number }
+  /** Client -> host, lobby only: my seat plays these colors (and, when
+   *  curated, exactly these cards). */
+  | { type: 'deckPick'; colors: SeatColor[]; cards?: string[] }
   | {
       type: 'begin';
       state: GameState;
@@ -45,10 +49,16 @@ export function makeRoomCode(rand: () => number = Math.random): string {
 export const normalizeRoomCode = (raw: string) => raw.trim().toUpperCase();
 
 /** May `seat` play `action` on this state right now? The host runs this on
- *  every client intent; a stale or forged action is simply dropped. */
+ *  every client intent; a stale or forged action is simply dropped. Echo
+ *  hearings are the one concurrent action: any owed seat answers for
+ *  ITSELF, everything else belongs to the acting seat. */
 export function isLegalIntent(state: GameState, seat: number, action: Action): boolean {
   if (state.winner !== null) return false;
-  if (actingSeat(state) !== seat) return false;
+  if (action.type === 'ECHO_CHOICE') {
+    if (action.seat !== seat) return false; // you only hear for yourself
+  } else if (actingSeat(state) !== seat) {
+    return false;
+  }
   const key = JSON.stringify(action);
   return legalActions(state).some((a) => JSON.stringify(a) === key);
 }

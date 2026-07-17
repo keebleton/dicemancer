@@ -6,7 +6,7 @@
 // sends to the graveyard, leans into charge slots about to pay off, and
 // takes lethal when it sees it. Everything stays deterministic (sims replay
 // per seed): easy's randomness derives from a state hash, not Math.random.
-import { RELIC_BY_ID, actingSeat, legalActions, previewNumbers } from '../engine';
+import { RELIC_BY_ID, legalActions, previewNumbers } from '../engine';
 import type { Action, AllocationMode, ConditionalWhen, Effect, GameState } from '../engine';
 
 export type BotLevel = 'easy' | 'normal' | 'hard';
@@ -38,13 +38,30 @@ export function chooseAction(state: GameState, level: BotLevel = 'normal'): Acti
       return pool[(h >>> 3) % pool.length] ?? first;
     }
   }
+  // Owed echo hearings resolve before anything else (concurrent with the
+  // buy phase; in sims and bot-vs-bot the order is deterministic).
+  if (
+    (state.phase === 'buy' || state.phase === 'end') &&
+    state.echoPending.length > 0 &&
+    actions.some((a) => a.type === 'ECHO_CHOICE')
+  ) {
+    return chooseEchoFor(state, state.echoPending[0]!);
+  }
   switch (state.phase) {
     case 'allocate':
       return level === 'hard' ? hardAllocate(state, actions) : bestAllocation(state, actions);
     case 'chooseTarget':
       return bestTarget(state, actions, level);
+    case 'tradeChoice': {
+      const head = state.pendingEffects?.[0];
+      if (head && head.effect.kind === 'trade') {
+        const v = scoreEffects(state, head.effect.then, head.owner);
+        return { type: 'TRADE_CHOICE', accept: v > head.effect.pay };
+      }
+      return first;
+    }
     case 'echoChoice':
-      return bestEchoChoice(state);
+      return chooseEchoFor(state, state.echoPending[0] ?? state.current);
     case 'buy': {
       if (level === 'easy') {
         return bestBuy(
@@ -60,12 +77,11 @@ export function chooseAction(state: GameState, level: BotLevel = 'normal'): Acti
   }
 }
 
-/** How should MY echo stack hear this roll? Pick the interpretation whose
- *  matched echo lines are worth more to me (echo damage chips the roller,
- *  so it counts as a gain here). */
-function bestEchoChoice(state: GameState): Action {
+/** How should `seat`'s echo stack hear this roll? Pick the interpretation
+ *  whose matched echo lines are worth more to them (echo damage chips the
+ *  roller, so it counts as a gain here). */
+export function chooseEchoFor(state: GameState, seat: number): Action {
   const dice = state.dice!;
-  const seat = actingSeat(state);
   const stack = state.players[seat]!.echoStack;
   const roll: RollContext = {
     mode: state.lastAllocation?.mode ?? 'individual',
@@ -90,7 +106,7 @@ function bestEchoChoice(state: GameState): Action {
   };
   const mode: AllocationMode =
     valueFor([dice[0], dice[1]]) >= valueFor([dice[0] + dice[1]]) ? 'individual' : 'sum';
-  return { type: 'ECHO_CHOICE', mode };
+  return { type: 'ECHO_CHOICE', mode, seat };
 }
 
 /** Value of one of MY echo lines when it fires on someone else's turn. */

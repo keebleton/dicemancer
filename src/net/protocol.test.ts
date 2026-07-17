@@ -42,9 +42,15 @@ describe('isLegalIntent (the host gate)', () => {
     });
     s = applyAction(s, { type: 'ROLL' }, diceRng(4, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, mulberry32(1));
-    expect(s.phase).toBe('echoChoice');
-    expect(isLegalIntent(s, 0, { type: 'ECHO_CHOICE', mode: 'sum' })).toBe(false);
-    expect(isLegalIntent(s, 1, { type: 'ECHO_CHOICE', mode: 'sum' })).toBe(true);
+    // The hearing runs concurrently with the roller's buy phase.
+    expect(s.phase).toBe('buy');
+    expect(s.echoPending).toContain(1);
+    // The owed opponent answers for their own seat...
+    expect(isLegalIntent(s, 1, { type: 'ECHO_CHOICE', mode: 'sum', seat: 1 })).toBe(true);
+    // ...the roller cannot answer in the opponent's name...
+    expect(isLegalIntent(s, 0, { type: 'ECHO_CHOICE', mode: 'sum', seat: 1 })).toBe(false);
+    // ...and nobody can aim a hearing at a seat that is not owed one.
+    expect(isLegalIntent(s, 1, { type: 'ECHO_CHOICE', mode: 'sum', seat: 0 })).toBe(false);
   });
 });
 

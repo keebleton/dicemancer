@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { chooseAction } from '../bot';
+import { chooseAction, chooseEchoFor } from '../bot';
 import { RELIC_BY_ID, actingSeat, legalActions, previewNumbers } from '../engine';
-import type { Action, AllocationMode, CardDef, GameState, PlayerState, WinReason } from '../engine';
+import type {
+  Action,
+  AllocationMode,
+  CardDef,
+  Effect,
+  GameState,
+  PlayerState,
+  WinReason,
+} from '../engine';
 import { CardFace, TINT } from './CardFace';
 import { fxList } from './describe';
 import { FxLayer } from './Fx';
@@ -141,23 +149,46 @@ export function Game() {
   // bot. Bots only ever run where the rng lives: never on online clients.
   const acting = actingSeat(game);
   const botTurn = game.winner === null && mode !== 'client' && seatKinds[acting] === 'bot';
+  const echoPhase = game.phase === 'buy' || game.phase === 'end';
+  const botEchoDue =
+    game.winner === null &&
+    mode !== 'client' &&
+    echoPhase &&
+    game.echoPending.some((s) => seatKinds[s] === 'bot');
   useEffect(() => {
-    if (!botTurn) return;
+    if (!botTurn && !botEchoDue) return;
     const t = setTimeout(() => {
       const g = useGame.getState().game;
       const kinds = useGame.getState().seatKinds;
-      if (
-        g
-        && g.winner === null
-        && useGame.getState().mode !== 'client'
-        && kinds[actingSeat(g)] === 'bot'
-      ) {
+      if (!g || g.winner !== null || useGame.getState().mode === 'client') return;
+      // Owed bot echo hearings resolve first (concurrent with the buy).
+      if (g.phase === 'buy' || g.phase === 'end') {
+        const owed = g.echoPending.find((s) => kinds[s] === 'bot');
+        if (owed !== undefined) {
+          useGame.getState().dispatch(chooseEchoFor(g, owed));
+          return;
+        }
+      }
+      if (kinds[actingSeat(g)] === 'bot') {
         const level = useGame.getState().botLevels[actingSeat(g)] ?? 'normal';
-        useGame.getState().dispatch(chooseAction(g, level));
+        const a = chooseAction(g, level);
+        // Never answer a HUMAN's echo on their behalf; wait for them.
+        if (a.type === 'ECHO_CHOICE' && a.seat !== undefined && kinds[a.seat] !== 'bot') return;
+        useGame.getState().dispatch(a);
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [game, botTurn]);
+  }, [game, botTurn, botEchoDue]);
+
+  // Do I owe an echo hearing right now? Online: my own seat. Hotseat: the
+  // first pending human seat (players share the screen).
+  const myEchoSeat = (() => {
+    if (game.winner !== null || !echoPhase || game.echoPending.length === 0) return null;
+    if (mode !== 'offline') {
+      return mySeat !== null && mySeat >= 0 && game.echoPending.includes(mySeat) ? mySeat : null;
+    }
+    return game.echoPending.find((s) => seatKinds[s] === 'human') ?? null;
+  })();
 
   const actions = legalActions(game);
   const me = game.players[game.current]!;
@@ -172,7 +203,8 @@ export function Game() {
       if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-      if (game.winner !== null || !iControl(actingSeat(game))) return;
+      const owesEcho = myEchoSeat !== null && (mode === 'offline' || iControl(myEchoSeat));
+      if (game.winner !== null || (!iControl(actingSeat(game)) && !owesEcho)) return;
       if (e.code === 'Space') {
         const advance = (['ROLL', 'SKIP_BUY', 'END_TURN'] as const)
           .map((type) => actions.find((a) => a.type === type))
@@ -187,7 +219,9 @@ export function Game() {
         const wanted = e.key === '1' ? 'individual' : 'sum';
         const pick =
           actions.find((a) => a.type === 'ALLOCATE' && a.mode === wanted) ??
-          actions.find((a) => a.type === 'ECHO_CHOICE' && a.mode === wanted);
+          actions.find(
+            (a) => a.type === 'ECHO_CHOICE' && a.mode === wanted && a.seat === myEchoSeat,
+          );
         if (pick) {
           e.preventDefault();
           dispatch(pick);
@@ -426,6 +460,7 @@ export function Game() {
               dispatch={dispatch}
               setPreview={setPreview}
               waitLabel={waitLabel}
+              myEchoSeat={myEchoSeat}
             />
 
             {game.winner === null && me.shop.length > 0 && (
@@ -604,11 +639,13 @@ function Stage(props: {
   setPreview: (m: AllocationMode | null) => void;
   /** Non-null = someone else must act; show who instead of the buttons. */
   waitLabel: string | null;
+  /** The seat I owe an echo hearing for (null = none). Echo buttons render
+   *  even while waiting on the roller: hearings are concurrent. */
+  myEchoSeat: number | null;
 }) {
-  const { game, actions, dispatch, setPreview, waitLabel } = props;
+  const { game, actions, dispatch, setPreview, waitLabel, myEchoSeat } = props;
   if (game.winner !== null) return null;
-  const acting = actingSeat(game);
-  const actor = game.players[acting]!;
+  const actor = game.players[game.current]!;
   const roller = game.players[game.current]!;
   const dice = game.dice;
 
@@ -619,9 +656,13 @@ function Stage(props: {
   const targets = actions.filter(
     (a): a is Action & { type: 'CHOOSE_TARGET' } => a.type === 'CHOOSE_TARGET',
   );
-  const echoChoices = actions.filter(
-    (a): a is Action & { type: 'ECHO_CHOICE' } => a.type === 'ECHO_CHOICE',
-  );
+  const trade =
+    game.phase === 'tradeChoice' && game.pendingEffects?.[0]?.effect.kind === 'trade'
+      ? (game.pendingEffects[0].effect as Effect & { kind: 'trade' })
+      : null;
+  const echoWaitNames = game.echoPending
+    .filter((s) => s !== myEchoSeat)
+    .map((s) => game.players[s]!.name);
   return (
     <section className="panel stage">
       <div className="stageinfo">
@@ -704,41 +745,28 @@ function Stage(props: {
             );
           })}
 
-          {echoChoices.length > 0 &&
-            dice &&
-            (
-              [
-                ['individual', `Hear ${dice[0]} + ${dice[1]}`, [dice[0], dice[1]]],
-                ['sum', `Hear ${dice[0] + dice[1]}`, [dice[0] + dice[1]]],
-              ] as [AllocationMode, string, number[]][]
-            ).map(([mode, label, numbers]) => {
-              const lines = numbers.flatMap((n) =>
-                actor.echoStack.filter((e) => e.slot === n).map((e) => e.def.echo),
-              );
-              // High echoes (7-12) hear the sum under either choice.
-              const sum = dice[0] + dice[1];
-              if (game.tunables.highEchoHearsSum && sum >= 7 && !numbers.includes(sum)) {
-                lines.push(
-                  ...actor.echoStack.filter((e) => e.slot === sum).map((e) => e.def.echo),
-                );
-              }
-              return (
-                <button
-                  key={mode}
-                  className="choicebtn"
-                  onClick={() => dispatch({ type: 'ECHO_CHOICE', mode })}
-                >
-                  <span className="choicelabel">{label}</span>
-                  <span className="choicefx">
-                    {lines.length === 0 ? (
-                      <span className="dimtext">nothing</span>
-                    ) : (
-                      <EffectIcons effects={aggregateEchoEffects(lines)} context="echo" />
-                    )}
-                  </span>
-                </button>
-              );
-            })}
+          {trade && (
+            <>
+              <button
+                className="choicebtn"
+                onClick={() => dispatch({ type: 'TRADE_CHOICE', accept: true })}
+              >
+                <span className="choicelabel">Pay {trade.pay}</span>
+                <span className="choicefx">
+                  <EffectIcons effects={trade.then} context="active" />
+                </span>
+              </button>
+              <button
+                className="choicebtn"
+                onClick={() => dispatch({ type: 'TRADE_CHOICE', accept: false })}
+              >
+                <span className="choicelabel">Keep the money</span>
+                <span className="choicefx">
+                  <span className="dimtext">skip the trade</span>
+                </span>
+              </button>
+            </>
+          )}
 
           {targets.map((t) => (
             <button key={t.playerId} className="primary" onClick={() => dispatch(t)}>
@@ -755,6 +783,51 @@ function Stage(props: {
             </button>
           )}
         </div>
+      )}
+
+      {/* Echo hearings are concurrent: whoever owes one answers here, even
+          while the stage otherwise waits on the roller. */}
+      {myEchoSeat !== null && dice && (
+        <div className="stagebtns">
+          {(
+            [
+              ['individual', `Hear ${dice[0]} + ${dice[1]}`, [dice[0], dice[1]]],
+              ['sum', `Hear ${dice[0] + dice[1]}`, [dice[0] + dice[1]]],
+            ] as [AllocationMode, string, number[]][]
+          ).map(([mode, label, numbers]) => {
+            const chooser = game.players[myEchoSeat]!;
+            const lines = numbers.flatMap((n) =>
+              chooser.echoStack.filter((e) => e.slot === n).map((e) => e.def.echo),
+            );
+            // High echoes (7-12) hear the sum under either choice.
+            const sum = dice[0] + dice[1];
+            if (game.tunables.highEchoHearsSum && sum >= 7 && !numbers.includes(sum)) {
+              lines.push(
+                ...chooser.echoStack.filter((e) => e.slot === sum).map((e) => e.def.echo),
+              );
+            }
+            return (
+              <button
+                key={mode}
+                className="choicebtn"
+                onClick={() => dispatch({ type: 'ECHO_CHOICE', mode, seat: myEchoSeat })}
+              >
+                <span className="choicelabel">{label}</span>
+                <span className="choicefx">
+                  {lines.length === 0 ? (
+                    <span className="dimtext">nothing</span>
+                  ) : (
+                    <EffectIcons effects={aggregateEchoEffects(lines)} context="echo" />
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {!waitLabel && myEchoSeat === null && echoWaitNames.length > 0 && (
+        <div className="dimtext">waiting for {echoWaitNames.join(', ')} to hear the roll...</div>
       )}
     </section>
   );

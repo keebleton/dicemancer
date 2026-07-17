@@ -131,6 +131,10 @@ interface GameStore {
   roomCode: string | null;
   /** Lobby roster (online, before the game starts). */
   lobby: string[];
+  /** My own index in the lobby roster (0 = host, -1 = unknown yet). */
+  lobbySelf: number;
+  /** Client: tell the host which deck my seat plays. */
+  sendMyDeck: (deck: DeckChoice) => void;
   /** Why the last online session ended; shown on the setup screen. */
   netNotice: string | null;
   /** Supabase profile id per seat (online games); null = bot or signed out. */
@@ -335,8 +339,8 @@ export const useGame = create<GameStore>()((set, get) => {
 
   // The net layer reports in through these; registered once at store creation.
   net.setCallbacks({
-    onLobby: (players) => {
-      set({ lobby: players });
+    onLobby: (players, you) => {
+      set({ lobby: players, lobbySelf: you });
       // Keep the open-rooms directory's player count fresh while hosting.
       const s = get();
       if (s.mode === 'host' && !s.game && s.roomCode) {
@@ -422,11 +426,15 @@ export const useGame = create<GameStore>()((set, get) => {
     mySeat: null,
     roomCode: null,
     lobby: [],
+    lobbySelf: -1,
     netNotice: null,
     seatProfiles: [],
     connectedSeats: [],
     botLevels: [],
     bubbles: {},
+    sendMyDeck: (deck) => {
+      if (get().mode === 'client') net.sendDeckPick({ colors: deck.colors, cards: deck.cards });
+    },
     sendChat: (text, big = false) => {
       const s = get();
       if (!s.game || s.mode === 'offline') return;
@@ -547,7 +555,11 @@ export const useGame = create<GameStore>()((set, get) => {
       const game = createGame(
         {
           seats: seats.names.map((n, i) => {
-            const deck = decks[i % decks.length] ?? { colors: ['red' as SeatColor] };
+            // Joined players' own picks win; the host's panel covers itself,
+            // bots, and anyone who never picked.
+            const clientPicks = net.clientDeckPicks();
+            const pick = i > 0 && i <= clientPicks.length ? clientPicks[i - 1] : null;
+            const deck = pick ?? decks[i % decks.length] ?? { colors: ['red' as SeatColor] };
             return {
               name: n,
               color: deck.colors[0] ?? 'red',

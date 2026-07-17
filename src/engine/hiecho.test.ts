@@ -22,11 +22,13 @@ describe('highEchoHearsSum', () => {
     let s = withHighEcho(false);
     s = applyAction(s, { type: 'ROLL' }, diceRng(4, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, rng());
-    // Real decision for seat 1: split hits nothing, sum hits slot 9.
-    expect(s.phase).toBe('echoChoice');
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, rng());
-    expect(s.players[1]!.money).toBe(5); // heard the dice, echo missed
+    // Real decision for seat 1: split hits nothing, sum hits slot 9. The
+    // hearing waits concurrently while the roller's buy phase opens.
     expect(s.phase).toBe('buy');
+    expect(s.echoPending).toContain(1);
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat: 1 }, rng());
+    expect(s.players[1]!.money).toBe(5); // heard the dice, echo missed
+    expect(s.echoPending).toEqual([]);
   });
 
   it('on: the high echo hears the sum even when the roll is split', () => {
@@ -57,8 +59,9 @@ describe('highEchoHearsSum', () => {
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, rng());
     // Split hits slot 4, sum (9) hits nothing: still a real decision.
-    expect(s.phase).toBe('echoChoice');
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'sum' }, rng());
+    expect(s.phase).toBe('buy');
+    expect(s.echoPending).toContain(1);
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'sum', seat: 1 }, rng());
     expect(s.players[1]!.money).toBe(5); // chose the sum, low echo missed
   });
 });

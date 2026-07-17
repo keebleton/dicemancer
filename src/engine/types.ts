@@ -111,7 +111,17 @@ export interface PlayerState {
   relicUsed: Record<string, number>;
 }
 
-export type TurnPhase = 'roll' | 'allocate' | 'chooseTarget' | 'echoChoice' | 'buy' | 'end';
+/** 'echoChoice' is legacy (pre-concurrent echoes); it is never produced but
+ *  stays in the union so stale saved games still type. 'tradeChoice' pauses
+ *  the roller's resolution for a pay-or-keep consent. */
+export type TurnPhase =
+  | 'roll'
+  | 'allocate'
+  | 'chooseTarget'
+  | 'tradeChoice'
+  | 'echoChoice'
+  | 'buy'
+  | 'end';
 
 export type AllocationMode = 'individual' | 'sum';
 
@@ -169,8 +179,8 @@ export interface GameState {
   /** The RELIQUARY: shared face-up relic display (ids; null = sold out slot). */
   reliquary: (string | null)[];
   relicDeck: string[];
-  /** Seats (in order after the roller) still to hear this roll for their echoes.
-   *  The head of the list is the seat an ECHO_CHOICE is awaited from. */
+  /** Seats still owing an ECHO_CHOICE for this roll. They answer CONCURRENTLY
+   *  with the roller's buy phase; only END_TURN waits for the list to empty. */
   echoPending: number[];
   /** Per seat: the numbers their echoes heard this turn (null = none yet). */
   echoNumbers: (number[] | null)[];
@@ -186,8 +196,12 @@ export type Action =
   | { type: 'ALLOCATE'; mode: AllocationMode }
   | { type: 'CHOOSE_TARGET'; playerId: number }
   /** An opponent of the roller decides how THEIR echo stack hears the roll:
-   *  the two dice individually, or the one sum (the Space Base rule). */
-  | { type: 'ECHO_CHOICE'; mode: AllocationMode }
+   *  the two dice individually, or the one sum (the Space Base rule). seat
+   *  identifies the chooser; choices land concurrently with the buy phase. */
+  | { type: 'ECHO_CHOICE'; mode: AllocationMode; seat?: number }
+  /** Consent for a trade effect on your own fired card: pay and get the
+   *  payoff, or keep the money. */
+  | { type: 'TRADE_CHOICE'; accept: boolean }
   | { type: 'BUY'; shopIndex: number; targetSlot: number }
   /** Buy from the shared colorless market (counts as the turn's one purchase). */
   | { type: 'BUY_MARKET'; marketIndex: number; targetSlot: number }

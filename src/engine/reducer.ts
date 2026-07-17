@@ -58,13 +58,19 @@ export function legalActions(state: GameState): Action[] {
         type: 'CHOOSE_TARGET',
         playerId: seat,
       }));
-    case 'echoChoice':
+    case 'tradeChoice':
       return [
-        { type: 'ECHO_CHOICE', mode: 'individual' },
-        { type: 'ECHO_CHOICE', mode: 'sum' },
+        { type: 'TRADE_CHOICE', accept: true },
+        { type: 'TRADE_CHOICE', accept: false },
+      ];
+    case 'echoChoice':
+      // Legacy sequential phase (stale saves only): the head seat chooses.
+      return [
+        { type: 'ECHO_CHOICE', mode: 'individual', seat: state.echoPending[0] },
+        { type: 'ECHO_CHOICE', mode: 'sum', seat: state.echoPending[0] },
       ];
     case 'buy': {
-      const actions: Action[] = [{ type: 'SKIP_BUY' }];
+      const actions: Action[] = [{ type: 'SKIP_BUY' }, ...echoChoiceActions(state)];
       if (me.shop.length > 0) actions.push({ type: 'FREEZE_SHOP' }); // toggle
       me.shop.forEach((card, shopIndex) => {
         if (!card || buyCost(me, card) > me.money) return;
@@ -93,9 +99,24 @@ export function legalActions(state: GameState): Action[] {
       }
       return actions;
     }
-    case 'end':
-      return [{ type: 'END_TURN' }];
+    case 'end': {
+      // Every echo hearing must land before the turn can close.
+      const actions: Action[] = echoChoiceActions(state);
+      if (state.echoPending.length === 0) actions.push({ type: 'END_TURN' });
+      return actions;
+    }
   }
+}
+
+/** Pending echo hearings: any owed seat may answer at any time during the
+ *  roller's buy/end phases (concurrent, unordered). */
+function echoChoiceActions(state: GameState): Action[] {
+  const out: Action[] = [];
+  for (const seat of state.echoPending) {
+    out.push({ type: 'ECHO_CHOICE', mode: 'individual', seat });
+    out.push({ type: 'ECHO_CHOICE', mode: 'sum', seat });
+  }
+  return out;
 }
 
 /** Numbers an allocation mode would produce from these dice. The UI preview
@@ -156,12 +177,21 @@ function perform(next: GameState, action: Action, rng: Rng): void {
       chooseTarget(next, action.playerId, rng);
       break;
     case 'ECHO_CHOICE': {
-      const seat = next.echoPending[0]!;
+      const seat = action.seat ?? next.echoPending[0]!;
+      const legacy = next.phase === 'echoChoice';
       fireEchoesFor(next, seat, previewNumbers(next.dice!, action.mode), rng);
-      next.echoPending.shift();
-      processEchoQueue(next, rng);
+      next.echoPending = next.echoPending.filter((s) => s !== seat);
+      if (legacy) {
+        // Stale save from the sequential era: walk the rest concurrently.
+        processEchoQueue(next, rng);
+      } else if (next.winner === null && next.players[next.current]!.eliminated) {
+        endTurn(next, rng); // echo damage KO'd the roller mid-buy
+      }
       break;
     }
+    case 'TRADE_CHOICE':
+      tradeChoice(next, action.accept, rng);
+      break;
     case 'BUY': {
       const me = next.players[next.current]!;
       const card = me.shop[action.shopIndex]!;
@@ -262,9 +292,21 @@ function assertLegal(state: GameState, action: Action): void {
         throw new Error(`seat ${action.playerId} is not a legal target`);
       }
       return;
-    case 'ECHO_CHOICE':
-      if (state.phase !== 'echoChoice') fail();
+    case 'ECHO_CHOICE': {
+      if (state.phase === 'echoChoice') return; // legacy sequential path
+      if (state.phase !== 'buy' && state.phase !== 'end') return fail();
+      const seat = action.seat;
+      if (seat === undefined || !state.echoPending.includes(seat)) {
+        throw new Error('no echo choice pending for that seat');
+      }
       return;
+    }
+    case 'TRADE_CHOICE': {
+      if (state.phase !== 'tradeChoice') return fail();
+      const head = state.pendingEffects?.[0];
+      if (!head || head.effect.kind !== 'trade') throw new Error('no pending trade');
+      return;
+    }
     case 'BUY': {
       if (state.phase !== 'buy') return fail();
       const me = state.players[state.current]!;
@@ -337,7 +379,10 @@ function assertLegal(state: GameState, action: Action): void {
       if (state.phase !== 'buy') fail();
       return;
     case 'END_TURN':
-      if (state.phase !== 'end') fail();
+      if (state.phase !== 'end') return fail();
+      if (state.echoPending.length > 0) {
+        throw new Error('waiting for echo choices before the turn can end');
+      }
       return;
   }
 }
@@ -387,6 +432,31 @@ function allocate(state: GameState, mode: AllocationMode, rng: Rng): void {
   if (drainQueue(state, rng)) finishResolution(state, rng);
 }
 
+/** Resolve a paused trade: pay and unshift the payoff, or walk away. */
+function tradeChoice(state: GameState, accept: boolean, rng: Rng): void {
+  const queue = state.pendingEffects;
+  const head = queue?.shift();
+  if (!head || head.effect.kind !== 'trade') {
+    throw new Error('no pending trade choice'); // unreachable via assertLegal
+  }
+  if (accept) {
+    const owner = state.players[head.owner]!;
+    const pay = hasRelic(owner, 'bottomless-purse')
+      ? Math.max(1, head.effect.pay - 1)
+      : head.effect.pay;
+    owner.money -= pay;
+    queue!.unshift(
+      ...head.effect.then.map((effect) => ({
+        effect,
+        owner: head.owner,
+        echo: head.echo,
+        slot: head.slot,
+      })),
+    );
+  }
+  if (drainQueue(state, rng)) finishResolution(state, rng);
+}
+
 function chooseTarget(state: GameState, playerId: number, rng: Rng): void {
   const queue = state.pendingEffects;
   const head = queue?.shift();
@@ -420,11 +490,19 @@ function drainQueue(state: GameState, rng: Rng): boolean {
       continue;
     }
     if (eff.kind === 'trade') {
-      queue.shift();
       const owner = state.players[item.owner]!;
       // Bottomless Purse relic: trades cost 1 less (minimum 1).
       const pay = hasRelic(owner, 'bottomless-purse') ? Math.max(1, eff.pay - 1) : eff.pay;
-      if (owner.money >= pay) {
+      if (!item.echo && owner.money >= pay) {
+        // Your own fired trade asks for consent: pay or keep the money
+        // (Jake: yellow was getting its funds drained without a choice).
+        state.phase = 'tradeChoice'; // pause; head stays queued for TRADE_CHOICE
+        return false;
+      }
+      queue.shift();
+      // Echo-line trades stay automatic: they fire on other players' turns
+      // and pausing every opponent roll would grind the table.
+      if (item.echo && owner.money >= pay) {
         owner.money -= pay;
         queue.unshift(
           ...eff.then.map((effect) => ({ effect, owner: item.owner, echo: item.echo, slot: item.slot })),
@@ -512,36 +590,31 @@ function matchedEntries(state: GameState, seat: number, numbers: number[]): numb
   return out;
 }
 
-/** Walks the echo queue: seats where the split/sum choice changes nothing are
- *  auto-resolved; the first seat with a real decision pauses in echoChoice. */
+/** Walks the echo queue: seats where the split/sum choice changes nothing
+ *  auto-resolve NOW; seats with a real decision STAY in echoPending and
+ *  answer concurrently with the roller's buy phase. The roller never waits
+ *  to shop, but END_TURN holds until every hearing lands. */
 function processEchoQueue(state: GameState, rng: Rng): void {
-  while (state.echoPending.length > 0) {
+  const keep: number[] = [];
+  for (const seat of [...state.echoPending]) {
     if (state.winner !== null) {
       state.echoPending = [];
       return;
     }
     const dice = state.dice;
     if (!dice) throw new Error('echo phase with no dice');
-    const seat = state.echoPending[0]!;
     const p = state.players[seat]!;
-    if (p.eliminated || p.echoStack.length === 0) {
-      state.echoPending.shift();
-      continue;
-    }
+    if (p.eliminated || p.echoStack.length === 0) continue;
     const split = matchedEntries(state, seat, [dice[0], dice[1]]);
     const sum = matchedEntries(state, seat, [dice[0] + dice[1]]);
-    if (split.length === 0 && sum.length === 0) {
-      state.echoPending.shift();
-      continue;
-    }
+    if (split.length === 0 && sum.length === 0) continue;
     if (JSON.stringify(split) === JSON.stringify(sum)) {
       fireEchoesFor(state, seat, [dice[0], dice[1]], rng);
-      state.echoPending.shift();
       continue;
     }
-    state.phase = 'echoChoice'; // await ECHO_CHOICE from this seat
-    return;
+    keep.push(seat);
   }
+  state.echoPending = keep;
   enterBuy(state, rng);
 }
 

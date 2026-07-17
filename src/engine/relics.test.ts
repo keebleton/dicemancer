@@ -139,9 +139,11 @@ describe('relic hooks', () => {
     });
     let n = applyAction(s, { type: 'ROLL' }, diceRng(1, 3));
     n = applyAction(n, { type: 'ALLOCATE', mode: 'sum' }, rng());
-    // The roller's own echo choice: split [1,3] vs sum [4] differ.
-    expect(n.phase).toBe('echoChoice');
-    n = applyAction(n, { type: 'ECHO_CHOICE', mode: 'sum' }, rng());
+    // The roller's own echo choice: split [1,3] vs sum [4] differ, so seat 0
+    // is owed a hearing while its own buy phase opens.
+    expect(n.phase).toBe('buy');
+    expect(n.echoPending).toContain(0);
+    n = applyAction(n, { type: 'ECHO_CHOICE', mode: 'sum', seat: 0 }, rng());
     expect(n.players[0]!.money).toBe(7);
   });
 
@@ -197,7 +199,9 @@ describe('relic hooks', () => {
   it('Bottomless Purse shaves trade costs', () => {
     const s = newGame(2);
     s.players[0]!.relics = ['bottomless-purse'];
-    const n = fire4(s, [{ kind: 'trade', pay: 3, then: [{ kind: 'gainMoney', amount: 5 }] }]);
+    let n = fire4(s, [{ kind: 'trade', pay: 3, then: [{ kind: 'gainMoney', amount: 5 }] }]);
+    expect(n.phase).toBe('tradeChoice'); // your own trade waits for consent
+    n = applyAction(n, { type: 'TRADE_CHOICE', accept: true }, rng());
     expect(n.players[0]!.money).toBe(8); // 5 - 2 + 5
   });
 

@@ -94,8 +94,9 @@ describe('echo step (each opponent chooses how to hear the roll)', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 6));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
-    expect(s.phase).toBe('echoChoice'); // p1 has a real decision: {4,6} vs {10}
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng());
+    expect(s.phase).toBe('buy'); // p1's real decision ({4,6} vs {10}) waits concurrently
+    expect(s.echoPending).toContain(1);
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat: 1 }, deadRng());
     expect(s.players[1]!.money).toBe(5 + 1); // echo paid the opponent
     expect(s.players[0]!.money).toBe(5 + 2); // roller got only the starter money
     expect(s.echoNumbers[1]).toEqual([4, 6]);
@@ -110,7 +111,7 @@ describe('echo step (each opponent chooses how to hear the roll)', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 6));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng()); // roller splits
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'sum' }, deadRng()); // chooser hears 10
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'sum', seat: 1 }, deadRng()); // chooser hears 10
     expect(s.players[1]!.money).toBe(5); // slot-4 tag silent
     expect(s.players[1]!.points).toBe(2); // slot-10 tag paid
   });
@@ -122,7 +123,7 @@ describe('echo step (each opponent chooses how to hear the roll)', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 4));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat: 1 }, deadRng());
     expect(s.players[1]!.money).toBe(5 + 2);
   });
 
@@ -134,7 +135,7 @@ describe('echo step (each opponent chooses how to hear the roll)', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 4));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'sum' }, deadRng());
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'sum' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'sum', seat: 1 }, deadRng());
     expect(s.players[1]!.money).toBe(5 + 1); // only the slot-8 entry matched
   });
 
@@ -146,7 +147,7 @@ describe('echo step (each opponent chooses how to hear the roll)', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(3, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat: 1 }, deadRng());
     expect(s.players[1]!.money).toBe(6);
     expect(s.players[0]!.hp).toBe(25 - 2);
   });
@@ -173,7 +174,7 @@ describe('echo step (each opponent chooses how to hear the roll)', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 6));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat: 1 }, deadRng());
     s = applyAction(s, { type: 'SKIP_BUY' }, deadRng());
     s = applyAction(s, { type: 'END_TURN' }, mulberry32(1));
     expect(s.echoNumbers.every((n) => n === null)).toBe(true);

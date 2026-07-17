@@ -73,11 +73,17 @@ export function describeTransition(prev: GameState, action: Action, next: GameSt
       lines.push(`${who} targets ${prev.players[action.playerId]!.name}`);
       break;
     case 'ECHO_CHOICE': {
-      const seat = prev.echoPending[0];
+      const seat = action.seat ?? prev.echoPending[0];
       if (seat !== undefined) {
         const numbers = next.echoNumbers[seat] ?? [];
         lines.push(`${prev.players[seat]!.name} hears ${numbers.join(' + ')} for echoes`);
       }
+      break;
+    }
+    case 'TRADE_CHOICE': {
+      const head = prev.pendingEffects?.[0];
+      const pay = head && head.effect.kind === 'trade' ? head.effect.pay : '?';
+      lines.push(action.accept ? `${who} pays ${pay} for the trade` : `${who} keeps the money`);
       break;
     }
     case 'BUY': {

@@ -62,8 +62,9 @@ describe('elimination', () => {
     s0.players[3]!.echoStack = [structuredClone(entry)];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(4, 4));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng()); // p1 (p2 skipped)
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng()); // p3
+    expect(s.echoPending).toEqual([1, 3]); // p2 never even offered the choice
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat: 1 }, deadRng());
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat: 3 }, deadRng());
     expect(s.players[1]!.money).toBe(5 + 2); // fired twice (doubles)
     expect(s.players[2]!.money).toBe(5); // inert: never even offered the choice
     expect(s.players[3]!.money).toBe(5 + 2);
@@ -85,7 +86,7 @@ describe('elimination', () => {
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(3, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, mulberry32(1)); // p1's chip kills p0
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat: 1 }, mulberry32(1)); // p1's chip kills p0
     expect(s.players[0]!.eliminated).toBe(true);
     expect(s.winner).toBeNull(); // three players still standing
     expect(s.current).toBe(1); // turn passed automatically
@@ -95,17 +96,16 @@ describe('elimination', () => {
   it('echo damage against an already-eliminated roller fizzles', () => {
     const s0 = newGame(4);
     s0.players[0]!.hp = 1;
-    // Two chip echoes on the same produced number: the first kills, the second must fizzle.
+    // Two chip echoes on the same produced number: the first kills, the second
+    // must fizzle. Both ride one stack: a roller death ends the turn on the
+    // spot, so a second seat's hearing would never get to fire.
     s0.players[1]!.echoStack = [
       { def: testCard({ id: 'chip-a', echo: rollerDamageEcho(1) }), slot: 3 },
-    ];
-    s0.players[2]!.echoStack = [
       { def: testCard({ id: 'chip-b', echo: rollerDamageEcho(5) }), slot: 3 },
     ];
     let s = applyAction(s0, { type: 'ROLL' }, diceRng(3, 5));
     s = applyAction(s, { type: 'ALLOCATE', mode: 'individual' }, deadRng());
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, deadRng()); // p1 kills p0
-    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual' }, mulberry32(2)); // p2 fizzles
+    s = applyAction(s, { type: 'ECHO_CHOICE', mode: 'individual', seat: 1 }, mulberry32(2)); // chip-a kills p0, chip-b fizzles
     expect(s.players[0]!.hp).toBe(0); // not driven negative, no double elimination
     expect(s.players[0]!.eliminated).toBe(true);
   });

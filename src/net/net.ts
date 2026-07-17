@@ -15,6 +15,12 @@ import type { DataConnection } from 'peerjs';
 import type { Action, GameState } from '../engine';
 import { makeRoomCode, roomPeerId } from './protocol';
 import type { NetMsg, SeatKind } from './protocol';
+import type { SeatColor } from '../engine';
+
+export interface NetDeckPick {
+  colors: SeatColor[];
+  cards?: string[];
+}
 
 /** NAT traversal. STUN alone fails whenever either side sits behind a
  *  strict NAT (hotspots, CGNAT): the join dies before it ever opens with
@@ -59,8 +65,9 @@ async function iceServers(): Promise<RTCIceServer[]> {
 export type NetMode = 'offline' | 'host' | 'client';
 
 interface Callbacks {
-  /** Lobby roster changed (both sides; host includes itself first). */
-  onLobby: (players: string[]) => void;
+  /** Lobby roster changed (both sides; host includes itself first).
+   *  you = the receiver's own index in players (0 for the host). */
+  onLobby: (players: string[], you: number) => void;
   /** Client only: the host started (or re-synced) the game; here is your seat. */
   onBegin: (state: GameState, seat: number, seatKinds: SeatKind[]) => void;
   /** Client only: the host applied an action. */
@@ -90,6 +97,8 @@ interface ClientSlot {
   /** Assigned at begin(); -1 while in the lobby. */
   seat: number;
   connected: boolean;
+  /** The player's own deck choice, sent from their lobby (null = default). */
+  deck: NetDeckPick | null;
 }
 
 class Net {
@@ -156,6 +165,7 @@ class Net {
       profileId: e.profileId,
       seat: e.seat,
       connected: false,
+      deck: null,
     }));
   }
 
@@ -190,6 +200,7 @@ class Net {
             profileId: msg.profileId ?? null,
             seat: -1,
             connected: true,
+            deck: null,
           });
           this.emitLobby();
           return;
@@ -221,6 +232,12 @@ class Net {
         const slot = this.clients.find((c) => c.conn === conn);
         if (slot && slot.seat >= 0) {
           this.cb?.onChatSend(slot.seat, String(msg.text ?? ''), msg.big === true);
+        }
+      }
+      if (msg.type === 'deckPick' && !this.begun) {
+        const slot = this.clients.find((c) => c.conn === conn);
+        if (slot && Array.isArray(msg.colors) && msg.colors.length >= 1 && msg.colors.length <= 2) {
+          slot.deck = { colors: msg.colors.slice(0, 2), cards: msg.cards };
         }
       }
     });
@@ -284,7 +301,7 @@ class Net {
         });
         conn.on('data', (raw) => {
           const msg = raw as NetMsg;
-          if (msg.type === 'lobby') this.cb?.onLobby(msg.players);
+          if (msg.type === 'lobby') this.cb?.onLobby(msg.players, msg.you ?? -1);
           else if (msg.type === 'begin') this.cb?.onBegin(msg.state, msg.seat, msg.seatKinds);
           else if (msg.type === 'sync') this.cb?.onSync(msg.action, msg.state);
           else if (msg.type === 'meta') this.cb?.onMeta(msg.connected, msg.seatKinds);
@@ -360,6 +377,16 @@ class Net {
     this.hostConn?.send({ type: 'chatSend', text, big } satisfies NetMsg);
   }
 
+  /** Client: tell the host which deck this seat plays. */
+  sendDeckPick(pick: NetDeckPick) {
+    this.hostConn?.send({ type: 'deckPick', colors: pick.colors, cards: pick.cards } satisfies NetMsg);
+  }
+
+  /** Host: each lobby client's own deck pick, in join order (null = default). */
+  clientDeckPicks(): (NetDeckPick | null)[] {
+    return this.clients.map((c) => c.deck);
+  }
+
   /** Host: push a validated chat line to every client. */
   chat(seat: number, text: string, big: boolean) {
     this.broadcast({ type: 'chat', seat, text, big });
@@ -396,8 +423,11 @@ class Net {
 
   private emitLobby() {
     const players = this.lobbyNames();
-    this.cb?.onLobby(players);
-    this.broadcast({ type: 'lobby', players });
+    this.cb?.onLobby(players, 0);
+    // Personalized: each client learns its own index so it can edit its row.
+    this.clients.forEach((c, i) => {
+      c.conn?.send({ type: 'lobby', players, you: i + 1 } satisfies NetMsg);
+    });
   }
 
   private broadcast(msg: NetMsg) {
